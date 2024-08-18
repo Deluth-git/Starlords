@@ -1,0 +1,140 @@
+{
+  "Musa Bodhi": {
+    "portrait": "interesting_portrait_luddic29",
+    "personality": "Upstanding",
+    "battle_personality": "Steady",
+    "level": 10,
+    "isMale": true,
+    "fief": "Gilead",
+    "ranking": 2,
+    "lore": "Musa Bodhi is the Cardinal of Gilead. Growing up as the second son of a minor Persean noble, Bodhi served briefly in the Persean navy before his ship was shot down in a skirmish with Tri-Tachyon border patrol at Mayasura. Near death, Bodhi claimed to see the spirit of Ludd, who guided him in a superhuman feat of landing his damaged escape pod safely at the Lost Astropolis. Afterwards, Bodhi converted to the Luddic Church and passionately preached Ludd's message. His story, which was gradually embellished among the peasantry to paint the Tri-Tachyon as bloodthirsty villains, made him widely popular and boosted his career to the top. Bodhi follows the egalitarian fleet doctrine of the Church, emphasizing quantity and swarm tactics with smaller craft. His refusal to pilot a capital ship himself earned him the respect of his troops and became widely copied among the Bishops.",
+    "fleetName": "Musa Bodhi's Fleet",
+    "faction": "Luddic_Church",
+    "flagship": "eradicator_Strike",
+    "shipPref": {
+      "hound_luddic_church_Standard": 15,
+      "lasher_luddic_church_Standard": 15,
+      "vanguard_Outdated": 10,
+      "condor_Attack": 10,
+      "buffalo2_FS": 10,
+      "manticore_Assault": 10,
+      "eradicator_Outdated": 30
+    }
+  },
+  "Anastasia Davoud": {
+    "portrait": "interesting_portrait_independent26",
+    "personality": "Upstanding",
+    "battle_personality": "Cautious",
+    "level": 8,
+    "isMale": false,
+    "fief": "Hesperus",
+    "ranking": 0,
+    "lore": "Bishop Anastasia Davoud can best be described as a Bishop of the people. Growing up in a poor mining family in Hesperus, Anastasia joined the clergy to escape a life in the mines. As a priestess, she was known for the care that she showed for poor working families like her own. She sponsored a program of alms for the people of Hesperus, which gradually expanded as she climbed to the rank of Bishop. Davoud does not fancy herself a commander and maintains a fleet mainly for peacekeeping purposes, though her men are deeply loyal to her and would follow her unquestioningly into any conflict.",
+    "fleetName": "Anastasia Davoud's Fleet",
+    "faction": "Luddic_Church",
+    "flagship": "eradicator_Outdated",
+    "shipPref": {
+      "hound_luddic_church_Standard": 15,
+      "lasher_luddic_church_Standard": 15,
+      "vanguard_Outdated": 20,
+      "condor_Attack": 10,
+      "manticore_Assault": 15,
+      "mora_Support": 15,
+      "eradicator_Outdated": 10
+    }
+  },
+  "Arsacius Symonds": {
+    "portrait": "interesting_portrait_luddic08",
+    "personality": "Martial",
+    "battle_personality": "Aggressive",
+    "level": 12,
+    "isMale": true,
+    "fief": null,
+    "ranking": 0,
+    "lore": "Arsacius Symonds is a Bishop of the Luddic Church who also holds the position of Count Excubitor of the Knights of Ludd. As a priest, Symonds reluctantly enlisted in the Knights amidst a frantic recruitment effort at the outbreak of the Second AI War. Proving to be a talented pilot, Symonds was promoted to Count Excubitor for his part in the Battle of Maxios, where a numerically superior Tri-Tachyon force attacked his squadron in an attempt to lift the Luddic blockade of Tibicena. Symonds emerged victorious after a detachment of pathers appeared and flanked the Tri-Tachyon force in the middle of the battle, resulting in its near-complete destruction. Though the Church called it a miracle of Ludd, the continued presence of pather forces among Symond's fleet began to cause rumors among his allies. Symonds would later willingly distance himself from Church politics, choosing instead to carry out missions as a Knight with his battle-hardened subordinates.",
+    "fleetName": "Arsacius Symonds' Knights of Ludd",
+    "faction": "Luddic_Church",
+    "flagship": "retribution_Standard",
+    "shipPref": {
+      "brawler_pather_Raider": 10,
+      "lasher_luddic_church_Standard": 10,
+      "vanguard_Outdated": 10,
+      "manticore_luddic_path_Strike": 15,
+      "mora_Support": 10,
+      "eradicator_Outdated": 15,
+      "eradicator_Overdriven": 10,
+      "retribution_Standard": 20
+    }
+  },
+  "Raphael Prospero": {
+    "portrait": "interesting_portrait_luddic45",
+    "personality": "Calculating",
+    "battle_personality": "Aggressive",
+    "level": 11,
+    "isMale": true,
+    "fief": "Tartessus",
+    "ranking": 1,
+    "lore": "Archbishop Raphael Prospero had an unlikely start as a middle-manager in Tri-Tachyon. However, after his org lost in a departmental power struggle, Prospero was framed for several product delays and became jobless and impoverished. Fortunately, the outbreak of the Second AI War gave him new opportunities, and he journeyed to Tartessus and joined the Luddic forces to take revenge on his former employer. The Luddic Church welcomed his zealous desire for vengeance with open arms, and he distinguished himself with numerous victories during the conflict. Prospero's Tri-Tachyon education grants him an unusual affinity for commerce compared to his fellow Bishops, and his business contacts in the hegemony allow him to occasionally import old hegemony ships to supplement his fleet, which he styles the Bane of Culann.",
+    "fleetName": "Bane of Culann",
+    "faction": "Luddic_Church",
+    "flagship": "retribution_Standard",
+    "shipPref": {
+      "lasher_luddic_church_Standard": 10,
+      "vanguard_Outdated": 15,
+      "condor_Attack": 10,
+      "manticore_Assault": 10,
+      "mora_Support": 10,
+      "eradicator_Outdated": 20,
+      "invictus_Support": 10,
+      "onslaught_Outdated": 15
+    }
+  },
+  "Josiah Bando": {
+    "portrait": "interesting_portrait_luddic39",
+    "personality": "Quarrelsome",
+    "battle_personality": "Reckless",
+    "level": 10,
+    "isMale": true,
+    "fief": null,
+    "ranking": 0,
+    "lore": "Josiah Bando is a Bishop of the Luddic Church and its unofficial liaison to the Luddic Path. Though the church's relations with the pathers are no secret, most bishops choose to distance themselves from the pathers in order to appease their hegemony allies. As a titular bishop with little real power, Josiah saw opportunity in the church's hesitation. With little to lose, he embraced his pather brothers and began to deal in arms and recruits between the two sides. Though outwardly shunned by his fellow Bishops and outright condemned by other factions, Josiah's power and wealth somehow continue to grow steadily. He makes only a token effort to deny collusion with the pathers, and he himself fields a mostly pather fleet.",
+    "fleetName": "Josiah Bando's Fleet",
+    "faction": "Luddic_Church",
+    "flagship": "prometheus2_Standard",
+    "shipPref": {
+      "kite_luddic_path_Strike": 5,
+      "brawler_pather_Raider": 10,
+      "lasher_luddic_path_Raider": 10,
+      "manticore_luddic_path_Strike": 10,
+      "hammerhead_Overdriven": 10,
+      "sunder_Overdriven": 10,
+      "colossus2_Pather": 10,
+      "eradicator_Overdriven": 10,
+      "prometheus2_Standard": 20,
+      "invictus_Support": 5
+    }
+  },
+  "Ephraim Meux": {
+    "portrait": "interesting_portrait_luddic41",
+    "personality": "Quarrelsome",
+    "battle_personality": "Reckless",
+    "level": 9,
+    "isMale": true,
+    "fief": "Asher",
+    "ranking": 1,
+    "lore": "Archbishop Ephraim Meux is a staunch champion of the Church's pastoral values. Born to a noble family in Gilead, Ephraim inherited large tracts of farmland when he became head of House Meux. He proceeded to grow it into one of the largest tenant farming operations in the sector. Church leaders took an interest in Ephraim as part of a counter-psyops program, and he was commonly depicted in Luddic media working the fields alongside his men. For his cooperation, Ephraim was granted the Archbishopric of Asher and sent to survey the planet for potential agricultural development. Church communications frequently referred to Ephraim as the People's Hero, which was quickly co-opted by his peasantry. They would frequently celebrate the people's lashings or people's gallows when they failed to meet harvest quotas. Due to Ephraim's wealth and status in the Church, he holds priority access to the Church's expensive capital ships and fields them in far greater numbers than his fellow Bishops.",
+    "fleetName": "Ephraim Meux's People's Navy",
+    "faction": "Luddic_Church",
+    "flagship": "invictus_Standard",
+    "shipPref": {
+      "hound_luddic_church_Standard": 10,
+      "lasher_luddic_church_Standard": 10,
+      "vanguard_Outdated": 10,
+      "manticore_Assault": 10,
+      "mora_Support": 10,
+      "eradicator_Outdated": 20,
+      "retribution_Standard": 10,
+      "invictus_Standard": 20
+    }
+  }
+}

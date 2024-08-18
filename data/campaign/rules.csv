@@ -1,0 +1,2 @@
+id,trigger,conditions,script,text,options,notes
+LordsOpenComms,OpenCommLink,$entity.lords_isLord score:1000,LordsOpenCommCmd,,,

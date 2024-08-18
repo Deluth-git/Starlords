@@ -1,0 +1,91 @@
+{
+  "Leonidas Nevsky": {
+    "portrait": "interesting_portrait_diktat16",
+    "personality": "Martial",
+    "battle_personality": "Aggressive",
+    "level": 12,
+    "isMale": true,
+    "fief": "Sindria",
+    "ranking": 1,
+    "lore": "Star Marshal Leonidas Nevsky is considered the last bastion of martial prowess in the Lion's Guard, and perhaps in all of Sindria. Having served under Andrada since his days as a hegemony officer, Nevsky continued the tradition of steely hegemony discipline even after being promoted to Star Marshal of the Lion's Guard. From the Lion's Guard headquarters in Sindria, Nevsky drills his recruits into model warriors that are viewed with equal parts fear and jealousy by his fellow Star Marshals. Because of this, Nevsky has few political allies, but none dare to question his value and loyalty to Sindria. His personal flotilla, the Lion's Maw, is ever Andrada's steadfast spear, enforcing the Supreme Executor's will throughout the sector.",
+    "fleetName": "Leonidas Nevsky's Lion's Maw",
+    "faction": "Sindrian_Diktat",
+    "flagship": "executor_Elite",
+    "shipPref": {
+      "brawler_LG_Elite": 15,
+      "centurion_LG_Assault": 15,
+      "hammerhead_LG_Elite": 10,
+      "sunder_LG_Assault": 10,
+      "eagle_LG_Assault": 15,
+      "falcon_LG_CS": 15,
+      "executor_Elite": 20
+    }
+  },
+  "Simeon Kaliman": {
+    "portrait": "interesting_portrait_diktat34",
+    "personality": "Calculating",
+    "battle_personality": "Cautious",
+    "level": 8,
+    "isMale": true,
+    "fief": "Cruor",
+    "ranking": 0,
+    "lore": "Simeon Kaliman serves as a Deputy Star Marshal of the Lion's Guard, as well as ambassador to the Persean League. More of a diplomat than a commander, Kaliman only leads his fleet as a formality during diplomatic missions. His unit serves less as a fighting force than as a testament to his interest in Persean culture. Nonetheless, with a sizeable contingent of Persean mercenaries in his employment, Kaliman may have unwittingly stumbled into a deadly combined arms force, if given proper training and leadership.",
+    "fleetName": "Simeon Kaliman's Lion's Guard",
+    "faction": "Sindrian_Diktat",
+    "flagship": "gryphon_Standard",
+    "shipPref": {
+      "brawler_LG_Elite": 10,
+      "monitor_Escort": 10,
+      "vigilance_Standard": 10,
+      "hammerhead_LG_Elite": 10,
+      "sunder_LG_Assault": 10,
+      "eagle_LG_Assault": 15,
+      "gryphon_Standard": 15,
+      "executor_Standard": 10,
+      "pegasus_Strike": 10
+    }
+  },
+  "Mircea Serban": {
+    "portrait": "interesting_portrait_diktat37",
+    "personality": "Calculating",
+    "battle_personality": "Cautious",
+    "level": 8,
+    "isMale": true,
+    "fief": null,
+    "ranking": 0,
+    "lore": "Mircea Serban serves as a Deputy Star Marshal of the Sindrian Armed Forces. Hailing from House Serban, the richest family in Sindria, Mircea's ascent is one that is subject to much rumor among the rank-and-file. Mircea enrolled at a young age to Andrada Naval Academy, the most prestigious officer academy in the Diktat. After graduating, he went on to be directly appointed to Deputy Star Marshal despite his inexperience. Mircea's greatest strength is the Serban family resources, which he fully leverages to implement an expensive capital-heavy fleet doctrine. From time to time, he is even able to secure experimental Tri-Tachyon ships from cadet branches of the Serban family working in the megacorporation.",
+    "fleetName": "House Serban Fleet",
+    "faction": "Sindrian_Diktat",
+    "flagship": "executor_Standard",
+    "shipPref": {
+      "sunder_Assault": 10,
+      "eagle_Support": 15,
+      "falcon_Escort": 10,
+      "aurora_Attack": 15,
+      "executor_Standard": 48,
+      "paragon_Raider": 2
+    }
+  },
+  "Malamir Litvoy": {
+    "portrait": "interesting_portrait_diktat39",
+    "personality": "Quarrelsome",
+    "battle_personality": "Reckless",
+    "level": 11,
+    "isMale": true,
+    "fief": "Volturn",
+    "ranking": 2,
+    "lore": "Malamir Litvoy serves as Generalissimo of the Sindrian Armed Forces. At one point, Litvoy arguably could've been considered the right-hand man of Andrada alongside Horacio Caden. However, a series of political gaffes culminated in a showdown with the Lion's Guard commander, where Litvoy was ultimately disgraced and lost Andrada's favor. As Generalissimo, he holds nominal command over all Sindrian forces, though his power is largely symbolic without the ability to influence Andrada. An aggressive and quick-tempered man, Litvoy's fleet doctrine matches his temperament, relying on frenzied bursts of firepower to overwhelm the enemy and blunt any counteroffensives.",
+    "fleetName": "Malamir Litvoy's Fleet",
+    "faction": "Sindrian_Diktat",
+    "flagship": "executor_Standard",
+    "shipPref": {
+      "brawler_Elite": 10,
+      "centurion_Assault": 10,
+      "hammerhead_Overdriven": 15,
+      "sunder_Overdriven": 15,
+      "eagle_Balanced": 15,
+      "falcon_Attack": 15,
+      "executor_Standard": 20
+    }
+  }
+}

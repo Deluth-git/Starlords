@@ -1,0 +1,46 @@
+### IntelliJ IDEA ###
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+
+/jars/build/
+/jars/dist/
+/jars/build.xml
+/jars/nbproject
+/nbproject
+/out
+.idea/
+*.aup
+*.au
+*.xcf
+*.svg
+*.iml
+.run/Run Starsector.run.xml
+.run/Run_Starsector_w_o_Launcher.run.xml
+.github/
+src/META-INF
