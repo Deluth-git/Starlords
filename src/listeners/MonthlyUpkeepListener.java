@@ -5,8 +5,10 @@ import com.fs.starfarer.api.campaign.BaseCampaignEventListener;
 import com.fs.starfarer.api.campaign.CampaignFleetAPI;
 import com.fs.starfarer.api.campaign.FactionAPI;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
+import com.fs.starfarer.api.util.Pair;
 import controllers.FiefController;
 import controllers.LordController;
+import controllers.PoliticsController;
 import controllers.QuestController;
 import org.apache.log4j.Logger;
 import person.Lord;
@@ -35,7 +37,9 @@ public class MonthlyUpkeepListener extends BaseCampaignEventListener {
         // Give all lords their base monthly wage and pay fleet upkeep.
         List<Lord> lords = LordController.getLordsList();
         for (Lord lord : lords) {
-            lord.addWealth((1 + lord.getRanking()) * Constants.LORD_MONTHLY_INCOME);
+            Pair<Float, Float> result = PoliticsController.getBaseIncomeMultipliers(lord.getFaction());
+            lord.addWealth(result.one * Constants.LORD_MONTHLY_INCOME
+                    + result.two * lord.getRanking() * Constants.LORD_MONTHLY_INCOME);
             CampaignFleetAPI fleet = lord.getLordAPI().getFleet();
             if (fleet == null) {
                 continue;

@@ -34,10 +34,15 @@ public class LawProposal {
     private ArrayList<String> opposers;
     private ArrayList<Integer> opposersVals; // stores each opposer's total opinion of proposal
     private ArrayList<ArrayList<String>> opposerReasons; // stores itemized breakdown of opposer reasons
-    @Setter
     private boolean playerSupports;
     @Setter
     private boolean liegeSupports;
+    @Setter
+    private int liegeVal;
+    @Setter
+    private ArrayList<String> liegeReasons;
+    @Setter
+    private boolean passed; // whether this proposal was ever passed
     private boolean alive;  // if not alive, intel entry is removed. Proposals in the council are considered not alive.
 
 
@@ -80,6 +85,13 @@ public class LawProposal {
             ctr += PoliticsController.getPoliticalWeight(LordController.getLordOrPlayerById(lordStr));
         }
         return ctr;
+    }
+
+    public void setPlayerSupports(boolean supports) {
+        playerSupports = supports;
+        if (faction.equals(Global.getSector().getPlayerFaction())) {
+            liegeSupports = supports;
+        }
     }
 
     public void kill() {

@@ -24,6 +24,8 @@ import java.lang.reflect.Array;
 import java.util.*;
 import java.util.List;
 
+import static controllers.PoliticsController.RELATION_CHANGE_LAW_IMPORTANT;
+import static controllers.PoliticsController.RELATION_CHANGE_LAW_NORMAL;
 import static util.Constants.*;
 
 public class CouncilIntelPlugin extends BaseIntelPlugin {
@@ -65,7 +67,7 @@ public class CouncilIntelPlugin extends BaseIntelPlugin {
             TooltipMakerAPI imageText = header.beginImageWithText(proposer.getLordAPI().getPortraitSprite(), 64);
             imageText.addPara("Under Consideration: " + currProposal.getSummary(), uiColor, pad);
             imageText.addPara("Proposer: " + proposer.getTitle() + " " + proposer.getLordAPI().getNameString(), uiColor, pad);
-            imageText.addPara("Time remaining: " + PoliticsController.getTimeRemainingDays(faction) + " Day(s)", uiColor, pad);
+            imageText.addPara("Time remaining: " + Math.max(0, PoliticsController.getTimeRemainingDays(faction)) + " Day(s)", uiColor, pad);
             if (currProposal.isPlayerSupports()) {
                 imageText.addPara("Your vote: Aye", pad, uiColor, LIGHT_GREEN, "Aye");
             } else {
@@ -78,7 +80,58 @@ public class CouncilIntelPlugin extends BaseIntelPlugin {
         }
         panel.addUIElement(header).inTL(0, 0);
 
-        if (currProposal == null) return;
+        if (currProposal == null) {
+            // summarize last vote, then exit
+            LawProposal prevProposal = PoliticsController.getPrevProposal(faction);
+            if (prevProposal != null) {
+                TooltipMakerAPI prevHeader = panel.createUIElement(width, height - header.getHeightSoFar(), true);
+                prevHeader.addSectionHeading("Last Council Results",
+                        faction.getBrightUIColor(), faction.getDarkUIColor(), Alignment.LMID, opad);
+                if (prevProposal.isPassed()) {
+                    prevHeader.addPara("Proposal passed: " + prevProposal.getTitle(), LIGHT_GREEN, opad);
+                } else  {
+                    prevHeader.addPara("Proposal failed: " + prevProposal.getTitle(), LIGHT_RED, opad);
+                }
+                Pair<Lord, Lord> result = PoliticsController.getBeneficiaryVictim(prevProposal);
+                Lord beneficiary = result.one;
+                Lord victim = result.two;
+                boolean playerImportant = (prevProposal.originator.equals(Global.getSector().getPlayerPerson().getId())
+                        || (beneficiary != null && beneficiary.isPlayer())) && prevProposal.isPlayerSupports();
+                playerImportant |= (victim != null && victim.isPlayer() && !prevProposal.isPlayerSupports());
+                for (String supporterStr : prevProposal.getSupporters()) {
+                    Lord supporter = LordController.getLordById(supporterStr);
+                    boolean important = supporter.equals(beneficiary)
+                            || supporter.getLordAPI().getId().equals(prevProposal.originator);
+                    int delta = (prevProposal.isPlayerSupports() ? 1 : -1) *
+                            ((important || playerImportant) ? RELATION_CHANGE_LAW_IMPORTANT : RELATION_CHANGE_LAW_NORMAL);
+                    TooltipMakerAPI imageText = prevHeader.beginImageWithText(supporter.getLordAPI().getPortraitSprite(), 32);
+                    if (delta < 0) {
+                        imageText.addPara("Relations with " + supporter.getLordAPI().getNameString() + " decreased by " + (-1 * delta), LIGHT_RED, pad);
+                    } else {
+                        imageText.addPara("Relations with " + supporter.getLordAPI().getNameString() + " increased by " + delta, LIGHT_GREEN, pad);
+
+                    }
+                    prevHeader.addImageWithText(pad);
+
+                }
+                for (String opposerStr : prevProposal.getOpposers()) {
+                    Lord opposer = LordController.getLordById(opposerStr);
+                    boolean important = opposer.equals(victim);
+                    int delta = (prevProposal.isPlayerSupports() ? -1 : 1) *
+                            ((important || playerImportant) ? RELATION_CHANGE_LAW_IMPORTANT : RELATION_CHANGE_LAW_NORMAL);
+                    TooltipMakerAPI imageText = prevHeader.beginImageWithText(opposer.getLordAPI().getPortraitSprite(), 32);
+                    if (delta < 0) {
+                        imageText.addPara("Relations with " + opposer.getLordAPI().getNameString() + " decreased by " + (-1 * delta), LIGHT_RED, pad);
+                    } else {
+                        imageText.addPara("Relations with " + opposer.getLordAPI().getNameString() + " increased by " + delta, LIGHT_GREEN, pad);
+
+                    }
+                    prevHeader.addImageWithText(pad);
+                }
+                panel.addUIElement(prevHeader).belowLeft(header, opad);
+            }
+            return;
+        }
 
         PersonAPI ruler = Utils.getLeader(faction);
         TooltipMakerAPI voteHeader = panel.createUIElement(width, headerHeight, false);
@@ -103,6 +156,13 @@ public class CouncilIntelPlugin extends BaseIntelPlugin {
         LabelAPI opposeLabel = opposePanel.addPara(Integer.toString(totalOpposition), LIGHT_RED, 0);
         supportLabel.setAlignment(Alignment.MID);
         opposeLabel.setAlignment(Alignment.MID);
+        // add tooltip for political weight breakdown
+        Pair<List<String>, List<String>> result = generatePoliticalWeightBreakdown();
+        supportPanel.addTooltipToPrevious(new ToolTip(200, result.one, true),
+                TooltipMakerAPI.TooltipLocation.BELOW);
+        opposePanel.addTooltipToPrevious(new ToolTip(200, result.two, true),
+                TooltipMakerAPI.TooltipLocation.BELOW);
+
         supportButtonPanel.addButton("Support", SUPPORT_BUTTON, faction.getBrightUIColor(), faction.getDarkUIColor(), 100, 20, opad);
         opposeButtonPanel.addButton("Oppose", OPPOSE_BUTTON, uiColor, LIGHT_RED, 100, 20, opad);
         panel.addUIElement(supportPanel).belowLeft(voteHeader, opad);
@@ -124,9 +184,18 @@ public class CouncilIntelPlugin extends BaseIntelPlugin {
             } else {
                 panel.addUIElement(rulerPanel).leftOfTop(opposeButtonPanel, opad);
             }
-            // TODO add ruler reasons
-            rulerPanel.addTooltipToPrevious(new ToolTip(150,
-                    ruler.getRank() + " " + ruler.getNameString()), TooltipMakerAPI.TooltipLocation.BELOW);
+            // add ruler reasons
+            // create tooltip
+            ArrayList<String> tooltip = new ArrayList<>();
+            tooltip.add(ruler.getRank() + " " + ruler.getNameString());
+            if (!faction.equals(Global.getSector().getPlayerFaction())) {
+                tooltip.addAll(currProposal.getLiegeReasons());
+                String total = Integer.toString(currProposal.getLiegeVal());
+                if (currProposal.getLiegeVal() > 0) total = "+" + total;
+                tooltip.add(total + " Total");
+            }
+            rulerPanel.addTooltipToPrevious(new ToolTip(250,
+                    tooltip, true), TooltipMakerAPI.TooltipLocation.BELOW);
         }
 
         if (faction.equals(Global.getSector().getPlayerFaction())) {
@@ -213,6 +282,29 @@ public class CouncilIntelPlugin extends BaseIntelPlugin {
             totalAgainst++;
             prevAgainst.add(lordPanel);
         }
+    }
+
+    private Pair<List<String>, List<String>> generatePoliticalWeightBreakdown() {
+        ArrayList<String> supporterTooltip = new ArrayList<>();
+        ArrayList<String> oppositionTooltip = new ArrayList<>();
+        for (Lord supporter : supporters) {
+            supporterTooltip.add("+" + PoliticsController.getPoliticalWeight(supporter)
+                    + " " + supporter.getLordAPI().getNameString());
+        }
+        for (Lord opposer : opposition) {
+            oppositionTooltip.add("+" + PoliticsController.getPoliticalWeight(opposer)
+                    + " " + opposer.getLordAPI().getNameString());
+        }
+        PersonAPI ruler = Utils.getLeader(currProposal.faction);
+        if (currProposal.isLiegeSupports()) {
+            supporterTooltip.add("x" + String.format("%.1f", PoliticsController.getLiegeMultiplier(currProposal.faction))
+                    + " " + Utils.getLeader(currProposal.faction).getNameString());
+
+        } else if (ruler != null) {
+            oppositionTooltip.add("x" + String.format("%.1f",PoliticsController.getLiegeMultiplier(currProposal.faction))
+                    + " " + Utils.getLeader(currProposal.faction).getNameString());
+        }
+        return new Pair<>(supporterTooltip, oppositionTooltip);
     }
 
     @Override

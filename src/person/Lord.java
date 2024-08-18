@@ -243,7 +243,7 @@ public class Lord {
     // Returns number between 0 and 2 representing lord's economic strength relative to desired level
     // 1 is the expected level, 2 is higher, 0 is lower
     public float getEconLevel() {
-        return (float) (1 + Math.tanh((wealth - 150000) / 50000));
+        return (float) (1 + Math.tanh((wealth - 150000f) / 50000));
     }
 
     public LordPersonality getPersonality() {
@@ -262,7 +262,7 @@ public class Lord {
     // Returns number between 0 and 2 representing lord's military strength relative to desired level
     // 1 is the expected level, 2 is higher, 0 is lower
     public float getMilitaryLevel() {
-        return (float) (1 + Math.tanh((getLordAPI().getFleet().getFleetPoints() - 200) / 100));
+        return (float) (1 + Math.tanh((getLordAPI().getFleet().getFleetPoints() - 200f) / 100));
     }
 
     public void setCurrAction(LordAction action) {

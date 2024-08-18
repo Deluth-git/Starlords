@@ -9,6 +9,7 @@ import com.fs.starfarer.api.impl.campaign.ids.People;
 import com.fs.starfarer.api.impl.campaign.ids.Personalities;
 import com.fs.starfarer.api.impl.campaign.ids.Stats;
 import com.fs.starfarer.api.util.Misc;
+import controllers.LordController;
 import person.Lord;
 
 import java.util.ArrayList;
@@ -122,6 +123,16 @@ public class Utils {
             ret = StringUtil.getString("starlords_title", "title_default_" + rank);
         }
         return ret;
+    }
+
+    // gets number of major faction enemies of specified faction
+    // ignores pirate and lordless factions
+    public static int getNumMajorEnemies(FactionAPI faction) {
+        int numEnemies = 0;
+        for (FactionAPI faction2 : LordController.getFactionsWithLords()) {
+            if (!Misc.isPirateFaction(faction2) && faction.isHostileTo(faction2)) numEnemies += 1;
+        }
+        return numEnemies;
     }
 
     public static PersonAPI getLeader(FactionAPI faction) {

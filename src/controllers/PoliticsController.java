@@ -5,7 +5,6 @@ import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.FactionAPI;
 import com.fs.starfarer.api.campaign.RepLevel;
 import com.fs.starfarer.api.campaign.SectorEntityToken;
-import com.fs.starfarer.api.campaign.comm.IntelInfoPlugin;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.impl.campaign.ids.Factions;
 import com.fs.starfarer.api.impl.campaign.intel.FactionCommissionIntel;
@@ -18,23 +17,22 @@ import org.apache.log4j.Logger;
 import person.Lord;
 import person.LordEvent;
 import person.LordPersonality;
-import ui.CouncilIntelPlugin;
-import ui.LawsIntelPlugin;
 import ui.ProposalIntelPlugin;
 import util.DefectionUtils;
 import util.StringUtil;
 import util.Utils;
 
-import java.lang.reflect.Array;
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 
-import static util.Constants.LIGHT_RED;
 import static util.Constants.ONE_DAY;
 
 public class PoliticsController implements EveryFrameScript {
 
     private HashMap<String, LawProposal> lordProposalsMap; // maps lord id to their proposal
     private HashMap<String, Lawset> factionLawsMap;
+    private HashMap<String, LawProposal> factionLastCouncilMap; // tracks previous vote before recess
     private HashMap<String, LawProposal> factionCouncilMap;
     private HashMap<String, Long> factionTimestampMap; // tracks when the council last convened
     private HashMap<String, Long> lordTimestampMap; // tracks when lord last thought about proposing new legislation
@@ -42,10 +40,13 @@ public class PoliticsController implements EveryFrameScript {
 
     private static Logger log = Global.getLogger(PoliticsController.class);
     public static PoliticsController instance;
+    public static final int RELATION_CHANGE_LAW_NORMAL = 5;
+    // relation change when someone is the proposer, direct beneficiary, or victim of a debated law
+    public static final int RELATION_CHANGE_LAW_IMPORTANT = 10;
     public static final float UPDATE_INTERVAL = 1;
     public static final float LORD_THINK_INTERVAL = 7;
     private static final int RECESS_DAYS = 2;//30;
-    private static final int DEBATE_DAYS = 4;//60;
+    private static final int DEBATE_DAYS = 2;//60;
 
     private PoliticsController() {
         factionLawsMap = new HashMap<>();
@@ -53,6 +54,7 @@ public class PoliticsController implements EveryFrameScript {
         factionCouncilMap = new HashMap<>();
         factionTimestampMap = new HashMap<>();
         lordTimestampMap = new HashMap<>();
+        factionLastCouncilMap = new HashMap<>();
         for (FactionAPI faction : Global.getSector().getAllFactions()) {
             if (Misc.isPirateFaction(faction)) continue;
             addFaction(faction);
@@ -72,7 +74,6 @@ public class PoliticsController implements EveryFrameScript {
             return;
         }
         lastUpdate = 0;
-        // TODO update ruler approval/proposal submission
         checkProposalValidity(Utils.getRecruitmentFaction());
         updateAllProposals(Utils.getRecruitmentFaction());
 
@@ -98,6 +99,7 @@ public class PoliticsController implements EveryFrameScript {
                     resolveProposal(proposal);
                     lordProposalsMap.put(proposal.getOriginator(), null);
                     factionCouncilMap.put(factionStr, null);
+                    factionLastCouncilMap.put(factionStr, proposal);
                 }
                 factionTimestampMap.put(factionStr, Global.getSector().getClock().getTimestamp());
             }
@@ -114,6 +116,7 @@ public class PoliticsController implements EveryFrameScript {
         }
 
         // submit new proposals
+        // TODO ruler proposal submission
         for (Lord lord : LordController.getLordsList()) {
             if (Misc.isPirateFaction(lord.getFaction())) continue;
             if (Utils.getDaysSince(lordTimestampMap.get(lord.getLordAPI().getId())) < LORD_THINK_INTERVAL) continue;
@@ -123,15 +126,28 @@ public class PoliticsController implements EveryFrameScript {
                 // lord submits new proposal
                 LawProposal newProposal = createNewProposal(lord);
                 lordProposalsMap.put(lord.getLordAPI().getId(), newProposal);
-                Global.getSector().getIntelManager().addIntel(new ProposalIntelPlugin(newProposal), true);
-            } else {
-                // TODO check if lord should withdraw previous proposal, esp. for new fief award
-//                boolean considerFiefProposal = getLaws(lord.getFaction()).getFiefAward() != null
-//                        && currProposal.law != Lawset.LawType.AWARD_FIEF;
-//                boolean refreshProposal = false;
-//                if (currProposal.getSupportersCached() != null && currProposal.getSupportersCached().size() < 2) {
-//                    refreshProposal = true;
-//                }
+                if (newProposal != null) {
+                    Global.getSector().getIntelManager().addIntel(new ProposalIntelPlugin(newProposal), true);
+                }
+            } else if (!currProposal.equals(getCurrProposal(lord.getFaction()))) {
+                // can try to replace proposal with a more relevant one if it's not already in debate
+                boolean considerFiefProposal = getLaws(lord.getFaction()).getFiefAward() != null
+                        && currProposal.law != Lawset.LawType.AWARD_FIEF;
+                boolean refreshProposal = false;
+                if (currProposal.getSupportersCached() != null && currProposal.getSupportersCached().size() < 2) {
+                    refreshProposal = true;
+                } else if (considerFiefProposal && (currProposal.getSupportersCached() == null
+                        || currProposal.getSupportersCached().size() < 4)) {
+                    refreshProposal = true;
+                }
+                if (refreshProposal) {
+                    LawProposal newProposal = createNewProposal(lord);
+                    if (newProposal != null && newProposal.law != currProposal.law) {
+                        currProposal.kill();
+                        lordProposalsMap.put(lord.getLordAPI().getId(), newProposal);
+                        Global.getSector().getIntelManager().addIntel(new ProposalIntelPlugin(newProposal), true);
+                    }
+                }
             }
         }
     }
@@ -146,8 +162,8 @@ public class PoliticsController implements EveryFrameScript {
         Global.getSector().getIntelManager().addIntel(new ProposalIntelPlugin(proposal), true);
     }
 
-    // TODO creates a new proposal originated from lord
-    // this follows a bit different logic from approval calculations for actions with targets
+    // creates a new proposal originated from lord
+    // this follows simplified logic compared to approval calculations
     // We consider approval for only the action, then add action targets later for efficiency
     public LawProposal createNewProposal(Lord lord) {
         Lawset.LawType bestType = null;
@@ -156,26 +172,121 @@ public class PoliticsController implements EveryFrameScript {
         String bestTargetFaction = null;
         int bestLevel = 0;
         int bestWeight = 20;
+        Lawset laws = getLaws(lord.getFaction());
+        FactionAPI faction = lord.getFaction();
+        Random rand = new Random();
 
         // laws
+        for (Lawset.LawType type : Lawset.LawType.values()) {
+            if (type.pref == null) continue;
+            int prefLevel = type.pref[lord.getPersonality().ordinal()];
+            int currLevel = laws.getLawLevel(type).ordinal();
+            int weight = rand.nextInt(10) + Math.min(30, 10 * Math.abs(prefLevel - currLevel));
 
-        // appoint marshal
-
-        // grant fief
+            if (weight > bestWeight) {
+                bestWeight = weight;
+                bestType = type;
+                bestTargetLord = null;
+                bestTargetMarket = null;
+                bestTargetLord = null;
+                if (prefLevel > currLevel) {
+                    bestLevel = currLevel + 1;
+                } else {
+                    bestLevel = currLevel - 1;
+                }
+            }
+        }
 
         // declare war
-
-        // sue for peace
-
-
-
-        ArrayList<Lord> targets = new ArrayList<>();
-        for (Lord lord2 : LordController.getLordsList()) {
-            if (lord2.getFaction().equals(lord.getFaction())) targets.add(lord2);
+        int weight = 0;
+        int numEnemies = Utils.getNumMajorEnemies(faction);
+        if (numEnemies == 0 && lord.getPersonality() == LordPersonality.MARTIAL) {
+            weight += 30 + rand.nextInt(    10);
         }
-        // TODO
-        return new LawProposal(Lawset.LawType.APPOINT_MARSHAL, lord.getLordAPI().getId(),
-                targets.get(new Random().nextInt(targets.size())).getLordAPI().getId(), null, null, 0);
+        if (weight > bestWeight) {
+            // declare war on least liked faction
+            int worstRelations = 100;
+            bestTargetFaction = null;
+            ArrayList<String> options = new ArrayList<>();
+            for (FactionAPI faction2 : LordController.getFactionsWithLords()) {
+                if (faction.equals(faction2)) continue;
+                if (!faction2.isHostileTo(faction)) {
+                    int rep = faction.getRepInt(faction2.getId());
+                    if (rep < Utils.getThreshold(RepLevel.FAVORABLE)) options.add(faction2.getId());
+                    if (rep < worstRelations) {
+                        worstRelations = rep;
+                        bestTargetFaction = faction2.getId();
+                    }
+                }
+            }
+            if (!options.isEmpty()) bestTargetFaction  = options.get(rand.nextInt(options.size()));
+            if (bestTargetFaction != null) {
+                bestWeight = weight;
+                bestType = Lawset.LawType.DECLARE_WAR;
+                bestTargetLord = null;
+                bestTargetMarket = null;
+                bestLevel = 0;
+            }
+        }
+        // sue for peace
+        weight = 18 * numEnemies;
+        if (weight > bestWeight && rand.nextBoolean()) {
+            ArrayList<String> options = new ArrayList<>();
+            for (FactionAPI faction2 : LordController.getFactionsWithLords()) {
+                if (faction2.isHostileTo(faction)) options.add(faction2.getId());
+            }
+            if (!options.isEmpty()) bestTargetFaction  = options.get(rand.nextInt(options.size()));
+            if (bestTargetFaction != null) {
+                bestWeight = weight;
+                bestType = Lawset.LawType.SUE_FOR_PEACE;
+                bestTargetLord = null;
+                bestTargetMarket = null;
+                bestLevel = 0;
+            }
+        }
+
+        // grant fief
+        weight = 0;
+        MarketAPI fief = laws.getFiefAward();
+        if (fief != null) {
+            weight = 100;
+        }
+        if (weight > bestWeight) {
+            bestTargetLord = getPreferredLordTarget(lord, true);
+            if (bestTargetLord != null) {
+                bestWeight = weight;
+                bestType = Lawset.LawType.AWARD_FIEF;
+                bestTargetFaction = null;
+                bestTargetMarket = fief.getId();
+                bestLevel = 0;
+            }
+        }
+
+        // appoint marshal
+        weight = 0;
+        Lord marshal = LordController.getLordOrPlayerById(laws.getMarshal());
+        if (marshal == null) {
+            weight = 10 + rand.nextInt(100);
+        } else if (rand.nextBoolean()) {
+            weight = (40 * (2 - marshal.getRanking())) - RelationController.getRelation(marshal, lord);
+        }
+
+        if (weight > bestWeight) {
+            bestTargetLord = getPreferredLordTarget(lord, false);
+            if (bestTargetLord != null) {
+                bestWeight = weight;
+                bestType = Lawset.LawType.APPOINT_MARSHAL;
+                bestTargetFaction = null;
+                bestTargetMarket = null;
+                bestLevel = 0;
+            }
+        }
+
+
+
+        if (bestType == null) return null;
+        return new LawProposal(bestType, lord.getLordAPI().getId(),
+                bestTargetLord, bestTargetMarket, bestTargetFaction, bestLevel);
     }
 
     // gets next proposal to enter council
@@ -197,7 +308,6 @@ public class PoliticsController implements EveryFrameScript {
 
     // does final vote tally and implements proposal if vote passes
     public void resolveProposal(LawProposal proposal) {
-        // TODO change lord relations
         Pair<Integer, Integer> votes = countVotes(proposal, null, null);
         int totalSupport = votes.one;
         int totalOpposition = votes.two;
@@ -209,6 +319,7 @@ public class PoliticsController implements EveryFrameScript {
                         proposal.faction.getBaseUIColor());
             }
             // law passed
+            proposal.setPassed(true);
             Lawset laws = getLaws(proposal.getFaction());
             switch (proposal.law) {
                 case CROWN_AUTHORITY:
@@ -254,7 +365,7 @@ public class PoliticsController implements EveryFrameScript {
                         }
                     } else if (announce) {
                         Global.getSector().getCampaignUI().addMessage("Your peace offer was rejected",
-                                LIGHT_RED);
+                                Color.RED);
                         victorySound = false;
                     }
                     break;
@@ -296,9 +407,51 @@ public class PoliticsController implements EveryFrameScript {
             // law failed
             if (announce) {
                 Global.getSector().getCampaignUI().addMessage("The council has voted down law: " + proposal.getTitle(),
-                        LIGHT_RED);
+                        Color.RED);
             }
             victorySound = false;
+        }
+
+        // change lord relations
+        Pair<Lord, Lord> result = getBeneficiaryVictim(proposal);
+        Lord beneficiary = result.one;
+        Lord victim = result.two;
+        boolean playerImportant = (proposal.originator.equals(Global.getSector().getPlayerPerson().getId())
+                || (beneficiary != null && beneficiary.isPlayer())) && proposal.isPlayerSupports();
+        playerImportant |= (victim != null && victim.isPlayer() && !proposal.isPlayerSupports());
+        for (int i = 0; i < proposal.getSupporters().size(); i++) {
+            Lord supporter = LordController.getLordById(proposal.getSupporters().get(i));
+            boolean important = supporter.equals(beneficiary)
+                    || supporter.getLordAPI().getId().equals(proposal.originator);
+            int playerDelta = (proposal.isPlayerSupports() ? 1 : -1) * ((important || playerImportant)
+                    ? RELATION_CHANGE_LAW_IMPORTANT : RELATION_CHANGE_LAW_NORMAL);
+            RelationController.modifyRelation(supporter, LordController.getPlayerLord(), playerDelta);
+            for (String opposerStr : proposal.getOpposers()) {
+                Lord opposer = LordController.getLordById(opposerStr);
+                boolean opposerImportant = opposer.equals(victim);
+                RelationController.modifyRelation(supporter, opposer,
+                        important || opposerImportant ? -RELATION_CHANGE_LAW_IMPORTANT : -RELATION_CHANGE_LAW_NORMAL);
+            }
+            for (int j = i + 1; j < proposal.getSupporters().size(); j++) {
+                Lord supporter2 = LordController.getLordById(proposal.getSupporters().get(j));
+                boolean important2 = supporter2.equals(beneficiary)
+                        || supporter2.getLordAPI().getId().equals(proposal.originator);
+                RelationController.modifyRelation(supporter, supporter2,
+                        important || important2 ? RELATION_CHANGE_LAW_IMPORTANT : RELATION_CHANGE_LAW_NORMAL);
+            }
+        }
+        for (int i = 0; i < proposal.getOpposers().size(); i++) {
+            Lord opposer = LordController.getLordById(proposal.getOpposers().get(i));
+            boolean opposerImportant = opposer.equals(victim);
+            int playerDelta = (proposal.isPlayerSupports() ? -1 : 1) * ((opposerImportant || playerImportant)
+                    ? RELATION_CHANGE_LAW_IMPORTANT : RELATION_CHANGE_LAW_NORMAL);
+            RelationController.modifyRelation(opposer, LordController.getPlayerLord(), playerDelta);
+            for (int j = i + 1; j < proposal.getOpposers().size(); j++) {
+                Lord opposer2 = LordController.getLordById(proposal.getOpposers().get(j));
+                boolean opposerImportant2 = opposer2.equals(victim);
+                RelationController.modifyRelation(opposer, opposer2,
+                        opposerImportant || opposerImportant2 ? RELATION_CHANGE_LAW_IMPORTANT : RELATION_CHANGE_LAW_NORMAL);
+            }
         }
 
         if (announce) {
@@ -372,6 +525,12 @@ public class PoliticsController implements EveryFrameScript {
         if (proposal == null) return;
         boolean isCouncil = proposal.equals(getCurrProposal(proposal.getFaction()));
         proposal.cacheSupporters();
+        if (isCouncil && !proposal.getFaction().equals(Global.getSector().getPlayerFaction())) {
+            Pair<Integer, ArrayList<String>> ret = getApprovalLiege(proposal);
+            proposal.setLiegeSupports(ret.one > 0);
+            proposal.setLiegeVal(ret.one);
+            proposal.setLiegeReasons(ret.two);
+        }
         for (Lord critic : LordController.getLordsList()) {
             if (critic.getFaction().equals(proposal.getFaction())) {
                 updateProposal(proposal, critic, isCouncil);
@@ -382,7 +541,7 @@ public class PoliticsController implements EveryFrameScript {
     private static void updateProposal(LawProposal proposal, Lord critic, boolean isCouncil) {
         int opinionThreshold = 0;
         if (!isCouncil) opinionThreshold = 10; // make only diehard supporters support until council
-        Pair<Integer, ArrayList<String>>  ret = getApproval(critic, proposal, isCouncil);
+        Pair<Integer, ArrayList<String>> ret = getApproval(critic, proposal, isCouncil);
         int approval = ret.one;
         ArrayList<String> reasons = ret.two;
         if (approval > opinionThreshold) {
@@ -412,11 +571,88 @@ public class PoliticsController implements EveryFrameScript {
             if (proposal != null) {
                 boolean isCouncil = proposal.equals(getCurrProposal(proposal.getFaction()));
                 proposal.cacheSupporters();
+                if (isCouncil && !proposal.getFaction().equals(Global.getSector().getPlayerFaction())) {
+                    Pair<Integer, ArrayList<String>> ret = getApprovalLiege(proposal);
+                    proposal.setLiegeSupports(ret.one > 0);
+                    proposal.setLiegeVal(ret.one);
+                    proposal.setLiegeReasons(ret.two);
+                }
                 for (Lord critic : relevantLords) {
                     updateProposal(proposal, critic, isCouncil);
                 }
             }
         }
+    }
+
+    // gets whether the ruler likes this approval. Currently very simplified since rulers are not modeled.
+    public static Pair<Integer, ArrayList<String>> getApprovalLiege(LawProposal proposal) {
+        ArrayList<String> reasons = new ArrayList<>();
+        Lord lord;
+        int delta;
+        FactionAPI faction = proposal.getFaction();
+        int approval = -20;
+        reasons.add(addPlus(approval) + " Base Reluctance");
+        switch (proposal.law) {
+            case APPOINT_MARSHAL:
+                lord = LordController.getLordOrPlayerById(proposal.getTargetLord());
+                if (lord.getRanking() == 2) {
+                    delta = 25;
+                } else {
+                    delta = -25;
+                }
+                approval += delta;
+                reasons.add(addPlus(delta) + " Appointee rank");
+                break;
+            case AWARD_FIEF:
+                lord = LordController.getLordOrPlayerById(proposal.getTargetLord());
+                delta = 25 * (2 - lord.getFiefs().size());
+                approval += delta;
+                if (delta > 0) reasons.add(addPlus(delta) + " Recipient has few fiefs");
+                if (delta < 0) reasons.add(addPlus(delta) + " Recipient has many fiefs");
+                break;
+            case DECLARE_WAR:
+            case SUE_FOR_PEACE:
+                int numEnemies = Utils.getNumMajorEnemies(faction);
+                int sign = 1;
+                if (proposal.law == Lawset.LawType.DECLARE_WAR) {
+                    delta = 20 * (2 - numEnemies);
+                } else {
+                    sign = -1;
+                    delta = 20 * numEnemies;
+                }
+                approval += delta;
+                if (delta != 0) reasons.add(addPlus(delta) + " Number existing enemies");
+                if (faction.getId().equals(Factions.HEGEMONY)) {
+                    delta = 10 * sign;
+                    approval += delta;
+                    reasons.add(addPlus(delta) + " Hegemony Imperialism");
+                }
+                break;
+            case REVOKE_FIEF:
+            case CHANGE_RANK:
+            case EXILE_LORD:
+                approval += 100;
+                reasons.add(addPlus(100) + " Proposer");
+                break;
+        }
+
+        // preferred law level, for laws with levels
+        if (proposal.law.pref != null) {  // kind of hacky
+            int prefLevel = proposal.law.pref[4];
+            int currLevel = getLaws(faction).getLawLevel(proposal.law).ordinal();
+            if (Math.abs(prefLevel - currLevel) > Math.abs(prefLevel - proposal.targetLevel)) {
+                // for
+                delta = 25 * Math.abs(prefLevel - currLevel);
+                approval += delta;
+                reasons.add(addPlus(delta) + " Likes proposed law");
+            } else {
+                // against
+                delta = -25 * Math.abs(prefLevel - proposal.targetLevel);
+                approval += delta;
+                reasons.add(addPlus(delta) + " Prefers status quo");
+            }
+        }
+        return new Pair<>(approval, reasons);
     }
 
     public static Pair<Integer, ArrayList<String>> getApproval(Lord lord, LawProposal proposal, boolean itemized) {
@@ -427,8 +663,9 @@ public class PoliticsController implements EveryFrameScript {
         Lawset laws = getLaws(faction);
         LawLevel level = laws.getLawLevel(proposal.law);
         Lord originator = LordController.getLordOrPlayerById(proposal.getOriginator());
-        Lord beneficiary = null;
-        Lord victim = null;
+        Pair<Lord, Lord> result = getBeneficiaryVictim(proposal);
+        Lord beneficiary = result.one;
+        Lord victim = result.two;
         int delta;
         int base = -20;
         int victimPenalty = 100;
@@ -522,8 +759,6 @@ public class PoliticsController implements EveryFrameScript {
                 break;
             case APPOINT_MARSHAL:
                 //TODO add some job approval mechanic
-                beneficiary = LordController.getLordOrPlayerById(proposal.getTargetLord());
-                victim = LordController.getLordOrPlayerById(laws.getMarshal());
                 base = -30;
                 victimPenalty = 50;
                 // affected by lord rank
@@ -543,7 +778,6 @@ public class PoliticsController implements EveryFrameScript {
                 }
                 break;
             case AWARD_FIEF:
-                beneficiary = LordController.getLordOrPlayerById(proposal.getTargetLord());
                 // TODO see who captured fief
                 // check beneficiary fiefs owned count vs average
                 if (beneficiary.getFiefs().isEmpty()) {
@@ -573,17 +807,12 @@ public class PoliticsController implements EveryFrameScript {
                 // lord's current strength
                 delta = (int) (20 * (lord.getMilitaryLevel() - 1));
                 approval += delta;
-                if (itemized) auxReasons.add(addPlus(delta) + " Personal military strength");
+                if (itemized && delta != 0) auxReasons.add(addPlus(delta) + " Personal military strength");
 
                 // # existing enemies
-                numEnemies = -1;
+                numEnemies = Utils.getNumMajorEnemies(faction) - 1;
                 // martial wants more enemies
                 if (lord.getPersonality() == LordPersonality.MARTIAL) numEnemies -= 1;
-                for (FactionAPI faction2 : LordController.getFactionsWithLords()) {
-                    if (faction2.isHostileTo(faction)) {
-                        numEnemies += 1;
-                    }
-                }
                 delta = -20 * numEnemies;
                 approval += delta;
                 if (itemized && delta < 0) auxReasons.add(addPlus(delta) + " Existing enemies");
@@ -593,7 +822,7 @@ public class PoliticsController implements EveryFrameScript {
                 int relations = targetFaction.getRepInt(faction.getId());
                 delta = -1 * relations / 4;
                 approval += delta;
-                if (itemized) auxReasons.add(addPlus(delta) + " Faction relations");
+                if (itemized && delta != 0) auxReasons.add(addPlus(delta) + " Faction relations");
 
                 // liked by hegemony
                 if (lord.getTemplate().factionId.equals(Factions.HEGEMONY)) {
@@ -613,7 +842,7 @@ public class PoliticsController implements EveryFrameScript {
                 // lord's current strength
                 delta = (int) (-20 * (lord.getMilitaryLevel() - 1));
                 approval += delta;
-                if (itemized) auxReasons.add(addPlus(delta) + " Personal military strength");
+                if (itemized && delta != 0) auxReasons.add(addPlus(delta) + " Personal military strength");
 
                 // disliked by hegemony
                 if (lord.getTemplate().factionId.equals(Factions.HEGEMONY)) {
@@ -622,21 +851,15 @@ public class PoliticsController implements EveryFrameScript {
                     if (itemized) auxReasons.add(addPlus(delta) + " Hegemony Imperialism");
                 }
                 // # existing enemies
-                numEnemies = -1;
+                numEnemies = Utils.getNumMajorEnemies(faction) - 1;
                 // martial wants more enemies
                 if (lord.getPersonality() == LordPersonality.MARTIAL) numEnemies -= 1;
-                for (FactionAPI faction2 : LordController.getFactionsWithLords()) {
-                    if (faction2.isHostileTo(faction)) {
-                        numEnemies += 1;
-                    }
-                }
                 delta = 20 * numEnemies;
                 approval += delta;
                 if (itemized && delta > 0) auxReasons.add(addPlus(delta) + " Multi-front war");
                 if (itemized && delta < 0) auxReasons.add(addPlus(delta) + " Wants more enemies");
                 break;
             case REVOKE_FIEF:
-                victim = LordController.getLordOrPlayerById(proposal.getTargetLord());
                 base = -30;
                 // disliked by upstanding
                 if (lord.getPersonality() == LordPersonality.UPSTANDING) {
@@ -660,10 +883,8 @@ public class PoliticsController implements EveryFrameScript {
                 Lord target = LordController.getLordOrPlayerById(proposal.getTargetLord());
                 if (target.getRanking() < proposal.targetLevel) {
                     raising = 1;
-                    beneficiary = target;
                 } else {
                     raising = -1;
-                    victim = target;
                 }
                 // liked/disliked by high rank
                 if (lord.getRanking() > 0) {
@@ -673,7 +894,6 @@ public class PoliticsController implements EveryFrameScript {
                 }
                 break;
             case EXILE_LORD:
-                victim = LordController.getLordOrPlayerById(proposal.getTargetLord());
                 victimPenalty = 1000;
                 // disliked by upstanding
                 if (lord.getPersonality() == LordPersonality.UPSTANDING) {
@@ -782,7 +1002,8 @@ public class PoliticsController implements EveryFrameScript {
                         ctr += 1;
                     }
                 }
-                delta = delta / Math.max(1, ctr);
+                delta /= Math.max(1, ctr);
+                approval += delta;
                 if (itemized && delta != 0) reasons.add(addPlus(delta) + " Political considerations");
             }
 
@@ -798,6 +1019,34 @@ public class PoliticsController implements EveryFrameScript {
 
         reasons.addAll(auxReasons);
         return new Pair<>(approval, reasons);
+    }
+
+
+    public static Pair<Lord, Lord> getBeneficiaryVictim(LawProposal proposal) {
+        Lord beneficiary = null;
+        Lord victim = null;
+        switch (proposal.law) {
+            case APPOINT_MARSHAL:
+                beneficiary = LordController.getLordOrPlayerById(proposal.getTargetLord());
+                victim = LordController.getLordOrPlayerById(getLaws(proposal.getFaction()).getMarshal());
+                break;
+            case AWARD_FIEF:
+                beneficiary = LordController.getLordOrPlayerById(proposal.getTargetLord());
+                break;
+            case EXILE_LORD:
+            case REVOKE_FIEF:
+                victim = LordController.getLordOrPlayerById(proposal.getTargetLord());
+                break;
+            case CHANGE_RANK:
+                Lord target = LordController.getLordOrPlayerById(proposal.getTargetLord());
+                if (target.getRanking() < proposal.targetLevel) {
+                    beneficiary = target;
+                } else {
+                    victim = target;
+                }
+                break;
+        }
+        return new Pair<>(beneficiary, victim);
     }
 
     // Tallies votes for/against proposal. DOES NOT update vote weights first, so do that beforehand.
@@ -856,12 +1105,12 @@ public class PoliticsController implements EveryFrameScript {
         return false;
     }
 
+    public static LawProposal getPrevProposal(FactionAPI faction) {
+        return getInstance().factionLastCouncilMap.get(faction.getId());
+    }
+
     public static LawProposal getCurrProposal(FactionAPI faction) {
-        HashMap<String, LawProposal> currProposals = getInstance().factionCouncilMap;
-        if (!currProposals.containsKey(faction.getId())) {
-            getInstance().addFaction(faction);
-        }
-        return currProposals.get(faction.getId());
+        return getInstance().factionCouncilMap.get(faction.getId());
     }
 
     public static int getPoliticalWeight(Lord lord) {
@@ -905,6 +1154,71 @@ public class PoliticsController implements EveryFrameScript {
         return mult;
     }
 
+    public static float getTaxMultiplier(FactionAPI faction) {
+        LawLevel tradeLaw = getLaws(faction).getTradeFavor();
+        float mult = 1;
+        switch(tradeLaw) {
+            case VERY_LOW:
+                mult = 0.5f;
+                break;
+            case LOW:
+                mult = 0.75f;
+                break;
+            case HIGH:
+                mult = 1.5f;
+                break;
+            case VERY_HIGH:
+                mult = 2f;
+                break;
+        }
+        return mult;
+    }
+
+    public static float getTradeMultiplier(FactionAPI faction) {
+        LawLevel tradeLaw = getLaws(faction).getTradeFavor();
+        float mult = 1;
+        switch(tradeLaw) {
+            case VERY_LOW:
+                mult = 2.5f;
+                break;
+            case LOW:
+                mult = 1.75f;
+                break;
+            case HIGH:
+                mult = 0.75f;
+                break;
+            case VERY_HIGH:
+                mult = 0.5f;
+                break;
+        }
+        return mult;
+    }
+
+    public static Pair<Float, Float> getBaseIncomeMultipliers(FactionAPI faction) {
+        LawLevel nobleAuthority = getLaws(faction).getNobleAuthority();
+        float baseMult = 1;
+        float rankMult = 1;
+        switch(nobleAuthority) {
+            case VERY_LOW:
+                baseMult = 1.5f;
+                rankMult = 0f;
+                break;
+            case LOW:
+                baseMult = 1.25f;
+                rankMult = 0.5f;
+                break;
+            case HIGH:
+                baseMult = 0.75f;
+                rankMult = 1.5f;
+                break;
+            case VERY_HIGH:
+                baseMult = 0.5f;
+                rankMult = 2f;
+                break;
+        }
+        return new Pair<>(baseMult, rankMult);
+    }
+
     public static int getTimeRemainingDays(FactionAPI faction) {
         int timeLimit = RECESS_DAYS;
         if (getCurrProposal(faction) != null) {
@@ -919,6 +1233,61 @@ public class PoliticsController implements EveryFrameScript {
         factionCouncilMap.put(faction.getId(), null);
         factionTimestampMap.put(faction.getId(), Global.getSector().getClock().getTimestamp());
     }
+
+    // gets preferred lord as target for legislation, either award fief or appoint marshal
+    private String getPreferredLordTarget(Lord lord, boolean isAwardFief) {
+        int weight;
+        int totalWeight = 0;
+        ArrayList<String> options = new ArrayList<>();
+        ArrayList<Integer> weights = new ArrayList<>();
+
+        if (lord.getFaction().equals(Utils.getRecruitmentFaction())) {
+            Lord player = LordController.getPlayerLord();
+            weight = RelationController.getRelation(lord, player);
+            if (isAwardFief) {
+                weight -= 20 * player.getFiefs().size();
+            } else {
+                weight += 30 * player.getRanking();
+            }
+            if (weight > 0) {
+                totalWeight += weight;
+                weights.add(weight);
+                options.add(player.getLordAPI().getId());
+            }
+        }
+        for (Lord option : LordController.getLordsList()) {
+            if (!option.getFaction().equals(lord.getFaction())) continue;
+            if (option.equals(lord)) {
+                weight = 30;
+                if (lord.getPersonality() == LordPersonality.CALCULATING && isAwardFief) weight += 20;
+            } else {
+                weight = RelationController.getRelation(lord, option);
+            }
+            if (isAwardFief) {
+                weight -= 20 * option.getFiefs().size();
+            } else  {
+                weight += 30 * option.getRanking();
+            }
+            if (weight > 0) {
+                totalWeight += weight;
+                weights.add(weight);
+                options.add(option.getLordAPI().getId());
+            }
+        }
+
+        String ret = null;
+        int choice = new Random().nextInt(totalWeight);
+        for (int i = 0; i < weights.size(); i++) {
+            if (weights.get(i) > choice) {
+                ret = options.get(i);
+                break;
+            } else {
+                choice -= weights.get(i);
+            }
+        }
+        return ret;
+    }
+
 
     private static String addPlus(int delta) {
         if (delta <= 0) return Integer.toString(delta);

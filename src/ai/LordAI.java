@@ -459,7 +459,8 @@ public class LordAI implements EveryFrameScript {
                 if (Utils.getDaysSince(lord.getAssignmentStartTime()) > STANDBY_DURATION) {
                     for (SectorEntityToken marketEntity : lord.getFiefs()) {
                         MarketAPI market = marketEntity.getMarket();
-                        lord.addWealth(FiefController.getTax(market));
+                        lord.addWealth(PoliticsController.getTaxMultiplier(lord.getFaction())
+                                * FiefController.getTax(market));
                         FiefController.setTax(market, 0);
                     }
                     chooseAssignment(lord);
@@ -476,9 +477,10 @@ public class LordAI implements EveryFrameScript {
             case VENTURE:
                 if (Utils.getDaysSince(lord.getAssignmentStartTime()) > STANDBY_DURATION) {
                     MarketAPI market = lord.getTarget().getMarket();
-                    lord.addWealth(FiefController.getTrade(market));
+                    lord.addWealth(PoliticsController.getTradeMultiplier(lord.getFaction()) * FiefController.getTrade(market));
                     // TODO make more frequent trades generate more taxes
-                    FiefController.setTax(market, FiefController.getTax(market) + FiefController.getTrade(market) / 2);
+                    FiefController.setTax(market, FiefController.getTax(market)
+                            + PoliticsController.getTradeMultiplier(market.getFaction()) * FiefController.getTrade(market) / 2);
                     FiefController.setTrade(market, 0);
                     chooseAssignment(lord);
                 }
