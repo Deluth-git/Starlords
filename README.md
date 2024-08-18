@@ -2,9 +2,15 @@
 
 Star Lords attempts to bring the world of [Starsector](https://fractalsoftworks.com/) of life with many character-centric features. Gone are the days of fighting alongside nameless faction fleets. The core mechanic is the addition of dozens of Lords to the game, each with their own personality, fleet composition, backstory, and agendas.
 
+![](example/starlords_readme1.PNG)
+
 Lords will roam the map alongside the player raiding, trading, feasting, expanding, and more. When the Marshal raises the banners, the lords will muster to war in organized interplanetary campaigns of unprecedented scale.
 
+![](example/starlords_readme2.PNG)
+
 A Lord's behavior is heavily dependent on their personality and interpersonal relations with other Lords. Inter-Lord relations are fully modeled, culminating in a brand new political system where Lords will politick, scheme, form alliances, and backstab while jockeying for wealth and influence within the realm.
+
+![](example/starlords_readme3.PNG)
 
 Curry favor with Lords by completing their quests, fighting alongside them in battle, or supporting their political agenda. Form a core of close allies, and leverage their support to seize de-facto power in your faction's political system. Or convince them to join your own faction and support your claim to unite the sector.
 
