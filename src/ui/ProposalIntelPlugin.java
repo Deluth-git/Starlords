@@ -3,10 +3,7 @@ package ui;
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.FactionAPI;
 import com.fs.starfarer.api.impl.campaign.intel.BaseIntelPlugin;
-import com.fs.starfarer.api.ui.IntelUIAPI;
-import com.fs.starfarer.api.ui.LabelAPI;
-import com.fs.starfarer.api.ui.SectorMapAPI;
-import com.fs.starfarer.api.ui.TooltipMakerAPI;
+import com.fs.starfarer.api.ui.*;
 import controllers.LordController;
 import controllers.PoliticsController;
 import faction.LawProposal;
@@ -68,8 +65,15 @@ public class ProposalIntelPlugin extends BaseIntelPlugin {
             }
             info.addImages(48 * portraits.length, 48, pad, 0, portraits);
         }
-        info.addButton("Support", SUPPORT_BUTTON, faction.getBrightUIColor(), faction.getDarkUIColor(), 100, 20, opad);
-        info.addButton("Oppose", OPPOSE_BUTTON, faction.getBrightUIColor(), faction.getDarkUIColor(), 100, 20, opad);
+        info.addButton("Support", SUPPORT_BUTTON,
+                faction.getBrightUIColor(), faction.getDarkUIColor(), 100, 20, opad);
+        ButtonAPI opposeButton = info.addButton("Oppose", OPPOSE_BUTTON,
+                faction.getBrightUIColor(), faction.getDarkUIColor(), 100, 20, opad);
+        if (proposal.getPledgedFor().contains(LordController.getPlayerLord().getLordAPI().getId())) {
+            opposeButton.setEnabled(false);
+            info.addTooltipToPrevious(new ToolTip(200,
+                    "You pledged to support this proposal."), TooltipMakerAPI.TooltipLocation.BELOW);
+        }
     }
 
     @Override

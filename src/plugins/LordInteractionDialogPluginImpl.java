@@ -10,6 +10,7 @@ import com.fs.starfarer.api.campaign.rules.Option;
 import com.fs.starfarer.api.characters.PersonAPI;
 import com.fs.starfarer.api.combat.EngagementResultAPI;
 import com.fs.starfarer.api.impl.campaign.FleetInteractionDialogPluginImpl;
+import com.fs.starfarer.api.impl.campaign.ids.Factions;
 import com.fs.starfarer.api.impl.campaign.ids.MemFlags;
 import com.fs.starfarer.api.impl.campaign.missions.ProcurementMission;
 import com.fs.starfarer.api.impl.campaign.missions.cb.BaseCustomBounty;
@@ -17,14 +18,13 @@ import com.fs.starfarer.api.impl.campaign.missions.hub.*;
 import com.fs.starfarer.api.impl.campaign.rulecmd.BeginMission;
 import com.fs.starfarer.api.loading.PersonMissionSpec;
 import com.fs.starfarer.api.util.Misc;
-import controllers.EventController;
-import controllers.LordController;
-import controllers.QuestController;
-import controllers.RelationController;
+import controllers.*;
+import faction.LawProposal;
 import org.apache.log4j.Logger;
 import person.Lord;
 import person.LordAction;
 import person.LordEvent;
+import person.LordPersonality;
 import ui.LordsIntelPlugin;
 import ui.MissionPreviewIntelPlugin;
 import util.DefectionUtils;
@@ -45,20 +45,24 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
     private enum OptionId {
         INIT,
         ASK_CURRENT_TASK,
-        SPEAK_PRIVATELY,
+        ASK_QUESTION,
         ASK_QUEST,
-        SUGGEST_ACTION,
+        ASK_LOCATION,
+        ASK_LOCATION_CHOICE,
+        SWAY_PROPOSAL_PLAYER,
+        SWAY_PROPOSAL_COUNCIL,
+        SWAY_PROPOSAL_BARGAIN,
+        SPEAK_PRIVATELY,
+        ASK_WORLDVIEW,
+        ASK_LIEGE_OPINION,
         SUGGEST_CEASEFIRE,
         SUGGEST_DEFECT,
         BARGAIN_DEFECT,
         JUSTIFY_DEFECT,
         CONFIRM_SUGGEST_DEFECT,
-        ASK_WORLDVIEW,
-        ASK_LOCATION,
-        ASK_LOCATION_CHOICE,
+        SUGGEST_ACTION,
         FOLLOW_ME,
         STOP_FOLLOW_ME,
-        ASK_LIEGE_OPINION,
         LEAVE,
     }
 
@@ -78,6 +82,10 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
     private String justification;
     private String bargainAmount;
     private int claimStrength;
+
+    // whether political sway is for or against the law
+    private boolean swayFor;
+    private LawProposal proposal;
 
     @Override
     public void init(InteractionDialogAPI dialog) {
@@ -119,6 +127,7 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
 
         PersonAPI player = Global.getSector().getPlayerPerson();
         FactionAPI faction;
+        Random rand;
         switch (option) {
             case INIT:
                 options.clearOptions();
@@ -166,8 +175,7 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                         LordsIntelPlugin.unhide(targetLord);
                     }
                     options.addOption(StringUtil.getString(CATEGORY, "option_ask_current_task"), OptionId.ASK_CURRENT_TASK);
-                    options.addOption(StringUtil.getString(CATEGORY, "option_ask_location"), OptionId.ASK_LOCATION);
-                    options.addOption(StringUtil.getString(CATEGORY, "option_ask_quest"), OptionId.ASK_QUEST);
+                    options.addOption(StringUtil.getString(CATEGORY, "option_ask_question"), OptionId.ASK_QUESTION);
                     options.addOption(StringUtil.getString(CATEGORY, "option_suggest_action"), OptionId.SUGGEST_ACTION);
                 } else {
                     String greeting = "battle_" + targetLord.getPersonality().toString().toLowerCase();
@@ -194,6 +202,133 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                 }
                 textPanel.addParagraph(StringUtil.getString(CATEGORY, id, args));
                 break;
+            case ASK_QUESTION:
+                options.clearOptions();
+                options.addOption(StringUtil.getString(CATEGORY, "option_ask_location"), OptionId.ASK_LOCATION);
+                options.addOption(StringUtil.getString(CATEGORY, "option_ask_quest"), OptionId.ASK_QUEST);
+                faction = targetLord.getFaction();
+                if (faction.equals(Utils.getRecruitmentFaction())) {
+                    LawProposal councilProposal = PoliticsController.getCurrProposal(faction);
+                    if (councilProposal != null
+                            && !councilProposal.getPledgedAgainst().contains(targetLord.getLordAPI().getId())
+                            && !councilProposal.getPledgedFor().contains(targetLord.getLordAPI().getId())) {
+                        String arg;
+                        if (councilProposal.isPlayerSupports()) {
+                            arg = "support";
+                            swayFor = true;
+                        } else {
+                            arg = "oppose";
+                            swayFor = false;
+                        }
+                        options.addOption(StringUtil.getString(CATEGORY, "option_sway_council", arg), OptionId.SWAY_PROPOSAL_COUNCIL);
+                    }
+                    LawProposal playerProposal = PoliticsController.getProposal(LordController.getPlayerLord());
+                    if (playerProposal != null && !playerProposal.equals(councilProposal)
+                            && !playerProposal.getPledgedAgainst().contains(targetLord.getLordAPI().getId())
+                            && !playerProposal.getPledgedFor().contains(targetLord.getLordAPI().getId())) {
+                        options.addOption(StringUtil.getString(CATEGORY, "option_sway_player"), OptionId.SWAY_PROPOSAL_PLAYER);
+                    }
+                }
+                options.addOption(StringUtil.getString(CATEGORY, "option_nevermind"), OptionId.INIT);
+                break;
+            case SWAY_PROPOSAL_PLAYER:
+            case SWAY_PROPOSAL_COUNCIL:
+                faction = targetLord.getFaction();
+                if (option == OptionId.SWAY_PROPOSAL_PLAYER) {
+                    proposal = PoliticsController.getProposal(LordController.getPlayerLord());
+                    swayFor = true;
+                } else {
+                    proposal = PoliticsController.getCurrProposal(faction);
+                }
+                int opinion = PoliticsController.getApproval(targetLord, proposal, false).one;
+                // lord can either agree/refuse outright, suggest a bribe, or suggest player support their proposal
+                rand = new Random(targetLord.getLordAPI().getId().hashCode()
+                        + Global.getSector().getClock().getTimestamp());
+                LawProposal lordProposal = PoliticsController.getProposal(targetLord);
+                int relation = RelationController.getRelation(targetLord, LordController.getPlayerLord());
+                int agreeChance = 0;
+                int bribeChance = 0;
+                int bargainChance = 0;
+                if (!swayFor) opinion *= -1;
+                if (!targetLord.isSwayed() && opinion > -20) {
+                    agreeChance = 10 * (relation / 10 + opinion + 12); // agree at -10 or above
+                    bribeChance = 25 + relation;
+                    switch (targetLord.getPersonality()) {
+                        case UPSTANDING:
+                            bribeChance /= 4;
+                            break;
+                        case MARTIAL:
+                            bribeChance /= 2;
+                            break;
+                        case CALCULATING:
+                            bribeChance *= 2;
+                            break;
+                    }
+                    // lord needs a proposal worth supporting to bargain
+                    if (lordProposal != null && lordProposal.getSupporters().size() > 1
+                            && !lordProposal.isPlayerSupports()
+                            && relation > Utils.getThreshold(RepLevel.SUSPICIOUS)) {
+                        bargainChance = 100;
+                    }
+                }
+
+                targetLord.setSwayed(true);
+                if (rand.nextInt(100) < agreeChance) {
+                    if (opinion > 0) {
+                        textPanel.addPara(StringUtil.getString(CATEGORY, "option_accept_sway_redundant"));
+                    } else {
+                        textPanel.addPara(StringUtil.getString(CATEGORY, "option_accept_sway"));
+                    }
+                    if (swayFor) {
+                        proposal.getPledgedFor().add(targetLord.getLordAPI().getId());
+                    } else {
+                        proposal.getPledgedAgainst().add(targetLord.getLordAPI().getId());
+                    }
+                    PoliticsController.updateProposal(proposal);
+                    optionSelected(null, OptionId.ASK_QUESTION);
+                } else if (rand.nextInt(100) < bargainChance) {
+                    textPanel.addPara(StringUtil.getString(CATEGORY, "option_bargain_sway_support"));
+                    options.clearOptions();
+                    bargainAmount = "proposal"; // TODO make some flags
+                    options.addOption("Pledge to support proposal: " + lordProposal.getTitle(), OptionId.SWAY_PROPOSAL_BARGAIN);
+                    options.addOption("Refuse", OptionId.ASK_QUESTION);
+
+
+                } else if (rand.nextInt(100) < bribeChance) {
+                    textPanel.addPara(StringUtil.getString(CATEGORY, "option_bargain_sway_money"));
+                    bargainAmount = "credits";
+                    options.clearOptions();
+                    options.addOption("Offer 100,000 credits", OptionId.SWAY_PROPOSAL_BARGAIN);
+                    float playerWealth = Global.getSector().getPlayerFleet().getCargo().getCredits().get();
+                    if (playerWealth < 100000) {
+                        options.setEnabled(OptionId.SWAY_PROPOSAL_BARGAIN, false);
+                        options.setTooltip(OptionId.SWAY_PROPOSAL_BARGAIN, "Insufficient funds.");
+                    }
+                    options.addOption("Refuse", OptionId.ASK_QUESTION);
+
+                } else {
+                    textPanel.addPara(StringUtil.getString(CATEGORY, "option_refuse_sway"));
+                    optionSelected(null, OptionId.ASK_QUESTION);
+                }
+                break;
+            case SWAY_PROPOSAL_BARGAIN:
+                textPanel.addPara(StringUtil.getString(CATEGORY, "option_accept_sway_bargain"));
+                if (bargainAmount.equals("credits")) {
+                    Global.getSector().getPlayerFleet().getCargo().getCredits().subtract(100000);
+                    textPanel.addPara("Lost " + 100000 + " credits.", Color.RED);
+                } else {
+                    LawProposal bargainProposal = PoliticsController.getProposal(targetLord);
+                    bargainProposal.getPledgedFor().add(LordController.getPlayerLord().getLordAPI().getId());
+                    bargainProposal.setPlayerSupports(true);
+                }
+                if (swayFor) {
+                    proposal.getPledgedFor().add(targetLord.getLordAPI().getId());
+                } else {
+                    proposal.getPledgedAgainst().add(targetLord.getLordAPI().getId());
+                }
+                PoliticsController.updateProposal(proposal);
+                optionSelected(null, OptionId.ASK_QUESTION);
+                break;
             case ASK_LOCATION:
                 textPanel.addParagraph(StringUtil.getString(CATEGORY, "accept_ask_location"));
                 options.clearOptions();
@@ -212,7 +347,7 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                     options.addOption(desc, new Object());
                     lordsReference.put(desc, lord);
                 }
-                options.addOption(StringUtil.getString(CATEGORY, "option_nevermind"), OptionId.INIT);
+                options.addOption(StringUtil.getString(CATEGORY, "option_nevermind"), OptionId.ASK_QUESTION);
                 break;
             case ASK_LOCATION_CHOICE:
                 Lord lord = lordsReference.get(optionText);
@@ -375,7 +510,7 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                 break;
             case CONFIRM_SUGGEST_DEFECT:
                 faction = Utils.getRecruitmentFaction();
-                Random rand = new Random(targetLord.getLordAPI().getId().hashCode() + Global.getSector().getClock().getTimestamp());
+                rand = new Random(targetLord.getLordAPI().getId().hashCode() + Global.getSector().getClock().getTimestamp());
                 int claimConcern = 0;
                 if (justification.contains(targetLord.getPersonality().toString().toLowerCase())) claimConcern = 100;
                 int baseReluctance = DefectionUtils.getBaseReluctance(targetLord);

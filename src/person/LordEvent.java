@@ -51,7 +51,7 @@ public class LordEvent {
 
     // used on save load to remove outdated lord references
     public void updateReferences() {
-        originator = LordController.getLordById(originator.getLordAPI().getId());
+        originator = LordController.getLordOrPlayerById(originator.getLordAPI().getId());
         List<Lord> newParticipants = new ArrayList<>();
         List<Lord> newOpposition = new ArrayList<>();
         for (Lord lord : participants) {

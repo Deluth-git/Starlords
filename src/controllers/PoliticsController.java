@@ -26,6 +26,7 @@ import java.awt.*;
 import java.util.*;
 import java.util.List;
 
+import static util.Constants.DEBUG_MODE;
 import static util.Constants.ONE_DAY;
 
 public class PoliticsController implements EveryFrameScript {
@@ -45,8 +46,8 @@ public class PoliticsController implements EveryFrameScript {
     public static final int RELATION_CHANGE_LAW_IMPORTANT = 10;
     public static final float UPDATE_INTERVAL = 1;
     public static final float LORD_THINK_INTERVAL = 7;
-    private static final int RECESS_DAYS = 2;//30;
-    private static final int DEBATE_DAYS = 2;//60;
+    private static final int RECESS_DAYS = DEBUG_MODE ? 2 : 30;//30;
+    private static final int DEBATE_DAYS = DEBUG_MODE ? 2 : 60;//60;
 
     private PoliticsController() {
         factionLawsMap = new HashMap<>();
@@ -91,6 +92,7 @@ public class PoliticsController implements EveryFrameScript {
                         nextProposal.kill();
                     }
                     factionCouncilMap.put(factionStr, nextProposal);
+                    factionLastCouncilMap.put(factionStr, null);
                     PoliticsController.updateProposal(nextProposal);
                 } else {
                     // vote on proposal
@@ -121,6 +123,7 @@ public class PoliticsController implements EveryFrameScript {
             if (Misc.isPirateFaction(lord.getFaction())) continue;
             if (Utils.getDaysSince(lordTimestampMap.get(lord.getLordAPI().getId())) < LORD_THINK_INTERVAL) continue;
             lordTimestampMap.put(lord.getLordAPI().getId(), Global.getSector().getClock().getTimestamp());
+            lord.setSwayed(false);
             LawProposal currProposal = lordProposalsMap.get(lord.getLordAPI().getId());
             if (currProposal == null) {
                 // lord submits new proposal
@@ -206,7 +209,7 @@ public class PoliticsController implements EveryFrameScript {
         if (weight > bestWeight) {
             // declare war on least liked faction
             int worstRelations = 100;
-            bestTargetFaction = null;
+            String targetFaction = null;
             ArrayList<String> options = new ArrayList<>();
             for (FactionAPI faction2 : LordController.getFactionsWithLords()) {
                 if (faction.equals(faction2)) continue;
@@ -215,14 +218,15 @@ public class PoliticsController implements EveryFrameScript {
                     if (rep < Utils.getThreshold(RepLevel.FAVORABLE)) options.add(faction2.getId());
                     if (rep < worstRelations) {
                         worstRelations = rep;
-                        bestTargetFaction = faction2.getId();
+                        targetFaction = faction2.getId();
                     }
                 }
             }
-            if (!options.isEmpty()) bestTargetFaction  = options.get(rand.nextInt(options.size()));
-            if (bestTargetFaction != null) {
+            if (!options.isEmpty()) targetFaction  = options.get(rand.nextInt(options.size()));
+            if (targetFaction != null) {
                 bestWeight = weight;
                 bestType = Lawset.LawType.DECLARE_WAR;
+                bestTargetFaction = targetFaction;
                 bestTargetLord = null;
                 bestTargetMarket = null;
                 bestLevel = 0;
@@ -235,10 +239,10 @@ public class PoliticsController implements EveryFrameScript {
             for (FactionAPI faction2 : LordController.getFactionsWithLords()) {
                 if (faction2.isHostileTo(faction)) options.add(faction2.getId());
             }
-            if (!options.isEmpty()) bestTargetFaction  = options.get(rand.nextInt(options.size()));
-            if (bestTargetFaction != null) {
+            if (!options.isEmpty()) {
                 bestWeight = weight;
                 bestType = Lawset.LawType.SUE_FOR_PEACE;
+                bestTargetFaction = options.get(rand.nextInt(options.size()));
                 bestTargetLord = null;
                 bestTargetMarket = null;
                 bestLevel = 0;
@@ -246,16 +250,18 @@ public class PoliticsController implements EveryFrameScript {
         }
 
         // grant fief
+        String targetLord;
         weight = 0;
         MarketAPI fief = laws.getFiefAward();
         if (fief != null) {
             weight = 100;
         }
         if (weight > bestWeight) {
-            bestTargetLord = getPreferredLordTarget(lord, true);
-            if (bestTargetLord != null) {
+            targetLord = getPreferredLordTarget(lord, true);
+            if (targetLord != null) {
                 bestWeight = weight;
                 bestType = Lawset.LawType.AWARD_FIEF;
+                bestTargetLord = targetLord;
                 bestTargetFaction = null;
                 bestTargetMarket = fief.getId();
                 bestLevel = 0;
@@ -272,17 +278,16 @@ public class PoliticsController implements EveryFrameScript {
         }
 
         if (weight > bestWeight) {
-            bestTargetLord = getPreferredLordTarget(lord, false);
-            if (bestTargetLord != null) {
+            targetLord = getPreferredLordTarget(lord, false);
+            if (targetLord != null) {
                 bestWeight = weight;
                 bestType = Lawset.LawType.APPOINT_MARSHAL;
+                bestTargetLord = targetLord;
                 bestTargetFaction = null;
                 bestTargetMarket = null;
                 bestLevel = 0;
             }
         }
-
-
 
         if (bestType == null) return null;
         return new LawProposal(bestType, lord.getLordAPI().getId(),
@@ -298,6 +303,11 @@ public class PoliticsController implements EveryFrameScript {
             if (proposal.getFaction().equals(faction)) {
                 int weight = proposal.getTotalSupport();
                 if (weight > bestWeight) {
+                    best = proposal;
+                    bestWeight = weight;
+                } else if (weight == bestWeight && (best == null
+                        || proposal.creationTimestamp < best.creationTimestamp)) {
+                    // break ties by preferring older proposal
                     best = proposal;
                     bestWeight = weight;
                 }
@@ -413,12 +423,25 @@ public class PoliticsController implements EveryFrameScript {
         }
 
         // change lord relations
+        updateRelationsAfterDebate(proposal);
+
+        if (announce) {
+            if (victorySound) {
+                Global.getSoundPlayer().playUISound("ui_rep_raise", 1, 1);
+            } else {
+                Global.getSoundPlayer().playUISound("ui_rep_drop", 1, 1);
+            }
+        }
+    }
+
+    public static void updateRelationsAfterDebate(LawProposal proposal) {
         Pair<Lord, Lord> result = getBeneficiaryVictim(proposal);
         Lord beneficiary = result.one;
         Lord victim = result.two;
         boolean playerImportant = (proposal.originator.equals(Global.getSector().getPlayerPerson().getId())
                 || (beneficiary != null && beneficiary.isPlayer())) && proposal.isPlayerSupports();
         playerImportant |= (victim != null && victim.isPlayer() && !proposal.isPlayerSupports());
+        playerImportant |= proposal.isForcePassed();
         for (int i = 0; i < proposal.getSupporters().size(); i++) {
             Lord supporter = LordController.getLordById(proposal.getSupporters().get(i));
             boolean important = supporter.equals(beneficiary)
@@ -453,14 +476,35 @@ public class PoliticsController implements EveryFrameScript {
                         opposerImportant || opposerImportant2 ? RELATION_CHANGE_LAW_IMPORTANT : RELATION_CHANGE_LAW_NORMAL);
             }
         }
+    }
 
-        if (announce) {
-            if (victorySound) {
-                Global.getSoundPlayer().playUISound("ui_rep_raise", 1, 1);
-            } else {
-                Global.getSoundPlayer().playUISound("ui_rep_drop", 1, 1);
-            }
-        }
+    // vetoes currently debated proposal
+    public static void vetoProposal(FactionAPI faction) {
+        LawProposal proposal = getCurrProposal(faction);
+        if (proposal == null) return;
+        updateProposal(proposal);
+        proposal.setPlayerSupports(false);
+        proposal.getOpposers().clear();
+        updateRelationsAfterDebate(proposal);
+        getInstance().factionLastCouncilMap.put(faction.getId(), proposal);
+        getInstance().factionCouncilMap.put(faction.getId(), null);
+        getInstance().factionTimestampMap.put(
+                faction.getId(), Global.getSector().getClock().getTimestamp());
+    }
+
+    // force passes currently debated proposal
+    public static void forcePassProposal(FactionAPI faction) {
+        LawProposal proposal = getCurrProposal(faction);
+        if (proposal == null) return;
+        updateProposal(proposal);
+        proposal.setPlayerSupports(true);
+        proposal.getSupporters().clear();
+        proposal.setForcePassed(true);
+        updateRelationsAfterDebate(proposal);
+        getInstance().factionLastCouncilMap.put(faction.getId(), proposal);
+        getInstance().factionCouncilMap.put(faction.getId(), null);
+        getInstance().factionTimestampMap.put(
+                faction.getId(), Global.getSector().getClock().getTimestamp());
     }
 
 
@@ -978,6 +1022,16 @@ public class PoliticsController implements EveryFrameScript {
             }
         }
 
+        if (proposal.getPledgedFor().contains(lord.getLordAPI().getId())) {
+            delta = 20;
+            approval += delta;
+            if (itemized) reasons.add(addPlus(delta) + " Swayed");
+        } else if (proposal.getPledgedAgainst().contains(lord.getLordAPI().getId())) {
+            delta = -20;
+            approval += delta;
+            if (itemized) reasons.add(addPlus(delta) + " Swayed");
+        }
+
 
         if (proposal.equals(getInstance().factionCouncilMap.get(
                 lord.getFaction().getId()))) {
@@ -1111,6 +1165,10 @@ public class PoliticsController implements EveryFrameScript {
 
     public static LawProposal getCurrProposal(FactionAPI faction) {
         return getInstance().factionCouncilMap.get(faction.getId());
+    }
+
+    public static LawProposal getProposal(Lord lord) {
+        return getInstance().lordProposalsMap.get(lord.getLordAPI().getId());
     }
 
     public static int getPoliticalWeight(Lord lord) {
@@ -1248,6 +1306,7 @@ public class PoliticsController implements EveryFrameScript {
                 weight -= 20 * player.getFiefs().size();
             } else {
                 weight += 30 * player.getRanking();
+                if (player.isMarshal()) weight = 0;
             }
             if (weight > 0) {
                 totalWeight += weight;
@@ -1267,6 +1326,7 @@ public class PoliticsController implements EveryFrameScript {
                 weight -= 20 * option.getFiefs().size();
             } else  {
                 weight += 30 * option.getRanking();
+                if (option.isMarshal()) weight = 0;
             }
             if (weight > 0) {
                 totalWeight += weight;

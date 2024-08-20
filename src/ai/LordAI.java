@@ -373,7 +373,7 @@ public class LordAI implements EveryFrameScript {
                 break;
             case CAMPAIGN:
                 if (event != null) {
-                    target = event.getOriginator().getLordAPI().getFleet();
+                    target = event.getOriginator().getFleet();
                     lord.setTarget(target);
                     fleetAI.addAssignmentAtStart(
                             FleetAssignment.ORBIT_AGGRESSIVE, target, 1000,

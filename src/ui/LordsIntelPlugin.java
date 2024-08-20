@@ -94,7 +94,7 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
         String orderStr;
         if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.FRIENDLY)) {
             orderStr = "[REDACTED]";
-        } else if (lord.getCurrAction() == null) {
+        } else if (lord.getCurrAction() == null || !fleet.isAlive()) {
             orderStr = "None";
         } else if (lord.getCurrAction() != LordAction.CAMPAIGN) {
             orderStr = StringUtil.getString(CATEGORY_UI, "fleet_" + lord.getCurrAction().base.toString().toLowerCase() + "_desc", lord.getTarget().getName());

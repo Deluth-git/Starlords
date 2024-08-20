@@ -117,6 +117,7 @@ public class DefectionUtils {
         for (FactionAPI faction : Global.getSector().getAllFactions()) {
             if (Misc.getCommissionFaction() != null && faction.isPlayerFaction()) continue;
             if (faction.equals(lord.getFaction())) continue;
+            if (faction.getId().equals(Factions.INDEPENDENT)) continue;
             int weight = RelationController.getLoyalty(lord, faction.getId());
             if (!Misc.isPirateFaction(faction)) {
                 if (marketValues.containsKey(faction.getId())) {

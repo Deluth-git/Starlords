@@ -12,6 +12,7 @@ import com.fs.starfarer.api.util.Pair;
 import controllers.FiefController;
 import controllers.LordController;
 import controllers.PoliticsController;
+import faction.LawLevel;
 import faction.LawProposal;
 import faction.Lawset;
 import lombok.Setter;
@@ -164,7 +165,12 @@ public class CouncilIntelPlugin extends BaseIntelPlugin {
                 TooltipMakerAPI.TooltipLocation.BELOW);
 
         supportButtonPanel.addButton("Support", SUPPORT_BUTTON, faction.getBrightUIColor(), faction.getDarkUIColor(), 100, 20, opad);
-        opposeButtonPanel.addButton("Oppose", OPPOSE_BUTTON, uiColor, LIGHT_RED, 100, 20, opad);
+        ButtonAPI opposeButton = opposeButtonPanel.addButton("Oppose", OPPOSE_BUTTON, uiColor, LIGHT_RED, 100, 20, opad);
+        if (currProposal.getPledgedFor().contains(LordController.getPlayerLord().getLordAPI().getId())) {
+            opposeButton.setEnabled(false);
+            opposeButtonPanel.addTooltipToPrevious(new ToolTip(200,
+                    "You pledged to support this proposal."), TooltipMakerAPI.TooltipLocation.BELOW);
+        }
         panel.addUIElement(supportPanel).belowLeft(voteHeader, opad);
         panel.addUIElement(supportButtonPanel).rightOfTop(supportPanel, opad);
 
@@ -199,10 +205,19 @@ public class CouncilIntelPlugin extends BaseIntelPlugin {
         }
 
         if (faction.equals(Global.getSector().getPlayerFaction())) {
+            LawLevel crownAuthority = PoliticsController.getLaws(faction).getCrownAuthority();
             TooltipMakerAPI rulerPanel = panel.createUIElement(100, headerHeight, false);
-            rulerPanel.addButton("Veto", VETO_BUTTON, faction.getBrightUIColor(), faction.getDarkUIColor(), 100, 20, opad);
-            rulerPanel.addButton("Force Pass", FORCE_PASS_BUTTON, faction.getBrightUIColor(), faction.getDarkUIColor(), 100, 20, opad);
-            panel.addUIElement(rulerPanel).leftOfTop(debateBar, opad);
+            ButtonAPI vetoButton = rulerPanel.addButton("Veto", VETO_BUTTON, faction.getBrightUIColor(), faction.getDarkUIColor(), 100, 20, opad);
+            if (!crownAuthority.isAtLeast(LawLevel.MEDIUM)) {
+                vetoButton.setEnabled(false);
+                rulerPanel.addTooltipToPrevious(new ToolTip(200, "Requires medium " + Lawset.LawType.CROWN_AUTHORITY.lawName), TooltipMakerAPI.TooltipLocation.BELOW);
+            }
+            ButtonAPI forcePassButton = rulerPanel.addButton("Force Pass", FORCE_PASS_BUTTON, faction.getBrightUIColor(), faction.getDarkUIColor(), 100, 20, opad);
+            if (!crownAuthority.isAtLeast(LawLevel.HIGH)) {
+                forcePassButton.setEnabled(false);
+                rulerPanel.addTooltipToPrevious(new ToolTip(200, "Requires high " + Lawset.LawType.CROWN_AUTHORITY.lawName), TooltipMakerAPI.TooltipLocation.BELOW);;
+            }
+            panel.addUIElement(rulerPanel).rightOfTop(debateBar, opad);
         }
     }
 
@@ -308,6 +323,21 @@ public class CouncilIntelPlugin extends BaseIntelPlugin {
     }
 
     @Override
+    public void createConfirmationPrompt(Object buttonId, TooltipMakerAPI prompt) {
+        if (buttonId == VETO_BUTTON) {
+            prompt.addPara("This will automatically fail the proposal and anger its supporters. Continue?", pad);
+        } else if (buttonId == FORCE_PASS_BUTTON) {
+            prompt.addPara("This will automatically pass the proposal and greatly anger its opposition. Continue?", pad);
+        }
+    }
+
+    @Override
+    public boolean doesButtonHaveConfirmDialog(Object buttonId) {
+        if (buttonId == VETO_BUTTON || buttonId == FORCE_PASS_BUTTON) return true;
+        return super.doesButtonHaveConfirmDialog(buttonId);
+    }
+
+    @Override
     public void buttonPressConfirmed(Object buttonId, IntelUIAPI ui) {
         if (buttonId == SUPPORT_BUTTON) {
             currProposal.setPlayerSupports(true);
@@ -318,9 +348,14 @@ public class CouncilIntelPlugin extends BaseIntelPlugin {
             PoliticsController.updateProposal(currProposal);
             ui.updateUIForItem(this);
         } else if (buttonId == VETO_BUTTON) {
-
+            // TODO fix these sounds
+            Global.getSoundPlayer().playUISound("hit_glancing", 1, 1);
+            PoliticsController.vetoProposal(faction);
+            ui.updateUIForItem(this);
         } else if (buttonId == FORCE_PASS_BUTTON) {
-
+            Global.getSoundPlayer().playUISound("hit_glancing", 1, 1);
+            PoliticsController.forcePassProposal(faction);
+            ui.updateUIForItem(this);
         }
     }
 

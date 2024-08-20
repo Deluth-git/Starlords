@@ -61,13 +61,20 @@ public class Lord {
 
     private boolean isPlayer;
 
+    // whether the player has been greeted by this lord
     private boolean knownToPlayer;
 
+    // whether the player has spoken privately to this lord and learned their personality
     private boolean personalityKnown;
 
+    // whether the player has already gotten a relation bonus with this lord at the latest feast
     private boolean feastInteracted;
 
+    // whether their action is commanded by player. Player-commanded actions cannot be preempted
     private boolean playerDirected;
+
+    // whether the player has attempted to sway this lord recently
+    private boolean swayed;
 
     // Creates a lord from scratch, only run at campaign start
     public Lord(LordTemplate template) {
@@ -90,6 +97,7 @@ public class Lord {
         persistentData.put("personalityKnown", false);
         persistentData.put("playerDirected", false);
         persistentData.put("feastInteracted", false);
+        persistentData.put("swayed", false);
         persistentData.put("fief", new ArrayList<String>());
         // What kind of parser maps null to the string null???
         if (template.fief != null && !template.fief.equals("null")) {
@@ -166,11 +174,12 @@ public class Lord {
         knownToPlayer = (boolean) persistentData.get("knownToPlayer");
         playerDirected = (boolean) persistentData.get("playerDirected");
         feastInteracted = (boolean) persistentData.get("feastInteracted");
+        swayed = (boolean) persistentData.get("swayed");
         if (actionStr != null) {
             currAction = LordAction.valueOf(actionStr);
         }
         if (persistentData.containsKey("kills")) {
-            kills = (int) persistentData.get(kills);
+            kills = (int) persistentData.get("kills");
         }
         if (persistentData.containsKey("assignmentStartTime")) {
             assignmentStartTime = (long) persistentData.get("assignmentStartTime");
@@ -255,6 +264,11 @@ public class Lord {
         return lordAPI.getFaction();
     }
 
+    public CampaignFleetAPI getFleet() {
+        if (isPlayer) return Global.getSector().getPlayerFleet();
+        return lordAPI.getFleet();
+    }
+
     public boolean isMarshal() {
         return lordAPI.getId().equals(PoliticsController.getLaws(getFaction()).getMarshal());
     }
@@ -262,12 +276,13 @@ public class Lord {
     // Returns number between 0 and 2 representing lord's military strength relative to desired level
     // 1 is the expected level, 2 is higher, 0 is lower
     public float getMilitaryLevel() {
-        return (float) (1 + Math.tanh((getLordAPI().getFleet().getFleetPoints() - 200f) / 100));
+        return (float) (1 + Math.tanh((getFleet().getFleetPoints() - 200f) / 100));
     }
 
     public void setCurrAction(LordAction action) {
+        if (isPlayer) return;
         currAction = action;
-        ModularFleetAIAPI lordAI = (ModularFleetAIAPI) lordAPI.getFleet().getAI();
+        ModularFleetAIAPI lordAI = (ModularFleetAIAPI) getFleet().getAI();
         if (action != null) {
             persistentData.put("currAction", action.toString());
             ((LordStrategicModule) lordAI.getStrategicModule()).setInTransit(action.toString().contains("TRANSIT"));
@@ -316,6 +331,11 @@ public class Lord {
     public void setFeastInteracted(boolean bool) {
         feastInteracted = bool;
         persistentData.put("feastInteracted", bool);
+    }
+
+    public void setSwayed(boolean bool) {
+        swayed = bool;
+        persistentData.put("swayed", bool);
     }
 
     public void setPlayerDirected(boolean bool) {
@@ -383,11 +403,8 @@ public class Lord {
 
     // Returns closest owned fief, if any. If no fiefs, just return the closest friendly planet/station.
     public SectorEntityToken getClosestBase(boolean prioritizeFiefs) {
-        CampaignFleetAPI lordFleet = lordAPI.getFleet();
-        if (lordFleet == null) {
-            // N/A if lord is currently defeated/captured
-            return null;
-        }
+        CampaignFleetAPI lordFleet = getFleet();
+        if (lordFleet == null) return null;
         Vector2f currLoc = lordFleet.getLocationInHyperspace(); // TODO also count in-sector loc
         if (!fiefs.isEmpty() && prioritizeFiefs) {
             int minIdx = 0;

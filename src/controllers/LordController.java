@@ -35,6 +35,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.util.*;
 
+import static util.Constants.DEBUG_MODE;
 import static util.Constants.LORD_TABLE_KEY;
 
 public class LordController {
@@ -135,24 +136,28 @@ public class LordController {
                 lordMarket = currLord.getFiefs().get(0).getMarket();
             }
             // TODO DEBUG
-            Global.getSector().getPlayerFleet().getCargo().getCredits().add(5000000);
-            if (currLord.getLordAPI().getFaction().getId().equals(Factions.HEGEMONY))
-                lordMarket = Global.getSector().getEconomy().getMarket("culann");
-            if (new Random().nextInt(2) == 0) {
-                currLord.getLordAPI().getRelToPlayer().setRel(2 * new Random().nextFloat() - 1);
-            } else {
-                currLord.getLordAPI().getRelToPlayer().setRel(1);
+            if (DEBUG_MODE) {
+                Global.getSector().getPlayerFleet().getCargo().getCredits().add(5000000);
+                if (currLord.getLordAPI().getFaction().getId().equals(Factions.HEGEMONY))
+                    lordMarket = Global.getSector().getEconomy().getMarket("culann");
+                if (new Random().nextInt(2) == 0) {
+                    currLord.getLordAPI().getRelToPlayer().setRel(2 * new Random().nextFloat() - 1);
+                } else {
+                    currLord.getLordAPI().getRelToPlayer().setRel(1);
+                }
+                currLord.getLordAPI().getRelToPlayer().setRel(0.95f);
+                if (currLord.getLordAPI().getFaction().getId().equals(Factions.PIRATES)) {
+                    lordMarket = Global.getSector().getEconomy().getMarket("jangala");
+                    currLord.getLordAPI().getRelToPlayer().setRel(1);
+                }
+                if (currLord.getTemplate().name.contains("Brynhild")) {
+                    lordMarket = Global.getSector().getEconomy().getMarket("jangala");
+                    currLord.getLordAPI().getRelToPlayer().setRel(1);
+                }
+                currLord.setKnownToPlayer(true);
+                currLord.setPersonalityKnown(true);
             }
-            if (currLord.getLordAPI().getFaction().getId().equals(Factions.PIRATES)) {
-                lordMarket = Global.getSector().getEconomy().getMarket("jangala");
-                currLord.getLordAPI().getRelToPlayer().setRel(1);
-            }
-            if (currLord.getTemplate().name.contains("Brynhild")) {
-                lordMarket = Global.getSector().getEconomy().getMarket("jangala");
-                currLord.getLordAPI().getRelToPlayer().setRel(1);
-            }
-            currLord.setKnownToPlayer(true);
-            currLord.setPersonalityKnown(true);
+
             log.info("Spawning lord in " + lordMarket.getId());
 
             FleetParamsV3 params = new FleetParamsV3();

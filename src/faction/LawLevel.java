@@ -12,4 +12,8 @@ public enum LawLevel {
     LawLevel(String s) {
         displayName = s;
     }
+
+    public boolean isAtLeast(LawLevel level) {
+        return ordinal() - level.ordinal() >= 0;
+    }
 }

@@ -65,7 +65,7 @@ public class EventController extends BaseIntelPlugin {
 
     public static LordEvent getCurrentFeast(FactionAPI faction) {
         for (LordEvent feast : getInstance().feasts) {
-            if (feast.getOriginator().getLordAPI().getFaction().equals(faction)) {
+            if (feast.getOriginator().getFaction().equals(faction)) {
                 return feast;
             }
         }
@@ -91,7 +91,7 @@ public class EventController extends BaseIntelPlugin {
 
     public static LordEvent getCurrentCampaign(FactionAPI faction) {
         for (LordEvent feast : getInstance().campaigns) {
-            if (feast.getOriginator().getLordAPI().getFaction().equals(faction)) {
+            if (feast.getOriginator().getFaction().equals(faction)) {
                 return feast;
             }
         }
@@ -116,13 +116,22 @@ public class EventController extends BaseIntelPlugin {
     public static void addCampaign(LordEvent campaign) {
         getInstance().campaigns.add(campaign);
         LordAI.triggerPreemptingEvent(campaign);
-        FactionAPI faction = campaign.getOriginator().getLordAPI().getFaction();
+        FactionAPI faction = campaign.getOriginator().getFaction();
         if (faction.getId().equals(Misc.getCommissionFactionId()) || faction.getId().equals(Factions.PLAYER)) {
-            Global.getSector().getCampaignUI().addMessage(
-                    StringUtil.getString(CATEGORY, "campaign_start",
-                            campaign.getOriginator().getLordAPI().getNameString(),
-                            campaign.getOriginator().getTarget().getMarket().getName()),
-                    faction.getBaseUIColor());
+            // TODO add some sound
+            if (campaign.getOriginator().isPlayer()) {
+                Global.getSector().getCampaignUI().addMessage(
+                        StringUtil.getString(CATEGORY, "campaign_start",
+                                campaign.getOriginator().getLordAPI().getNameString(),
+                                Misc.getNearestStarSystem(campaign.getOriginator().getFleet()).getBaseName()),
+                        faction.getBaseUIColor());
+            } else {
+                Global.getSector().getCampaignUI().addMessage(
+                        StringUtil.getString(CATEGORY, "campaign_start",
+                                campaign.getOriginator().getLordAPI().getNameString(),
+                                campaign.getOriginator().getTarget().getMarket().getName()),
+                        faction.getBaseUIColor());
+            }
         }
     }
 
@@ -138,7 +147,7 @@ public class EventController extends BaseIntelPlugin {
             campaign.getOriginator().setCurrAction(null);
         }
 
-        FactionAPI faction = campaign.getOriginator().getLordAPI().getFaction();
+        FactionAPI faction = campaign.getOriginator().getFaction();
         if (faction.getId().equals(Misc.getCommissionFactionId()) || faction.getId().equals(Factions.PLAYER)) {
             Global.getSector().getCampaignUI().addMessage(
                     StringUtil.getString(CATEGORY, "campaign_end"),
@@ -154,7 +163,7 @@ public class EventController extends BaseIntelPlugin {
         int preferredWeight = Integer.MIN_VALUE;
         // check defensive options
         for (LordEvent campaign : getInstance().campaigns) {
-            if (campaign.getOriginator().getLordAPI().getFaction().isHostileTo(faction) && campaign.getTarget() != null) {
+            if (campaign.getOriginator().getFaction().isHostileTo(faction) && campaign.getTarget() != null) {
                 FactionAPI defender = campaign.getTarget().getFaction();
                 int weight = Integer.MIN_VALUE;
                 if (defender.equals(faction)) {
@@ -187,7 +196,7 @@ public class EventController extends BaseIntelPlugin {
         LordEvent preferred = null;
         int preferredWeight = 0;
         for (LordEvent raid : getInstance().raids) {
-            if (!raid.getOriginator().getLordAPI().getFaction().equals(lord.getLordAPI().getFaction())) continue;
+            if (!raid.getOriginator().getFaction().equals(lord.getLordAPI().getFaction())) continue;
             int currWeight = getMilitaryOpWeight(lord, raid.getTarget().getMarket(), raid, false);
 
             if (currWeight > preferredWeight) {
@@ -214,7 +223,7 @@ public class EventController extends BaseIntelPlugin {
         for (LordEvent raid : getInstance().campaigns) {
             // make sure it's not a defensive or in-preparation campaign
             if (raid.getTarget() == null || !raid.getTarget().getFaction().equals(lord.getLordAPI().getFaction())) continue;
-            if (!lord.getLordAPI().getFaction().isHostileTo(raid.getOriginator().getLordAPI().getFaction())) continue;
+            if (!lord.getLordAPI().getFaction().isHostileTo(raid.getOriginator().getFaction())) continue;
             int currWeight = getMilitaryOpWeight(lord, raid.getTarget().getMarket(), raid, true);
 
             if (currWeight > preferredWeight) {
@@ -232,12 +241,12 @@ public class EventController extends BaseIntelPlugin {
         // skip locations that already have a raid from the same faction
         HashSet<MarketAPI> seen = new HashSet<>();
         for (LordEvent raid : getInstance().raids) {
-            if (raid.getOriginator().getLordAPI().getFaction().equals(lord.getLordAPI().getFaction())) {
+            if (raid.getOriginator().getFaction().equals(lord.getLordAPI().getFaction())) {
                 seen.add(raid.getTarget().getMarket());
             }
         }
         for (LordEvent raid : getInstance().campaigns) {
-            if (raid.getOriginator().getLordAPI().getFaction().equals(lord.getLordAPI().getFaction())
+            if (raid.getOriginator().equals(lord.getLordAPI().getFaction())
                     && raid.getTarget() != null) {
                 seen.add(raid.getTarget().getMarket());
             }
@@ -264,7 +273,7 @@ public class EventController extends BaseIntelPlugin {
     public static void addFeast(LordEvent feast) {
         getInstance().feasts.add(feast);
         LordAI.triggerPreemptingEvent(feast);
-        FactionAPI faction = feast.getOriginator().getLordAPI().getFaction();
+        FactionAPI faction = feast.getOriginator().getFaction();
         if (faction.getId().equals(Misc.getCommissionFactionId()) || faction.getId().equals(Factions.PLAYER)) {
             Global.getSector().getCampaignUI().addMessage(
                     StringUtil.getString(CATEGORY, "feast_start",
@@ -276,7 +285,7 @@ public class EventController extends BaseIntelPlugin {
 
     public static void endFeast(LordEvent feast) {
         getInstance().feasts.remove(feast);
-        FactionAPI faction = feast.getOriginator().getLordAPI().getFaction();
+        FactionAPI faction = feast.getOriginator().getFaction();
         for (Lord lord : LordController.getLordsList()) {
             if (lord.getLordAPI().getFaction().equals(faction) && LordAction.base(lord.getCurrAction()) == LordAction.FEAST) {
                 lord.setCurrAction(null);
@@ -359,7 +368,7 @@ public class EventController extends BaseIntelPlugin {
 
         // enemies starting a campaign makes campaign more likely
         for (LordEvent campaign : getInstance().campaigns) {
-            if (campaign.getOriginator().getLordAPI().getFaction().isHostileTo(faction)) {
+            if (campaign.getOriginator().getFaction().isHostileTo(faction)) {
                 weight += 10;
             }
         }
@@ -391,7 +400,7 @@ public class EventController extends BaseIntelPlugin {
         // Distance
         // 20000 should be roughly maximum acceptable distance
         float dist = Math.max(0, Utils.getHyperspaceDistance(
-                campaign.getOriginator().getLordAPI().getFleet(), lord.getLordAPI().getFleet()) - 15000) / 1000;
+                campaign.getOriginator().getFleet(), lord.getLordAPI().getFleet()) - 15000) / 1000;
         weight -= dist;
 
         // Relations with marshal
@@ -448,7 +457,7 @@ public class EventController extends BaseIntelPlugin {
         }
         if (event != null) {
             if (defensive) {
-                enemyStrength += event.getOriginator().getLordAPI().getFleet().getFleetPoints();
+                enemyStrength += event.getOriginator().getFleet().getFleetPoints();
                 for (Lord attacker : event.getParticipants()) {
                     enemyStrength += attacker.getLordAPI().getFleet().getFleetPoints();
                 }

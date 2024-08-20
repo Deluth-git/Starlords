@@ -58,6 +58,7 @@ public class MonthlyUpkeepListener extends BaseCampaignEventListener {
     public void calculateLordBetrayal() {
         // increase betrayal chance if faction is wiped out
         HashSet<String> hasMarkets = new HashSet<>();
+        hasMarkets.add(Global.getSector().getPlayerFaction().getId()); // player faction can exist without fiefs
         for (MarketAPI marketAPI : Global.getSector().getEconomy().getMarketsCopy()) {
             hasMarkets.add(marketAPI.getFactionId());
         }

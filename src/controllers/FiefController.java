@@ -66,14 +66,15 @@ public class FiefController extends BaseIntelPlugin {
     }
 
     public static Lord getOwner(MarketAPI market) {
-        return LordController.getLordById(getInstance().fiefOwner.get(market));
+        return LordController.getLordOrPlayerById(getInstance().fiefOwner.get(market));
     }
 
     public static void setOwner(MarketAPI market, String newOwner) {
         if (market == null) return;
         Lord owner = getOwner(market);
         if (owner != null) owner.removeFief(market);
-        if (market.getPrimaryEntity().equals(owner.getTarget())) {
+        // resets owner action if it involved going to their fief
+        if (owner != null && market.getPrimaryEntity().equals(owner.getTarget())) {
             EventController.removeFromAllEvents(owner);
             owner.setCurrAction(null);
         }

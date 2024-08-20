@@ -10,9 +10,11 @@ public class Constants {
 
     public static final Color LIGHT_RED = new Color(194, 29, 29);
     public static final Color LIGHT_GREEN = new Color(29, 194, 29);
+    public static final Color DARK_GOLD = new Color(119, 80, 0);
 
     public static final String MOD_ID = "lords";
     public static final long ONE_DAY = 24L * 60 * 60 * 1000;
+    public static final boolean DEBUG_MODE = true;
 
     // Keys for persistent data
     public static final String LORD_TABLE_KEY = "starlords_lords";

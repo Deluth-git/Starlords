@@ -11,6 +11,7 @@ import person.Lord;
 import util.Utils;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 
 @Getter
 public class LawProposal {
@@ -21,6 +22,7 @@ public class LawProposal {
     public final String targetFaction;
     public final int targetLevel; // target law level or rank
     public final Lawset.LawType law;
+    public final long creationTimestamp;
     @Setter
     public FactionAPI faction;
 
@@ -43,7 +45,13 @@ public class LawProposal {
     private ArrayList<String> liegeReasons;
     @Setter
     private boolean passed; // whether this proposal was ever passed
+    @Setter
+    private boolean forcePassed; // whether this proposal was ever force-passed
     private boolean alive;  // if not alive, intel entry is removed. Proposals in the council are considered not alive.
+    @Getter
+    private HashSet<String> pledgedFor; // stores lords who were swayed to support this proposal
+    @Getter
+    private HashSet<String> pledgedAgainst; // stores lords who were swayed to opposes this proposal
 
 
     public LawProposal(Lawset.LawType law, String originator,
@@ -55,12 +63,15 @@ public class LawProposal {
         this.targetLevel = targetLevel;
         this.law = law;
         this.faction = LordController.getLordOrPlayerById(originator).getFaction();
+        creationTimestamp = Global.getSector().getClock().getTimestamp();
         supporters = new ArrayList<>();
         opposers = new ArrayList<>();
         supporterReasons = new ArrayList<>();
         opposerReasons = new ArrayList<>();
         supporterVals = new ArrayList<>();
         opposersVals = new ArrayList<>();
+        pledgedAgainst = new HashSet<>();
+        pledgedFor = new HashSet<>();
         alive = true;
     }
 
@@ -75,14 +86,18 @@ public class LawProposal {
         opposers = new ArrayList<>();
     }
 
-    // ignores effect of ruler. TODO this is a duplicate function
+    // ignores effect of non-player ruler. TODO this is a duplicate function
     public int getTotalSupport() {
         int ctr = 0;
-        if (isPlayerSupports() && !faction.equals(Global.getSector().getPlayerFaction())) {
-            ctr += PoliticsController.getPoliticalWeight(LordController.getPlayerLord());
-        }
         for (String lordStr : supporters) {
             ctr += PoliticsController.getPoliticalWeight(LordController.getLordOrPlayerById(lordStr));
+        }
+        if (playerSupports) {
+            if (!faction.equals(Global.getSector().getPlayerFaction())) {
+                ctr += PoliticsController.getPoliticalWeight(LordController.getPlayerLord());
+            } else  {
+                ctr *= PoliticsController.getLiegeMultiplier(Global.getSector().getPlayerFaction());
+            }
         }
         return ctr;
     }
