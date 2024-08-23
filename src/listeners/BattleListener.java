@@ -65,7 +65,7 @@ public class BattleListener extends BaseCampaignEventListener {
             lords.add(lord);
 
             // level up if enough stuff is killed
-            int levelUpChance = 100 * killsFP / totalFP;
+            int levelUpChance = 200 * killsFP / totalFP;
             for (FleetMemberAPI ship : winner.getFleetData().getMembersListCopy()) {
                 if (ship.isFighterWing() || ship.getCaptain() == null || ship.isFlagship()) {
                     continue;

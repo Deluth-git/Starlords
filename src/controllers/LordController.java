@@ -14,12 +14,10 @@ import com.fs.starfarer.api.characters.FullName;
 import com.fs.starfarer.api.characters.ImportantPeopleAPI;
 import com.fs.starfarer.api.characters.PersonAPI;
 import com.fs.starfarer.api.fleet.ShipRolePick;
+import com.fs.starfarer.api.impl.campaign.abilities.FractureJumpAbility;
 import com.fs.starfarer.api.impl.campaign.fleets.FleetFactoryV3;
 import com.fs.starfarer.api.impl.campaign.fleets.FleetParamsV3;
-import com.fs.starfarer.api.impl.campaign.ids.Factions;
-import com.fs.starfarer.api.impl.campaign.ids.FleetTypes;
-import com.fs.starfarer.api.impl.campaign.ids.MemFlags;
-import com.fs.starfarer.api.impl.campaign.ids.People;
+import com.fs.starfarer.api.impl.campaign.ids.*;
 import lombok.Getter;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
@@ -139,21 +137,21 @@ public class LordController {
             if (DEBUG_MODE) {
                 Global.getSector().getPlayerFleet().getCargo().getCredits().add(5000000);
                 if (currLord.getLordAPI().getFaction().getId().equals(Factions.HEGEMONY))
-                    lordMarket = Global.getSector().getEconomy().getMarket("culann");
+                    lordMarket = Global.getSector().getEconomy().getMarket("jangala");
                 if (new Random().nextInt(2) == 0) {
                     currLord.getLordAPI().getRelToPlayer().setRel(2 * new Random().nextFloat() - 1);
                 } else {
                     currLord.getLordAPI().getRelToPlayer().setRel(1);
                 }
                 currLord.getLordAPI().getRelToPlayer().setRel(0.95f);
-                if (currLord.getLordAPI().getFaction().getId().equals(Factions.PIRATES)) {
-                    lordMarket = Global.getSector().getEconomy().getMarket("jangala");
-                    currLord.getLordAPI().getRelToPlayer().setRel(1);
-                }
-                if (currLord.getTemplate().name.contains("Brynhild")) {
-                    lordMarket = Global.getSector().getEconomy().getMarket("jangala");
-                    currLord.getLordAPI().getRelToPlayer().setRel(1);
-                }
+//                if (currLord.getLordAPI().getFaction().getId().equals(Factions.PIRATES)) {
+//                    lordMarket = Global.getSector().getEconomy().getMarket("jangala");
+//                    currLord.getLordAPI().getRelToPlayer().setRel(1);
+//                }
+//                if (currLord.getTemplate().name.contains("Brynhild")) {
+//                    lordMarket = Global.getSector().getEconomy().getMarket("jangala");
+//                    currLord.getLordAPI().getRelToPlayer().setRel(1);
+//                }
                 currLord.setKnownToPlayer(true);
                 currLord.setPersonalityKnown(true);
             }
@@ -182,11 +180,17 @@ public class LordController {
                     lordMarket.getPrimaryEntity().getLocation().y);
             fleet.getMemoryWithoutUpdate().set(MemFlags.MEMORY_KEY_WAR_FLEET, true);
             fleet.getMemoryWithoutUpdate().set(MemFlags.DO_NOT_TRY_TO_AVOID_NEARBY_FLEETS, true);
+            fleet.addAbility(Abilities.TRANSVERSE_JUMP);
             //fleet.setAI(new LordCampaignFleetAI(currLord, fleet.getAI()));
             ModularFleetAIAPI baseAI = (ModularFleetAIAPI) fleet.getAI();
             baseAI.setStrategicModule(new LordStrategicModule(currLord, baseAI.getStrategicModule()));
             LordController.addLord(currLord);
             LordsIntelPlugin.createProfile(currLord);
+            if (DEBUG_MODE) {
+                fleet.getCargo().addFuel(fleet.getCargo().getFreeFuelSpace());
+                fleet.getCargo().addMarines(fleet.getCargo().getFreeCrewSpace());
+                fleet.getCargo().addCommodity(Commodities.HAND_WEAPONS, 200);
+            }
         }
         log.info("DEBUG: Generated " + lordsList.size() + " lords");
         ensureLordOrder();

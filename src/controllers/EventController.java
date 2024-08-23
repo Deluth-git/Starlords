@@ -167,9 +167,9 @@ public class EventController extends BaseIntelPlugin {
                 FactionAPI defender = campaign.getTarget().getFaction();
                 int weight = Integer.MIN_VALUE;
                 if (defender.equals(faction)) {
-                    weight = 10000 - (int) Utils.getHyperspaceDistance(campaign.getTarget(), lord.getLordAPI().getFleet());
+                    weight = 35000 - (int) Utils.getHyperspaceDistance(campaign.getTarget(), lord.getLordAPI().getFleet());
                 } else if (defender.isAtWorst(faction, RepLevel.FAVORABLE)) {
-                    weight = 5000 - (int) Utils.getHyperspaceDistance(campaign.getTarget(), lord.getLordAPI().getFleet());
+                    weight = 25000 - (int) Utils.getHyperspaceDistance(campaign.getTarget(), lord.getLordAPI().getFleet());
                 }
                 if (weight > preferredWeight) {
                     preferred = campaign.getTarget().getMarket();
@@ -181,13 +181,14 @@ public class EventController extends BaseIntelPlugin {
         for (MarketAPI market : Global.getSector().getEconomy().getMarketsCopy()) {
             FactionAPI otherFaction = market.getFaction();
             if (!Misc.isPirateFaction(otherFaction) && otherFaction.isHostileTo(faction)) {
-                int weight = -1 * (int) Utils.getHyperspaceDistance(market.getPrimaryEntity(), lord.getLordAPI().getFleet());
+                int weight = 15000 - (int) Utils.getHyperspaceDistance(market.getPrimaryEntity(), lord.getLordAPI().getFleet());
                 if (weight > preferredWeight) {
                     preferred = market;
                     preferredWeight = weight;
                 }
             }
         }
+        if (preferredWeight < 0) return null;
         return preferred;
     }
 
@@ -345,7 +346,8 @@ public class EventController extends BaseIntelPlugin {
         boolean isAtWar = false;
         for (MarketAPI market : Global.getSector().getEconomy().getMarketsCopy()) {
             FactionAPI otherFaction = market.getFaction();
-            if (!Misc.isPirateFaction(otherFaction) && faction.isHostileTo(otherFaction)) {
+            if (LordController.getFactionsWithLords().contains(otherFaction)
+                    && !Misc.isPirateFaction(otherFaction) && faction.isHostileTo(otherFaction)) {
                 isAtWar = true;
                 break;
             }

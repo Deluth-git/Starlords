@@ -513,10 +513,10 @@ public class PoliticsController implements EveryFrameScript {
         Lawset laws = getLaws(faction);
         for (String lordStr : lordProposalsMap.keySet()) {
             Lord lord = LordController.getLordOrPlayerById(lordStr);
-            if (!lord.getFaction().equals(faction)) continue;
             LawProposal proposal = lordProposalsMap.get(lordStr);
             if (proposal == null) continue;
-            boolean isValid = proposal.getFaction().equals(faction);
+            if (!lord.getFaction().equals(faction) && !proposal.getFaction().equals(faction)) continue;
+            boolean isValid = proposal.getFaction().equals(lord.getFaction());
 
             // if law with levels, ensure it's 1 level away from current law
             // if fief award/revoke, ensure the fief is unclaimed and part of the faction
@@ -1295,7 +1295,6 @@ public class PoliticsController implements EveryFrameScript {
     // gets preferred lord as target for legislation, either award fief or appoint marshal
     private String getPreferredLordTarget(Lord lord, boolean isAwardFief) {
         int weight;
-        int totalWeight = 0;
         ArrayList<String> options = new ArrayList<>();
         ArrayList<Integer> weights = new ArrayList<>();
 
@@ -1309,7 +1308,6 @@ public class PoliticsController implements EveryFrameScript {
                 if (player.isMarshal()) weight = 0;
             }
             if (weight > 0) {
-                totalWeight += weight;
                 weights.add(weight);
                 options.add(player.getLordAPI().getId());
             }
@@ -1329,23 +1327,12 @@ public class PoliticsController implements EveryFrameScript {
                 if (option.isMarshal()) weight = 0;
             }
             if (weight > 0) {
-                totalWeight += weight;
                 weights.add(weight);
                 options.add(option.getLordAPI().getId());
             }
         }
 
-        String ret = null;
-        int choice = new Random().nextInt(totalWeight);
-        for (int i = 0; i < weights.size(); i++) {
-            if (weights.get(i) > choice) {
-                ret = options.get(i);
-                break;
-            } else {
-                choice -= weights.get(i);
-            }
-        }
-        return ret;
+        return Utils.weightedSample(options, weights, null);
     }
 
 

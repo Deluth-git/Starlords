@@ -13,6 +13,7 @@ import listeners.MonthlyUpkeepListener;
 import org.apache.log4j.Logger;
 import ui.CouncilIntelPlugin;
 import ui.LawsIntelPlugin;
+import util.Utils;
 
 import java.util.HashMap;
 
@@ -46,7 +47,7 @@ public class LordsModPlugin extends BaseModPlugin {
         RelationController.getInstance(true);
         PoliticsController.getInstance(true);
 
-        if (Global.getSettings().getModManager().isModEnabled("nexerelin")) {
+        if (Utils.nexEnabled()) {
             sector.getListenerManager().addListener(new MarketStateChangeNexListener(), true);
         }
         sector.registerPlugin(new LordsCampaignPlugin());

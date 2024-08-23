@@ -127,7 +127,7 @@ public class LawProposal {
                 return "Appoint " + lord.getTitle() + " " + lord.getLordAPI().getNameString() + " to Marshal.";
             case AWARD_FIEF:
                 lord = LordController.getLordOrPlayerById(targetLord);
-                return "Award " + Global.getSector().getEconomy().getMarket(targetFief)
+                return "Award " + Global.getSector().getEconomy().getMarket(targetFief).getName()
                         + " to " + lord.getTitle() + " " + lord.getLordAPI().getNameString();
             case DECLARE_WAR:
                 return "Declare war on " + Global.getSector().getFaction(targetFaction).getDisplayNameWithArticle();

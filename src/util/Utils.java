@@ -2,26 +2,33 @@ package util;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.*;
+import com.fs.starfarer.api.campaign.econ.Industry;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.characters.PersonAPI;
-import com.fs.starfarer.api.impl.campaign.ids.Factions;
-import com.fs.starfarer.api.impl.campaign.ids.People;
-import com.fs.starfarer.api.impl.campaign.ids.Personalities;
-import com.fs.starfarer.api.impl.campaign.ids.Stats;
+import com.fs.starfarer.api.combat.StatBonus;
+import com.fs.starfarer.api.impl.campaign.ids.*;
 import com.fs.starfarer.api.util.Misc;
 import controllers.LordController;
 import person.Lord;
+import person.LordAction;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 
 public class Utils {
 
+    private static final float SOMEWHAT_CLOSE_DIST = 1000;
     private static final float CLOSE_DIST = 500;
     private static final int FAST_PATROL_FP = 20;
     private static final int COMBAT_PATROL_FP = 40;
     private static final int HEAVY_PATROL_FP = 65;
+
+
+    public static boolean nexEnabled() {
+        return Global.getSettings().getModManager().isModEnabled("nexerelin");
+    }
 
     public static List<MarketAPI> getFactionMarkets(String factionId)
     {
@@ -65,6 +72,26 @@ public class Utils {
         return patrolStrength + stationStrength;
     }
 
+    public static boolean canRaidIndustry(MarketAPI market) {
+        for (Industry industry : market.getIndustries()) {
+            if (!industry.canBeDisrupted()) continue;
+            if (industry.getSpec().hasTag(Industries.TAG_UNRAIDABLE)) continue;
+            return true;
+        }
+        return false;
+    }
+
+    public static Industry getIndustryToRaid(MarketAPI market) {
+        ArrayList<Industry> options = new ArrayList<>();
+        for (Industry industry : market.getIndustries()) {
+            if (!industry.canBeDisrupted()) continue;
+            if (industry.getSpec().hasTag(Industries.TAG_UNRAIDABLE)) continue;
+            options.add(industry);
+        }
+        if (options.isEmpty()) return null;
+        return options.get(new Random().nextInt(options.size()));
+    }
+
     // sorts lords so player is first, then marshal, then by rank, then alphabetically within the same rank
     // used for a bunch of uis
     public static void canonicalLordSort(ArrayList<Lord> lords) {
@@ -83,15 +110,23 @@ public class Utils {
         return Global.getSector().getClock().getElapsedDaysSince(timestamp);
     }
 
+    public static boolean isSomewhatClose(SectorEntityToken entity1, SectorEntityToken entity2) {
+        return isClose(entity1, entity2, SOMEWHAT_CLOSE_DIST);
+    }
+
     public static boolean isClose(SectorEntityToken entity1, SectorEntityToken entity2) {
+        return isClose(entity1, entity2, CLOSE_DIST);
+    }
+
+    public static boolean isClose(SectorEntityToken entity1, SectorEntityToken entity2, float thres) {
         if (entity1 == null || entity2 == null) return false;
         LocationAPI loc1 = entity1.getContainingLocation();
         LocationAPI loc2 = entity2.getContainingLocation();
         if (loc1.isHyperspace() && loc2.isHyperspace()) {
-            return Misc.getDistance(entity1.getLocationInHyperspace(), entity2.getLocationInHyperspace()) < CLOSE_DIST;
+            return Misc.getDistance(entity1.getLocationInHyperspace(), entity2.getLocationInHyperspace()) < thres;
         }
         if (!loc2.isHyperspace() && !loc2.isHyperspace()) {
-            return Misc.getDistance(entity1.getLocation(), entity2.getLocation()) < CLOSE_DIST;
+            return Misc.getDistance(entity1.getLocation(), entity2.getLocation()) < thres;
         }
         return false;
     }
@@ -116,6 +151,13 @@ public class Utils {
         return faction;
     }
 
+    public static float getRaidStr(CampaignFleetAPI fleet, float marines) {
+        float attackerStr = marines;
+        StatBonus stat = fleet.getStats().getDynamic().getMod(Stats.PLANETARY_OPERATIONS_MOD);
+        attackerStr = stat.computeEffective(attackerStr);
+        return attackerStr;
+    }
+
     public static String getTitle(FactionAPI faction, int rank) {
         String titleStr = "title_" + faction.getId() + "_" + rank;
         String ret = StringUtil.getString("starlords_title", titleStr);
@@ -123,6 +165,25 @@ public class Utils {
             ret = StringUtil.getString("starlords_title", "title_default_" + rank);
         }
         return ret;
+    }
+
+    public static <T> T weightedSample(List<T> data, List<Integer> weights, Random rand) {
+        if (rand == null) rand = new Random();
+        int totalWeight = 0;
+        for (int w : weights) {
+            totalWeight += w;
+        }
+        int choice = rand.nextInt(totalWeight);
+        T curr = null;
+        for (int i = 0; i < weights.size(); i++) {
+            if (weights.get(i) > choice) {
+                curr = data.get(i);
+                break;
+            } else {
+                choice -= weights.get(i);
+            }
+        }
+        return curr;
     }
 
     // gets number of major faction enemies of specified faction

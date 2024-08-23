@@ -2,26 +2,36 @@ package ai;
 
 import com.fs.starfarer.api.EveryFrameScript;
 import com.fs.starfarer.api.Global;
-import com.fs.starfarer.api.campaign.CampaignFleetAPI;
-import com.fs.starfarer.api.campaign.FactionAPI;
-import com.fs.starfarer.api.campaign.FleetAssignment;
-import com.fs.starfarer.api.campaign.SectorEntityToken;
+import com.fs.starfarer.api.Script;
+import com.fs.starfarer.api.campaign.*;
 import com.fs.starfarer.api.campaign.ai.CampaignFleetAIAPI;
+import com.fs.starfarer.api.campaign.ai.FleetAIFlags;
 import com.fs.starfarer.api.campaign.ai.ModularFleetAIAPI;
+import com.fs.starfarer.api.campaign.econ.Industry;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.campaign.rules.MemoryAPI;
+import com.fs.starfarer.api.characters.PersonAPI;
 import com.fs.starfarer.api.fleet.ShipRolePick;
+import com.fs.starfarer.api.impl.campaign.abilities.GoDarkAbility;
+import com.fs.starfarer.api.impl.campaign.abilities.ai.GoDarkAbilityAI;
+import com.fs.starfarer.api.impl.campaign.abilities.ai.TransponderAbilityAI;
+import com.fs.starfarer.api.impl.campaign.econ.impl.OrbitalStation;
 import com.fs.starfarer.api.impl.campaign.fleets.FleetFactoryV3;
-import com.fs.starfarer.api.impl.campaign.ids.FleetTypes;
-import com.fs.starfarer.api.impl.campaign.ids.MemFlags;
+import com.fs.starfarer.api.impl.campaign.ids.*;
+import com.fs.starfarer.api.impl.campaign.rulecmd.salvage.MarketCMD;
 import com.fs.starfarer.api.util.Misc;
 import com.fs.starfarer.api.util.Pair;
 import controllers.*;
+import exerelin.campaign.intel.groundbattle.GBUtils;
+import exerelin.campaign.intel.groundbattle.GroundBattleIntel;
+import exerelin.campaign.intel.groundbattle.GroundUnit;
+import exerelin.campaign.intel.groundbattle.GroundUnitDef;
 import faction.Lawset;
 import org.apache.log4j.Logger;
 import person.Lord;
 import person.LordAction;
 import person.LordEvent;
+import person.LordPersonality;
 import scripts.ActionCompleteScript;
 import scripts.RemoveBusyFlagScript;
 import util.LordFleetFactory;
@@ -30,6 +40,9 @@ import util.Utils;
 
 import java.awt.*;
 import java.util.*;
+import java.util.List;
+
+import static util.Constants.ONE_DAY;
 
 public class LordAI implements EveryFrameScript {
 
@@ -37,13 +50,17 @@ public class LordAI implements EveryFrameScript {
     // all times in days
     public static final float UPDATE_INTERVAL = 0.25f;
     public static final int PATROL_DURATION = 30;
-    public static final int RESPAWN_DURATION = 7;
+    public static final int RESPAWN_DURATION = 30;
+    public static final int PRISON_ESCAPE_DURATION = 30;
+    public static final int PRISON_ESCAPE_CHANCE = 12;
     public static final int STANDBY_DURATION = 7;
-    public static final int SMALL_OP_RECONSIDER_INTERVAL = 7;
-    public static final int LARGE_OP_RECONSIDER_INTERVAL = 7;
+    public static final int SMALL_OP_RECONSIDER_INTERVAL = 4;
+    public static final int LARGE_OP_RECONSIDER_INTERVAL = 4;
     public static final int[] FEAST_COOLDOWN = new int[]{30, 90, 180, 365, 1000000};
     public static final int FOLLOW_DURATION = 30;
     public static final int CAMPAIGN_COOLDOWN = 180;
+    public static final int CAMPAIGN_MAX_VIOLENCE= 6;
+    public static final int RAID_MAX_VIOLENCE = 3;
     public static final int CAMPAIGN_MAX_DURATION = 120;
     public static final int FEAST_MAX_DURATION = 60;
     public static final String BUSY_REASON = "starlords_standby";
@@ -86,8 +103,6 @@ public class LordAI implements EveryFrameScript {
     }
 
     public static void chooseAssignment(Lord lord) {
-        int currDay = Global.getSector().getClock().getDay();
-        long timestamp = Global.getSector().getClock().getTimestamp();
         FactionAPI faction = lord.getFaction();
         float econLevel = lord.getEconLevel();
         float milLevel = lord.getMilitaryLevel();
@@ -105,7 +120,7 @@ public class LordAI implements EveryFrameScript {
                 if (lord.isMarshal() && Utils.getDaysSince(
                         EventController.getLastCampaignTime(faction)) >= CAMPAIGN_COOLDOWN) {
                     int weight = EventController.getStartCampaignWeight(lord);
-                    log.info("Campaign start weight: " + weight);
+                    //log.info("Campaign start weight: " + weight);
                     //weight += 1000000; // TODO
                     if (weight > 0) {
                         weights.add(weight);
@@ -153,7 +168,7 @@ public class LordAI implements EveryFrameScript {
             Pair<LordEvent, Integer> defenseChoice = EventController.getPreferredDefense(lord);
             defense = defenseChoice.one;
             int defenseWeight = defenseChoice.two;
-            if (defense != null) {
+            if (defense != null && defenseWeight > 0) {
                 priority = LordAction.DEFEND.priority;
                 weights.add(defenseWeight);
                 actions.add(LordAction.DEFEND_TRANSIT);
@@ -205,7 +220,7 @@ public class LordAI implements EveryFrameScript {
                 default:
                     patrolWeight = 10;
             }
-            patrolWeight *= milLevel;
+            patrolWeight = (int) Math.max(patrolWeight * milLevel, 1);
             weights.add(patrolWeight);
             actions.add(LordAction.PATROL_TRANSIT);
         }
@@ -241,7 +256,7 @@ public class LordAI implements EveryFrameScript {
 
         if (priority >= LordAction.UPGRADE_FLEET.priority) {
             int upgradeWeight = 0;
-            if (lord.getLordAPI().getFleet().getFlagship() == null) {
+            if (lord.getFleet().getFlagship() == null) {
                 upgradeWeight += 25;
             }
             if (econLevel > 1) {
@@ -255,20 +270,7 @@ public class LordAI implements EveryFrameScript {
             actions.add(LordAction.UPGRADE_FLEET_TRANSIT);
         }
 
-        int totalWeight = 0;
-        for (int w : weights) {
-            totalWeight += w;
-        }
-        int choice = rand.nextInt(totalWeight);
-        LordAction currAction = null;
-        for (int i = 0; i < weights.size(); i++) {
-            if (weights.get(i) > choice) {
-                currAction = actions.get(i);
-                break;
-            } else {
-                choice -= weights.get(i);
-            }
-        }
+        LordAction currAction = Utils.weightedSample(actions, weights, rand);
         //log.info("Sending lord " + lord.getLordAPI().getNameString() + " on assignment " + currAction.toString());
         SectorEntityToken target = null;
         LordEvent beginEvent = null;
@@ -306,11 +308,19 @@ public class LordAI implements EveryFrameScript {
     public static void beginAssignment(Lord lord, LordAction currAction, SectorEntityToken target, LordEvent event, boolean playerDirected) {
         lord.setCurrAction(currAction);
         lord.setPlayerDirected(playerDirected);
-        CampaignFleetAIAPI fleetAI = lord.getLordAPI().getFleet().getAI();
-        MemoryAPI mem = lord.getLordAPI().getFleet().getMemoryWithoutUpdate();
+        CampaignFleetAPI fleet = lord.getFleet();
+        CampaignFleetAIAPI fleetAI = lord.getFleet().getAI();
+        MemoryAPI mem = lord.getFleet().getMemoryWithoutUpdate();
         fleetAI.clearAssignments();
         Misc.clearFlag(mem, MemFlags.FLEET_BUSY);
         Misc.clearFlag(mem, MemFlags.FLEET_IGNORES_OTHER_FLEETS);
+        Misc.clearFlag(mem, FleetAIFlags.WANTS_TRANSPONDER_ON);
+        if (!fleet.hasAbility(Abilities.TRANSPONDER)) {
+            fleet.addAbility(Abilities.TRANSPONDER);
+        }
+        if (!fleet.hasAbility(Abilities.GO_DARK)) {
+            fleet.addAbility(Abilities.GO_DARK);
+        }
 
         // choose assignment target
         SectorEntityToken targetEntity;
@@ -322,7 +332,7 @@ public class LordAI implements EveryFrameScript {
             case COLLECT_TAXES_TRANSIT:
                 targetEntity = lord.getClosestBase();
                 if (targetEntity == null) {
-                    targetEntity = Misc.findNearestLocalMarket(lord.getLordAPI().getFleet(), 1e10f, null).getPrimaryEntity();
+                    targetEntity = Misc.findNearestLocalMarket(lord.getFleet(), 1e10f, null).getPrimaryEntity();
                 }
                 lord.setTarget(targetEntity);
                 fleetAI.addAssignmentAtStart(
@@ -372,6 +382,15 @@ public class LordAI implements EveryFrameScript {
                 event.getOpposition().add(lord);
                 break;
             case CAMPAIGN:
+                if (fleet.getAbility(Abilities.GO_DARK).isActive()) {
+                    fleet.getAbility(Abilities.GO_DARK).deactivate();
+                }
+                if (!fleet.getAbility(Abilities.TRANSPONDER).isActive()) {
+                    fleet.getAbility(Abilities.TRANSPONDER).activate();
+                }
+                fleet.removeAbility(Abilities.TRANSPONDER);
+                fleet.removeAbility(Abilities.GO_DARK);
+                Misc.setFlagWithReason(mem, FleetAIFlags.WANTS_TRANSPONDER_ON, BUSY_REASON, true, 1000);
                 if (event != null) {
                     target = event.getOriginator().getFleet();
                     lord.setTarget(target);
@@ -383,12 +402,13 @@ public class LordAI implements EveryFrameScript {
                 } else {
                     SectorEntityToken rallyPoint = lord.getClosestBase(false);
                     if (rallyPoint == null) {
-                        rallyPoint = Misc.findNearestPlanetTo(lord.getLordAPI().getFleet(), false, true);
+                        rallyPoint = Misc.findNearestPlanetTo(lord.getFleet(), false, true);
                     }
                     lord.setTarget(rallyPoint);
                     fleetAI.addAssignmentAtStart(
                             FleetAssignment.GO_TO_LOCATION, rallyPoint, 1000, null);
-                    fleetAI.addAssignment(FleetAssignment.ORBIT_PASSIVE, rallyPoint, 1000, null);
+                    fleetAI.addAssignment(FleetAssignment.ORBIT_PASSIVE, rallyPoint, 1000,
+                            "Waiting for Lords to Assemble", null);
                     Misc.setFlagWithReason(mem, MemFlags.FLEET_BUSY, BUSY_REASON, true, 1000);
                     EventController.addCampaign(new LordEvent(LordEvent.CAMPAIGN, lord, null));
                 }
@@ -402,16 +422,16 @@ public class LordAI implements EveryFrameScript {
     }
 
     public static void progressAssignment(Lord lord) {
-        CampaignFleetAIAPI fleetAI = lord.getLordAPI().getFleet().getAI();
-        MemoryAPI mem = lord.getLordAPI().getFleet().getMemoryWithoutUpdate();
+        CampaignFleetAIAPI fleetAI = lord.getFleet().getAI();
+        CampaignFleetAPI fleet = lord.getFleet();
+        MemoryAPI mem = fleet.getMemoryWithoutUpdate();
         // check for lord fleet defeat
-        if (lord.getLordAPI().getFleet().isEmpty() && lord.getCurrAction() != LordAction.RESPAWNING) {
+        if (fleet.isEmpty() && lord.getCurrAction() != LordAction.RESPAWNING) {
             beginRespawn(lord);
             return;
         }
 
         // check if target is now invalid due to relation change
-        // TODO campaigns need special logic
         boolean sameFactionFail = sameFactionTargetActions.contains(lord.getCurrAction().base)
                 && !lord.getFaction().equals(lord.getTarget().getFaction());
         boolean friendlyFactionFail = friendlyTargetActions.contains(lord.getCurrAction().base)
@@ -544,9 +564,53 @@ public class LordAI implements EveryFrameScript {
                 if (Utils.getDaysSince(lord.getAssignmentStartTime()) > SMALL_OP_RECONSIDER_INTERVAL) {
                     Pair<LordEvent, Integer> newWeight = EventController.getPreferredRaidAttack(lord);
                     // sometimes stop raids randomly so they dont go on forever
-                    if (newWeight.two <= 0 || rand.nextInt(8) == 0) {
+                    LordEvent raid = EventController.getCurrentRaid(lord);
+                    FactionAPI faction = lord.getFaction();
+                    if (lord.equals(raid.getOriginator())) {
+                        if (Utils.isSomewhatClose(lord.getFleet(), raid.getTarget())) {
+                            if (lord.getFleet().getBattle() == null && raid.getOffensiveType() != null &&
+                                    Utils.getDaysSince(raid.getOffenseTimestamp())
+                                            >= raid.getOffensiveType().chargeTime) {
+                                // execute offensive
+                                MarketCMD cmd = new MarketCMD(raid.getTarget());
+                                float attackerStr = Utils.getRaidStr(
+                                        lord.getFleet(), raid.getTotalMarines());
+                                boolean failed = false;
+                                switch (raid.getOffensiveType()) {
+                                    case RAID_GENERIC:
+                                        cmd.doGenericRaid(faction, attackerStr);
+                                        break;
+                                    case RAID_INDUSTRY:
+                                        Industry raidTarget = Utils.getIndustryToRaid(raid.getTarget().getMarket());
+                                        if (raidTarget != null) {
+                                            cmd.doIndustryRaid(faction, attackerStr, raidTarget, 1);
+                                        } else {
+                                            failed = true;
+                                        }
+                                        break;
+                                }
+                                if (!failed) {
+                                    raid.setTotalViolence(raid.getTotalViolence()
+                                            + raid.getOffensiveType().violence);
+                                }
+                                lord.setActionText(null);
+                                raid.setOffensiveType(null);
+                                fleetAI.removeFirstAssignmentIfItIs(FleetAssignment.ORBIT_PASSIVE);
+                            } else if (raid.getOffensiveType() == null
+                                    && Utils.isSomewhatClose(lord.getFleet(), raid.getTarget())) {
+                                // plan new offensive
+                                chooseNewOffensiveType(lord, raid);
+                            }
+                        } else {
+                            // fleet is distracted, reset any offensive
+                            lord.setActionText(null);
+                            raid.setOffensiveType(null);
+                            fleetAI.removeFirstAssignmentIfItIs(FleetAssignment.ORBIT_PASSIVE);
+                        }
+                    }
+                    if (raid.getOffensiveType() == null && (raid.getTotalViolence() >= RAID_MAX_VIOLENCE
+                            || newWeight.two <= 0 || rand.nextInt(8) == 0)) {
                         // choose new assignment
-                        LordEvent raid = EventController.getCurrentRaid(lord);
                         if (raid.getOriginator().equals(lord)) {
                             EventController.endRaid(raid);
                         } else {
@@ -587,19 +651,48 @@ public class LordAI implements EveryFrameScript {
                     FactionAPI faction = lord.getFaction();
                     LordEvent campaign = EventController.getCurrentCampaign(faction);
                     int weight = EventController.getJoinCampaignWeight(lord);
-                    if (weight > 0) {
+                    if (campaign.getBattle() != null) {
+                        // dont leave if battle ongoing
+                        weight = Math.max(weight, 1);
+                    }
+                    if (weight > 0 && campaign.getTotalViolence() < CAMPAIGN_MAX_VIOLENCE) {
                         // continue campaign
                         lord.setAssignmentStartTime(Global.getSector().getClock().getTimestamp());
                         if (campaign.getOriginator().equals(lord)) {
-                            // consider if we need to change campaign goal
-                            // if fleet is still organizing, check if ready to pick target
-                            // if fleet is defending, check if defense is still necessary
-                            // if fleet is attacking, check if market is conquered?
-                            if (campaign.getTarget() == null) {
+                            if (campaign.getBattle() != null) {
+                                // dont do any thinking while ground battle is ongoing
+                                if (Utils.nexEnabled()) {
+                                    GroundBattleIntel battle = (GroundBattleIntel) campaign.getBattle();
+                                    if (battle.getOutcome() != null) {
+                                        // TODO add surviving troops back
+                                        if (battle.getOutcome()
+                                                == GroundBattleIntel.BattleOutcome.ATTACKER_VICTORY) {
+                                            campaign.setTotalViolence(campaign.getTotalViolence()
+                                                    + LordEvent.OffensiveType.NEX_GROUND_BATTLE.violence);
+                                        }
+                                        lord.setActionText(null);
+                                        campaign.setBattle(null);
+                                        fleetAI.removeFirstAssignmentIfItIs(FleetAssignment.ORBIT_PASSIVE);
+                                        lord.setAssignmentStartTime(Global.getSector().getClock().getTimestamp()
+                                                - LARGE_OP_RECONSIDER_INTERVAL * ONE_DAY);
+                                    }
+                                } else {
+                                    // idk, nex got disabled mid-battle? Just abort
+                                    lord.setActionText(null);
+                                    campaign.setBattle(null);
+                                    fleetAI.removeFirstAssignmentIfItIs(FleetAssignment.ORBIT_PASSIVE);
+                                    lord.setAssignmentStartTime(Global.getSector().getClock().getTimestamp()
+                                            - LARGE_OP_RECONSIDER_INTERVAL * ONE_DAY);
+                                }
+                            } else if (campaign.getTarget() == null) {
+                                // consider if we need to change campaign goal
+                                // if fleet is still organizing, check if ready to pick target
+                                // if fleet is defending, check if defense is still necessary
+                                // if fleet is attacking, check if market is conquered?
                                 int needed = Math.max(1, 3 * campaign.getParticipants().size() / 4);
                                 int close = 0;
                                 for (Lord participant : campaign.getParticipants()) {
-                                    if (Utils.isClose(lord.getLordAPI().getFleet(), participant.getLordAPI().getFleet())) close++;
+                                    if (Utils.isClose(lord.getFleet(), participant.getFleet())) close++;
                                 }
                                 if (close >= needed) {
                                     // choose campaign target
@@ -608,7 +701,7 @@ public class LordAI implements EveryFrameScript {
 
                             } else {
                                 MarketAPI target = campaign.getTarget().getMarket();
-                                if (!target.getFaction().isHostileTo(lord.getFaction())) {
+                                if (!lord.getFaction().isHostileTo(target.getFaction())) {
                                     // defensive campaign
                                     boolean defenseNeeded = false;
                                     for (LordEvent otherCampaign : EventController.getInstance().getCampaigns()) {
@@ -624,6 +717,97 @@ public class LordAI implements EveryFrameScript {
 
                                 } else {
                                     // offensive campaign
+                                    if (Utils.isSomewhatClose(
+                                            lord.getFleet(), campaign.getTarget())) {
+                                        if (lord.getFleet().getBattle() == null
+                                                && campaign.getOffensiveType() != null
+                                                && Utils.getDaysSince(campaign.getOffenseTimestamp())
+                                                >= campaign.getOffensiveType().chargeTime) {
+                                            // execute offensive
+                                            MarketCMD cmd = new MarketCMD(campaign.getTarget());
+                                            float attackerStr = Utils.getRaidStr(
+                                                    lord.getFleet(), campaign.getTotalMarines());
+                                            // raid, tactical bomb, saturation bomb, or ground battle
+                                            boolean failed = false;
+                                            int cost;
+                                            CargoAPI cargo;
+                                            switch (campaign.getOffensiveType()) {
+                                                case RAID_GENERIC:
+                                                    cmd.doGenericRaid(faction, attackerStr);
+                                                    break;
+                                                case RAID_INDUSTRY:
+                                                    Industry raidTarget = Utils.getIndustryToRaid(target);
+                                                    if (raidTarget != null) {
+                                                        cmd.doIndustryRaid(faction, attackerStr, raidTarget, 1);
+                                                    } else {
+                                                        failed = true;
+                                                    }
+                                                    break;
+                                                case BOMBARD_TACTICAL:
+                                                    cost = MarketCMD.getBombardmentCost(target, lord.getFleet());
+                                                    // should we abort if cost somehow rose above lord fuel amount?
+                                                    cmd.doBombardment(faction, MarketCMD.BombardType.TACTICAL);
+                                                    // TODO remove fuel from all participants
+                                                    lord.getFleet().getCargo().removeFuel(cost);
+                                                    break;
+                                                case BOMBARD_SATURATION:
+                                                    cost = MarketCMD.getBombardmentCost(target, lord.getFleet());
+                                                    cmd.doBombardment(faction, MarketCMD.BombardType.SATURATION);
+                                                    lord.getFleet().getCargo().removeFuel(cost);
+                                                    break;
+                                                case NEX_GROUND_BATTLE:
+                                                    // TODO bomb out station first
+//                                                    Industry station = Misc.getStationIndustry(target);
+//                                                    if (station != null) {
+//                                                        OrbitalStation.disrupt(station);
+//                                                    }
+                                                    failed = true;  // dont add violence until battle ends
+                                                    if (Utils.nexEnabled()) {
+                                                        Object battle = beginNexGroundBattle(lord, campaign);
+                                                        if (battle != null) {
+                                                            lord.setActionText("Supporting Ground Invasion");
+                                                            // remove troops and arms
+                                                            for (Lord supporter : campaign.getParticipants()) {
+                                                                if (campaign.getOriginator().getFleet().getContainingLocation().equals(
+                                                                        supporter.getFleet().getContainingLocation())) {
+                                                                    cargo = supporter.getFleet().getCargo();
+                                                                    cargo.removeMarines(cargo.getMarines());
+                                                                    cargo.removeCommodity(Commodities.HAND_WEAPONS,
+                                                                            cargo.getCommodityQuantity(Commodities.HAND_WEAPONS));
+                                                                }
+                                                            }
+                                                            cargo = campaign.getOriginator().getFleet().getCargo();
+                                                            cargo.removeMarines(cargo.getMarines());
+                                                            cargo.removeCommodity(Commodities.HAND_WEAPONS,
+                                                                    cargo.getCommodityQuantity(Commodities.HAND_WEAPONS));
+                                                        }
+                                                        campaign.setBattle(battle);
+                                                    }
+                                                    break;
+                                            }
+                                            if (!failed) {
+                                                campaign.setTotalViolence(campaign.getTotalViolence()
+                                                        + campaign.getOffensiveType().violence);
+                                            }
+                                            if (campaign.getBattle() == null) {
+                                                lord.setActionText(null);
+                                                fleetAI.removeFirstAssignmentIfItIs(FleetAssignment.ORBIT_PASSIVE);
+                                            }
+                                            campaign.setOffensiveType(null);
+
+                                        }
+                                        if (lord.getFleet().getBattle() == null
+                                                && campaign.getOffensiveType() == null && campaign.getBattle() == null
+                                                && campaign.getTotalViolence() < CAMPAIGN_MAX_VIOLENCE) {
+                                            // plan new offensive
+                                            chooseNewOffensiveType(lord, campaign);
+                                        }
+                                    } else {
+                                        // fleet is distracted, reset any offensive
+                                        lord.setActionText(null);
+                                        campaign.setOffensiveType(null);
+                                        fleetAI.removeFirstAssignmentIfItIs(FleetAssignment.ORBIT_PASSIVE);
+                                    }
 
                                 }
                             }
@@ -646,8 +830,48 @@ public class LordAI implements EveryFrameScript {
                 }
                 break;
             case FOLLOW:
+                // TODO are these needed if not following player?
+                // check if we need to play some tricks to catch up to target
+                SectorEntityToken target = lord.getTarget();
+                boolean fleetInWrongSystem = (target.isInHyperspace() && !fleet.isInHyperspace())
+                        || !target.getContainingLocation().equals(fleet.getContainingLocation());
+                if (fleetInWrongSystem && !fleet.isInHyperspaceTransition()
+                        && fleetAI.getCurrentAssignmentType() == FleetAssignment.ORBIT_AGGRESSIVE) {
+                    //fleet.getAbility(Abilities.TRANSVERSE_JUMP).activate();
+                    JumpPointAPI waypoint = Misc.findNearestJumpPoint(fleet);
+                    // TODO why are there multiple destinations?
+                    JumpPointAPI.JumpDestination dest = waypoint.getDestinations().get(0);  // in hyperspace
+                    fleetAI.addAssignmentAtStart(FleetAssignment.GO_TO_LOCATION, waypoint, 7, () -> {
+                        Global.getSector().doHyperspaceTransition(fleet, null, dest);
+                        Misc.clearFlag(mem, MemFlags.FLEET_IGNORES_OTHER_FLEETS);
+                    });
+                    Misc.setFlagWithReason(mem, MemFlags.FLEET_IGNORES_OTHER_FLEETS, BUSY_REASON, true, 7);
+                } else if (!target.isInHyperspace() && fleet.isInHyperspace()
+                        && !fleet.isInHyperspaceTransition()
+                        && fleetAI.getCurrentAssignmentType() == FleetAssignment.ORBIT_AGGRESSIVE) {
+                    JumpPointAPI waypoint = Misc.findNearestJumpPoint(target);
+                    JumpPointAPI.JumpDestination dest = new JumpPointAPI.JumpDestination(
+                            waypoint, null);
+                    fleetAI.addAssignmentAtStart(FleetAssignment.GO_TO_LOCATION,
+                            waypoint.getDestinations().get(0).getDestination(), 7, () -> {
+                        Global.getSector().doHyperspaceTransition(fleet, null, dest);
+                        Misc.clearFlag(mem, MemFlags.FLEET_IGNORES_OTHER_FLEETS);
+                    });
+                    Misc.setFlagWithReason(mem, MemFlags.FLEET_IGNORES_OTHER_FLEETS, BUSY_REASON, true, 7);
+
+                }
                 if (Utils.getDaysSince(lord.getAssignmentStartTime()) >= FOLLOW_DURATION) {
                     chooseAssignment(lord);
+                }
+                break;
+            case IMPRISONED:
+                if (Utils.getDaysSince(lord.getAssignmentStartTime()) >= PRISON_ESCAPE_DURATION) {
+                    if (new Random(lord.getLordAPI().getId().hashCode()
+                            * lord.getAssignmentStartTime()).nextInt(100) < PRISON_ESCAPE_CHANCE) {
+                        // TODO add some messages
+                        beginRespawn(lord);
+                    }
+                    lord.setAssignmentStartTime(Global.getSector().getClock().getTimestamp());
                 }
                 break;
             case RESPAWNING:
@@ -714,7 +938,9 @@ public class LordAI implements EveryFrameScript {
             FactionAPI faction = event.getOriginator().getFaction();
             for (Lord lord : LordController.getLordsList()) {
                 // start opposing campaign
-                if (lord.isMarshal() && lord.getOrderPriority() > LordAction.CAMPAIGN.priority) {
+                // TODO account for cooldown?
+                if (lord.isMarshal() && faction.isHostileTo(lord.getFaction())
+                        && lord.getOrderPriority() > LordAction.CAMPAIGN.priority) {
                     int weight = EventController.getStartCampaignWeight(lord);
                     if (weight > 0) {
                         beginAssignment(lord, LordAction.CAMPAIGN, null, null, false);
@@ -734,8 +960,8 @@ public class LordAI implements EveryFrameScript {
     }
 
     private static void beginRespawn(Lord lord) {
-        CampaignFleetAIAPI fleetAI = lord.getLordAPI().getFleet().getAI();
-        MemoryAPI mem = lord.getLordAPI().getFleet().getMemoryWithoutUpdate();
+        CampaignFleetAIAPI fleetAI = lord.getFleet().getAI();
+        MemoryAPI mem = lord.getFleet().getMemoryWithoutUpdate();
 
         // remove any events lord is participating in
         switch (LordAction.base(lord.getCurrAction())) {
@@ -787,7 +1013,7 @@ public class LordAI implements EveryFrameScript {
     }
 
     private static void completeRespawn(Lord lord) {
-        CampaignFleetAPI fleet = lord.getLordAPI().getFleet();
+        CampaignFleetAPI fleet = lord.getFleet();
         SectorEntityToken respawnPoint = lord.getClosestBase();
         if (respawnPoint == null) {
             respawnPoint = Misc.findNearestPlanetTo(fleet, false, true);
@@ -808,8 +1034,8 @@ public class LordAI implements EveryFrameScript {
     }
 
     private static void chooseNextCampaignTarget(Lord lord, LordEvent campaign) {
-        CampaignFleetAIAPI fleetAI = lord.getLordAPI().getFleet().getAI();
-        MemoryAPI mem = lord.getLordAPI().getFleet().getMemoryWithoutUpdate();
+        CampaignFleetAIAPI fleetAI = lord.getFleet().getAI();
+        MemoryAPI mem = lord.getFleet().getMemoryWithoutUpdate();
         MarketAPI target = EventController.getCampaignTarget(lord);
 
         if (target == null) {
@@ -837,8 +1063,8 @@ public class LordAI implements EveryFrameScript {
 
     // simulates lord doing something like collecting taxes, feasting, upgrading ships, etc.
     private static void standby(Lord lord, SectorEntityToken target, String message) {
-        CampaignFleetAIAPI fleetAI = lord.getLordAPI().getFleet().getAI();
-        MemoryAPI mem = lord.getLordAPI().getFleet().getMemoryWithoutUpdate();
+        CampaignFleetAIAPI fleetAI = lord.getFleet().getAI();
+        MemoryAPI mem = lord.getFleet().getMemoryWithoutUpdate();
 
         fleetAI.clearAssignments();
         fleetAI.addAssignmentAtStart(
@@ -847,6 +1073,80 @@ public class LordAI implements EveryFrameScript {
                 MemFlags.FLEET_BUSY, BUSY_REASON, true, STANDBY_DURATION);
         Misc.setFlagWithReason(mem,
                 MemFlags.FLEET_IGNORES_OTHER_FLEETS, BUSY_REASON, true, STANDBY_DURATION);
+    }
+
+    private static void chooseNewOffensiveType(Lord lord, LordEvent event) {
+        int maxViolence = event.getType().equals(LordEvent.CAMPAIGN) ? CAMPAIGN_MAX_VIOLENCE : RAID_MAX_VIOLENCE;
+        MarketAPI market = event.getTarget().getMarket();
+        ArrayList<LordEvent.OffensiveType> options = new ArrayList<>();
+        ArrayList<Integer> weights = new ArrayList<>();
+        int fuelCost = MarketCMD.getBombardmentCost(market, lord.getFleet());
+        int fuelAmt = (int) event.getTotalFuel();
+
+        // perform harassment if lord fleet can't challenge defenses
+        options.add(LordEvent.OffensiveType.RAID_GENERIC);
+        weights.add(3);
+        if (Utils.canRaidIndustry(market)) {
+            options.add(LordEvent.OffensiveType.RAID_INDUSTRY);
+            weights.add(3);
+        }
+        if (maxViolence >= LordEvent.OffensiveType.BOMBARD_TACTICAL.violence && fuelAmt >= fuelCost) {
+            options.add(LordEvent.OffensiveType.BOMBARD_TACTICAL);
+            weights.add(10);
+        }
+        if (lord.getPersonality().equals(LordPersonality.QUARRELSOME)
+                && maxViolence >= LordEvent.OffensiveType.BOMBARD_SATURATION.violence && fuelAmt >= fuelCost) {
+            options.add(LordEvent.OffensiveType.BOMBARD_SATURATION);
+            weights.add(20);
+        }
+        if (Utils.nexEnabled() && maxViolence >= LordEvent.OffensiveType.NEX_GROUND_BATTLE.violence) {
+            GroundBattleIntel tmp = new GroundBattleIntel(market, lord.getFaction(), market.getFaction());
+            tmp.init();
+            float defenderStr = GBUtils.estimateTotalDefenderStrength(tmp, true);
+            tmp.endImmediately();
+            float marines = event.getTotalMarines();
+            float heavies = event.getTotalArms();
+            marines = Math.max(0, marines - heavies * GroundUnitDef.getUnitDef(GroundUnitDef.HEAVY).personnel.mult);
+            float attackerStr = marines * GroundUnitDef.getUnitDef(GroundUnitDef.MARINE).strength
+                    + heavies * GroundUnitDef.getUnitDef(GroundUnitDef.HEAVY).strength;
+            if (attackerStr > 0.8 * defenderStr) {
+                options.add(LordEvent.OffensiveType.NEX_GROUND_BATTLE);
+                weights.add(20);
+            }
+        }
+
+        LordEvent.OffensiveType choice = Utils.weightedSample(options, weights, null);
+        lord.getFleet().addAssignmentAtStart(FleetAssignment.GO_TO_LOCATION, market.getPrimaryEntity(), 2,
+                StringUtil.getString(CATEGORY, "offensive_" + choice.toString().toLowerCase(), "Preparing"), null);
+        lord.getFleet().addAssignmentAtStart(FleetAssignment.ORBIT_PASSIVE, market.getPrimaryEntity(), 100,
+                StringUtil.getString(CATEGORY, "offensive_" + choice.toString().toLowerCase(), "Preparing"), null);
+        //lord.setActionText(StringUtil.getString(CATEGORY, "offensive_" + choice.toString().toLowerCase(), "Preparing"));
+        event.setOffensiveType(choice);
+        event.setOffenseTimestamp(Global.getSector().getClock().getTimestamp());
+    }
+
+
+    public static Object beginNexGroundBattle(Lord leader, LordEvent campaign) {
+        MarketAPI target = campaign.getTarget().getMarket();
+        FactionAPI faction = leader.getFaction();
+        GroundBattleIntel groundBattle = GroundBattleIntel.getOngoing(target);
+        if (groundBattle == null || groundBattle.getOutcome() != null) {
+            groundBattle = new GroundBattleIntel(target, faction, target.getFaction());
+            groundBattle.init();
+            groundBattle.start();
+        }
+
+        Boolean side = groundBattle.getSideToSupport(faction, false);
+        if (side == null) return null;
+
+        CampaignFleetAPI fleet = leader.getFleet();
+        int marines = (int) campaign.getTotalMarines();
+        int heavyArms = (int) campaign.getTotalArms();
+
+        // create units
+        List<GroundUnit> units = groundBattle.autoGenerateUnits(marines, heavyArms, faction, side, false, fleet);
+        groundBattle.runAI(side, false);
+        return groundBattle;
     }
 
     public static void playerOrder(Lord lord, LordAction order, SectorEntityToken target) {

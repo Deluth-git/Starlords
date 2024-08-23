@@ -9,10 +9,12 @@ import com.fs.starfarer.api.impl.campaign.ids.Factions;
 import com.fs.starfarer.api.impl.campaign.ids.MemFlags;
 import com.fs.starfarer.api.util.Misc;
 import controllers.EventController;
+import controllers.FiefController;
 import controllers.LordController;
 import controllers.RelationController;
 import person.Lord;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import static util.Constants.*;
@@ -135,6 +137,8 @@ public class DefectionUtils {
                 preferredWeight = weight;
             }
         }
+        // this can only happen for pirates, but dont make pirates defect to themselves
+        if (preferredFaction.equals(lord.getFaction())) return;
         performDefection(lord, preferredFaction, true);
     }
 
@@ -149,9 +153,16 @@ public class DefectionUtils {
         LordController.updateFactionsWithLords();
         Misc.setFlagWithReason(lord.getLordAPI().getFleet().getMemoryWithoutUpdate(),
                 MemFlags.MEMORY_KEY_MAKE_NON_HOSTILE, "starlords", true, 0);
-        for (SectorEntityToken fief : lord.getFiefs()) {
-            fief.getMarket().setFactionId(faction.getId());
-            fief.setFaction(faction.getId());
+        // fiefs defect with the lord as long as they aren't turning pirate
+        if (!Misc.isPirateFaction(faction)) {
+            for (SectorEntityToken fief : lord.getFiefs()) {
+                fief.getMarket().setFactionId(faction.getId());
+                fief.setFaction(faction.getId());
+            }
+        } else {
+            for (SectorEntityToken fief : new ArrayList<>(lord.getFiefs())) {
+                FiefController.setOwner(fief.getMarket(), null);
+            }
         }
         if (showMessage) {
             Global.getSector().getCampaignUI().addMessage(

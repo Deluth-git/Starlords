@@ -2,6 +2,7 @@ package util;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.CampaignFleetAPI;
+import com.fs.starfarer.api.campaign.CargoAPI;
 import com.fs.starfarer.api.characters.MutableCharacterStatsAPI;
 import com.fs.starfarer.api.characters.PersonAPI;
 import com.fs.starfarer.api.combat.ShipAPI;
@@ -10,10 +11,12 @@ import com.fs.starfarer.api.fleet.FleetMemberAPI;
 import com.fs.starfarer.api.fleet.FleetMemberType;
 import com.fs.starfarer.api.fleet.ShipRolePick;
 import com.fs.starfarer.api.impl.campaign.fleets.FleetFactoryV3;
+import com.fs.starfarer.api.impl.campaign.ids.Commodities;
 import com.fs.starfarer.api.impl.campaign.ids.Skills;
 import com.fs.starfarer.api.util.Misc;
 import controllers.LordController;
 import person.Lord;
+import person.LordPersonality;
 
 import java.util.*;
 
@@ -22,6 +25,9 @@ public class LordFleetFactory extends FleetFactoryV3 {
     public static final float DP_CAP = 500;
     public static final float COST_MULT = 500;  // cost for a lord to buy a ship is its base DP cost * COST_MULT
     public static final float MOD_COST = 2000;  // cost for lord to buy 1 s-mod
+    public static final int FUEL_COST = 10;  // cost for lord to buy 1 fuel
+    public static final int MARINE_COST = 80;  // cost for lord to buy 1 marine
+    public static final int HEAVY_ARMS_COST = 200;  // cost for lord to buy 1 heavy armament
 
     public static final String[] OFFICER_SKILLS = new String[]{
             Skills.FIELD_MODULATION, Skills.COMBAT_ENDURANCE, Skills.GUNNERY_IMPLANTS,
@@ -148,6 +154,33 @@ public class LordFleetFactory extends FleetFactoryV3 {
         return totalCost;
     }
 
+    // buys fuel, marines, and heavy armaments
+    public static float buyGoodsforFleet(Lord lord, CampaignFleetAPI fleet, Random random, float cash) {
+        float totalCost = 0;
+        CargoAPI cargo = fleet.getCargo();
+        int fuelCap = cargo.getFreeFuelSpace();
+        int crewCap = cargo.getFreeCrewSpace();
+        float cargoCap = cargo.getSpaceLeft();
+        int fuelRatio = random.nextInt(50);
+        // need more fuel for saturation bombing
+        if (lord.getPersonality() == LordPersonality.QUARRELSOME) {
+            fuelRatio = 5 * fuelRatio / 4;
+        }
+        int fuelToBuy = Math.min(fuelCap, (int) (cash * fuelRatio / 100 / FUEL_COST));
+        totalCost += fuelToBuy * FUEL_COST;
+        cargo.addFuel(fuelToBuy);
+
+        int marineRatio = 70 + random.nextInt(30);
+        int marinesToBuy = Math.min(crewCap, (int) ((cash - totalCost) * marineRatio / 100 / MARINE_COST));
+        totalCost += marinesToBuy * MARINE_COST;
+        cargo.addMarines(marinesToBuy);
+
+        int armsToBuy = (int) Math.min(cargoCap, (cash - totalCost) / HEAVY_ARMS_COST);
+        totalCost += armsToBuy * HEAVY_ARMS_COST;
+        cargo.addItems(CargoAPI.CargoItemType.RESOURCES, Commodities.HAND_WEAPONS, armsToBuy);
+        return totalCost;
+    }
+
     public static void upgradeFleet(Lord lord) {
         // Restore flagship if it was destroyed previously
         float totalDP = 0;
@@ -172,8 +205,9 @@ public class LordFleetFactory extends FleetFactoryV3 {
         float cost = addToLordFleet(lord.getTemplate().shipPrefs, lord.getLordAPI().getFleet(), new Random(), DP_CAP, shipFunds);
         lord.addWealth(-1 * cost);
         log.info("Lord " + lord.getLordAPI().getNameString() + " purchased " + Math.round(cost) + " of ships.");
-        cost = addModsToFleet(lord.getLordAPI().getFleet(), new Random(), lord.getWealth());
+        cost = buyGoodsforFleet(lord, lord.getLordAPI().getFleet(), new Random(), lord.getWealth());
         lord.addWealth(-1 * cost);
+        //cost = addModsToFleet(lord.getLordAPI().getFleet(), new Random(), lord.getWealth());
         populateCaptains(lord);
     }
 

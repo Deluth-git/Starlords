@@ -353,6 +353,10 @@ public class Lord {
         persistentData.put("personalityKnown", known);
     }
 
+    public void setActionText(String text) {
+        getFleet().getCurrentAssignment().setActionText(text);
+    }
+
     public boolean willSpeakPrivately() {
         int rel = lordAPI.getRelToPlayer().getRepInt();
         int offset = lordAPI.getId().hashCode() % 5;

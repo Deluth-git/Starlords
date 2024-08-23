@@ -9,6 +9,8 @@ import person.Lord;
 import java.util.HashMap;
 import java.util.List;
 
+import static util.Constants.DEBUG_MODE;
+
 // tracks relations between all lords, lieges, and player
 public class RelationController extends BaseIntelPlugin {
 
@@ -35,8 +37,10 @@ public class RelationController extends BaseIntelPlugin {
         }
         for (Lord lord : LordController.getLordsList()) {
             int factionIdx = factionIdxMap.get(lord.getLordAPI().getFaction().getId());
-            //factionRelations[factionIdx][LordController.indexOf(lord)] = 50;
-            factionRelations[factionIdx][LordController.indexOf(lord)] = -50; // TODO DEBUG
+            factionRelations[factionIdx][LordController.indexOf(lord)] = 25;
+            if (DEBUG_MODE) {
+                factionRelations[factionIdx][LordController.indexOf(lord)] = 0; // TODO DEBUG
+            }
         }
     }
 
