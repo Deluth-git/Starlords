@@ -28,6 +28,9 @@ public class ToolTip implements TooltipMakerAPI.TooltipCreator {
         this(width, messages, false);
     }
 
+    /**
+     Color code is specifically for coloring +/- lines for vote breakdown tooltips
+     */
     public ToolTip(float width, List<String> messages, boolean colorCode) {
         this.width = width;
         this.messages = messages;
