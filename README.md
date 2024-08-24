@@ -1,10 +1,10 @@
 # Star Lords
 
-Star Lords attempts to bring the world of [Starsector](https://fractalsoftworks.com/) to life with many character-centric features. No longer will your only allies be nameless faction fleets who you'll never meet again. The core mechanic is the addition of dozens of Lords to the game, each with their own personality, fleet composition, backstory, and agendas.
+Star Lords attempts to bring the world of [Starsector](https://fractalsoftworks.com/) to life with many character-centric features. No longer will your only allies be nameless faction fleets who you'll meet once and never again. The core mechanic is the addition of dozens of Lords to the game, each with their own personality, fleet composition, backstory, and agendas.
 
 ![](example/starlords_readme1.PNG)
 
-Lords will roam the map alongside the player-- raiding, trading, feasting, expanding, and more. Lords follow their own economic system, requiring them to physically visit their fiefs to levy taxes and purchase new ships. They operate persistently and without requiring any interference from the player. Finally, when the Marshal raises the banners, the Lords will muster to war in organized interplanetary campaigns of unprecedented scale.
+Lords will roam the map alongside the player-- raiding, trading, feasting, expanding, and more. Lords follow their own economic system, requiring them to physically visit their fiefs to levy taxes and purchase new ships. They operate persistently and without requiring any interference from the player. When the Marshal raises the banners, the Lords will muster to war in organized interplanetary campaigns of unprecedented scale.
 
 ![](example/starlords_readme4.PNG)
 
@@ -48,7 +48,7 @@ Most of these are inspired by Mount & Blade.
 * Prisoner/ransom system for capturing Lords in battle
 * "Freelancer" system for enlisting in a Lord's army and fighting as a common pilot.
 * Flesh out feast system, with feast tournaments as friendly competition with fellow Lords
-* Better integration with Nexrellin invasions and base game crises.
+* Better integration with Nexerelin invasions and base game crises.
 *  Custom questlines for certain lords, e.g. allowing AI-sympathizing lords to field [REDACTED] fleets.
 
 

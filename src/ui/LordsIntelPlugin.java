@@ -59,7 +59,8 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
         float pad = 3;
         float opad = 10;
 
-        FactionAPI faction = lord.getLordAPI().getFaction();
+        FactionAPI faction = lord.getFaction();
+        boolean isSubject = faction.equals(Global.getSector().getPlayerFaction());
         CampaignFleetAPI fleet = lord.getLordAPI().getFleet();
         Color uiColor = Global.getSettings().getBasePlayerColor();
         Color factionColor = faction.getBaseUIColor();
@@ -78,7 +79,7 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
             fiefStr = fiefStr.substring(0, fiefStr.length() - 2);
         }
         String wealthStr;
-        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.WELCOMING)) {
+        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.WELCOMING) && !isSubject) {
             wealthStr = "[REDACTED]";
         } else {
             wealthStr = Integer.toString((int) lord.getWealth());
@@ -92,8 +93,10 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
             personalityStr = "Unknown";
         }
         String orderStr;
-        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.FRIENDLY)) {
+        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.FRIENDLY) && !isSubject) {
             orderStr = "[REDACTED]";
+        } else if (lord.getCurrAction() == LordAction.IMPRISONED) {
+            orderStr = "Imprisoned by " + LordController.getLordOrPlayerById(lord.getCaptor()).getLordAPI().getNameString();
         } else if (lord.getCurrAction() == null || !fleet.isAlive()) {
             orderStr = "None";
         } else if (lord.getCurrAction() != LordAction.CAMPAIGN) {
@@ -111,7 +114,7 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
             }
         }
         String lastSeenStr;
-        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.COOPERATIVE)) {
+        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.COOPERATIVE) && !isSubject) {
             lastSeenStr = "[REDACTED]";
         }  else if (!fleet.isAlive()) {
             lastSeenStr = "N/A";
@@ -138,7 +141,7 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
 
         outer.addSectionHeading("Fleet Composition", faction.getBrightUIColor(), faction.getDarkUIColor(), Alignment.LMID, opad);
         // shiplist
-        if (lord.getPlayerRel() >= Utils.getThreshold(RepLevel.FRIENDLY)) {
+        if (lord.getPlayerRel() >= Utils.getThreshold(RepLevel.FRIENDLY) || isSubject) {
             int rows = 3;
             if (lord.getLordAPI().getFleet().getNumShips() <= 30) rows = 2;
             outer.addShipList(15, rows, 48, factionColor,
@@ -152,7 +155,7 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
         float buttonPad = Math.min(Math.max(opad, height - outer.getHeightSoFar() - 160), 100 + pad);
         ButtonAPI button = outer.addButton("Open Comms", OPEN_COMMS_BUTTON, 150, 20, buttonPad);
         button.setShortcut(Keyboard.KEY_C, true);
-        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.COOPERATIVE)) {
+        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.COOPERATIVE) && !isSubject) {
             button.setEnabled(false);
             outer.addTooltipToPrevious(new ToolTip(175, "Requires higher relations"), TooltipMakerAPI.TooltipLocation.BELOW);
         }

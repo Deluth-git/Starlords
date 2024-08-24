@@ -7,6 +7,8 @@ public class Constants {
     // Lords are intended to gain most of their wealth through trade/governance,
     // this is just to make sure they can build something.
     public static final int LORD_MONTHLY_INCOME = 10000;
+    // percent chance lord is captured when defeated in combat against other lords
+    public static final int LORD_CAPTURE_CHANCE = 70;
 
     public static final Color LIGHT_RED = new Color(194, 29, 29);
     public static final Color LIGHT_GREEN = new Color(29, 194, 29);

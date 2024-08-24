@@ -121,7 +121,7 @@ public class LordAI implements EveryFrameScript {
                         EventController.getLastCampaignTime(faction)) >= CAMPAIGN_COOLDOWN) {
                     int weight = EventController.getStartCampaignWeight(lord);
                     //log.info("Campaign start weight: " + weight);
-                    //weight += 1000000; // TODO
+                    // weight += 1000000; // TODO
                     if (weight > 0) {
                         weights.add(weight);
                         actions.add(LordAction.CAMPAIGN);
@@ -426,7 +426,8 @@ public class LordAI implements EveryFrameScript {
         CampaignFleetAPI fleet = lord.getFleet();
         MemoryAPI mem = fleet.getMemoryWithoutUpdate();
         // check for lord fleet defeat
-        if (fleet.isEmpty() && lord.getCurrAction() != LordAction.RESPAWNING) {
+        if (fleet.isEmpty() && lord.getCurrAction() != LordAction.RESPAWNING
+                && lord.getCurrAction() != LordAction.IMPRISONED) {
             beginRespawn(lord);
             return;
         }
@@ -865,10 +866,21 @@ public class LordAI implements EveryFrameScript {
                 }
                 break;
             case IMPRISONED:
+                Lord captor = LordController.getLordOrPlayerById(lord.getCaptor());
+                if (!captor.getFaction().isHostileTo(lord.getFaction())) {
+                    captor.removePrisoner(lord.getLordAPI().getId());
+                    lord.setCaptor(null);
+                    beginRespawn(lord);
+                }
                 if (Utils.getDaysSince(lord.getAssignmentStartTime()) >= PRISON_ESCAPE_DURATION) {
                     if (new Random(lord.getLordAPI().getId().hashCode()
                             * lord.getAssignmentStartTime()).nextInt(100) < PRISON_ESCAPE_CHANCE) {
                         // TODO add some messages
+                        if (captor.isPlayer()) {
+
+                        }
+                        captor.removePrisoner(lord.getLordAPI().getId());
+                        lord.setCaptor(null);
                         beginRespawn(lord);
                     }
                     lord.setAssignmentStartTime(Global.getSector().getClock().getTimestamp());
@@ -1053,9 +1065,11 @@ public class LordAI implements EveryFrameScript {
 
             } else {
                 fleetAI.addAssignmentAtStart(
+                        FleetAssignment.GO_TO_LOCATION, Misc.findNearestJumpPoint(target.getPrimaryEntity()), 1000, null);
+                fleetAI.addAssignment(
                         FleetAssignment.GO_TO_LOCATION, target.getPrimaryEntity(), 1000, null);
                 fleetAI.addAssignment(
-                        FleetAssignment.PATROL_SYSTEM, target.getPrimaryEntity(), 1000, null);
+                        FleetAssignment.DEFEND_LOCATION, target.getPrimaryEntity(), 1000, null);
                 Misc.setFlagWithReason(mem, MemFlags.FLEET_BUSY, BUSY_REASON, true, 1000);
             }
         }

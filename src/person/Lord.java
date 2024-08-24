@@ -55,6 +55,10 @@ public class Lord {
 
     private SectorEntityToken target;
 
+    private ArrayList<String> prisoners;
+
+    private String captor;
+
     private boolean actionComplete;
 
     private long assignmentStartTime;
@@ -90,6 +94,7 @@ public class Lord {
         this.template = template;
         lordAPI = lord;
         fiefs = new ArrayList<>();
+        prisoners = new ArrayList<>();
         ranking = template.ranking;
         persistentData.put("wealth", wealth);
         persistentData.put("ranking", template.ranking);
@@ -99,10 +104,14 @@ public class Lord {
         persistentData.put("feastInteracted", false);
         persistentData.put("swayed", false);
         persistentData.put("fief", new ArrayList<String>());
+        persistentData.put("prisoners", prisoners);
         // What kind of parser maps null to the string null???
         if (template.fief != null && !template.fief.equals("null")) {
-            fiefs.add(Global.getSector().getEconomy().getMarket(template.fief).getPrimaryEntity());
-            ((List<String>) persistentData.get("fief")).add(template.fief);
+            MarketAPI toAdd = Global.getSector().getEconomy().getMarket(template.fief);
+            if (toAdd != null) {
+                fiefs.add(toAdd.getPrimaryEntity());
+                ((List<String>) persistentData.get("fief")).add(template.fief);
+            }
         }
         String[] splitname = template.name.split(" ");
         String lastName = "";
@@ -175,17 +184,15 @@ public class Lord {
         playerDirected = (boolean) persistentData.get("playerDirected");
         feastInteracted = (boolean) persistentData.get("feastInteracted");
         swayed = (boolean) persistentData.get("swayed");
+        captor = (String) persistentData.get("captor");
+        prisoners = (ArrayList<String>) persistentData.get("prisoners");
         if (actionStr != null) {
             currAction = LordAction.valueOf(actionStr);
         }
-        if (persistentData.containsKey("kills")) {
-            kills = (int) persistentData.get("kills");
-        }
+        kills = (int) persistentData.getOrDefault("kills", 0);
+        actionComplete = (boolean) persistentData.getOrDefault("actionComplete", false);
         if (persistentData.containsKey("assignmentStartTime")) {
             assignmentStartTime = (long) persistentData.get("assignmentStartTime");
-        }
-        if (persistentData.containsKey("actionComplete")) {
-            actionComplete = (boolean) persistentData.get("actionComplete");
         }
         this.template = template;
         fiefs = new ArrayList<>();
@@ -193,6 +200,7 @@ public class Lord {
         for (String fiefStr : storedFiefs) {
             fiefs.add(Global.getSector().getEconomy().getMarket(fiefStr).getPrimaryEntity());
         }
+
         String targetStr = (String) persistentData.get("target");
         if (targetStr != null) {
             if (targetStr.startsWith("market_")) {
@@ -241,6 +249,14 @@ public class Lord {
     public void removeFief(MarketAPI fief) {
         fiefs.remove(fief.getPrimaryEntity());
         ((List<String>) persistentData.get("fief")).remove(fief.getId());
+    }
+
+    public void addPrisoner(String lordId) {
+        prisoners.add(lordId);
+    }
+
+    public void removePrisoner(String lordId) {
+        prisoners.remove(lordId);
     }
 
     public void addWealth(float addend) {
@@ -351,6 +367,11 @@ public class Lord {
     public void setPersonalityKnown(boolean known) {
         personalityKnown = known;
         persistentData.put("personalityKnown", known);
+    }
+
+    public void setCaptor(String captor) {
+        this.captor = captor;
+        persistentData.put("captor", captor);
     }
 
     public void setActionText(String text) {

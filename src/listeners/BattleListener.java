@@ -1,5 +1,6 @@
 package listeners;
 
+import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.*;
 import com.fs.starfarer.api.characters.PersonAPI;
 import com.fs.starfarer.api.fleet.FleetMemberAPI;
@@ -29,18 +30,27 @@ public class BattleListener extends BaseCampaignEventListener {
         if (target instanceof JumpPointAPI && target.getContainingLocation().equals(fleet.getContainingLocation())) {
             fleet.removeFirstAssignment();
             fleet.addAssignmentAtStart(FleetAssignment.ORBIT_PASSIVE, to.getDestination(), 2, null);
-            fleet.addAssignmentAtStart(FleetAssignment.GO_TO_LOCATION, to.getDestination(), 1000, null);
+            fleet.addAssignmentAtStart(FleetAssignment.GO_TO_LOCATION, to.getDestination(), 7, null);
         }
     }
+
 
     @Override
     public void reportBattleFinished(CampaignFleetAPI primaryWinner, BattleAPI battle) {
         int killsFP = 0;
         int kills = 0;
+        boolean playerWon = battle.isOnPlayerSide(primaryWinner);
 
+        ArrayList<Lord> loserLords = new ArrayList<>();
+        ArrayList<Lord> maybeCaptured = new ArrayList<>();
         for (CampaignFleetAPI loser : battle.getOtherSideSnapshotFor(primaryWinner)) {
             killsFP += Misc.getSnapshotFPLost(loser);
             kills += Misc.getSnapshotMembersLost(loser).size();
+            Lord lord = LordController.getLordOrPlayerById(loser.getCommander().getId());
+            if (lord != null) {
+                loserLords.add(lord);
+                if (!lord.isPlayer() && lord.getFleet().isEmpty()) maybeCaptured.add(lord);
+            }
         }
 
         Random rand = new Random();
@@ -49,20 +59,20 @@ public class BattleListener extends BaseCampaignEventListener {
             totalFP += winner.getFleetPoints();
         }
 
-        ArrayList<Lord> lords = new ArrayList<>();
+        ArrayList<Lord> winnerLords = new ArrayList<>();
         for (CampaignFleetAPI winner : battle.getSnapshotSideFor(primaryWinner)) {
             // record kills and level up officers
-            Lord lord = LordController.getLordById(winner.getCommander().getId());
+            Lord lord = LordController.getLordOrPlayerById(winner.getCommander().getId());
             if (lord == null) {
                 continue;
             }
             lord.recordKills(kills * winner.getFleetPoints() / totalFP);
             // maybe improve relations with other lords
-            for (Lord alliedLord : lords) {
+            for (Lord alliedLord : winnerLords) {
                 RelationController.modifyRelation(lord, alliedLord,
                         Math.min(5, Math.round((float) killsFP / alliedLord.getLordAPI().getFleet().getFleetPoints())));
             }
-            lords.add(lord);
+            winnerLords.add(lord);
 
             // level up if enough stuff is killed
             int levelUpChance = 200 * killsFP / totalFP;
@@ -77,5 +87,12 @@ public class BattleListener extends BaseCampaignEventListener {
                 }
             }
         }
+        // record kills for losers
+
+        // update relations between lords
+        //for ()
+
+        // TODO take prisoners here
+
     }
 }

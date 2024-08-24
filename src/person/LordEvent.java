@@ -47,6 +47,8 @@ public class LordEvent {
     private final String type;
     private Lord originator;
     @Setter
+    private boolean alive;
+    @Setter
     private SectorEntityToken target;
     private List<Lord> participants;
     private List<Lord> opposition; // defenders in a raid/campaign, unused for feast
@@ -59,6 +61,7 @@ public class LordEvent {
         originator = origin;
         this.type = type;
         this.target = target;
+        alive = true;
         participants = new ArrayList<>();
         opposition = new ArrayList<>();
         start = Global.getSector().getClock().getTimestamp();

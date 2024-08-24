@@ -18,6 +18,7 @@ import person.Lord;
 import person.LordAction;
 import person.LordEvent;
 import person.LordPersonality;
+import ui.EventIntelPlugin;
 import util.StringUtil;
 import util.Utils;
 
@@ -105,6 +106,7 @@ public class EventController extends BaseIntelPlugin {
 
     public static void endRaid(LordEvent raid) {
         getInstance().raids.remove(raid);
+        raid.setAlive(false);
         for (Lord lord : raid.getParticipants()) {
             lord.setCurrAction(null);
         }
@@ -119,6 +121,7 @@ public class EventController extends BaseIntelPlugin {
         FactionAPI faction = campaign.getOriginator().getFaction();
         if (faction.getId().equals(Misc.getCommissionFactionId()) || faction.getId().equals(Factions.PLAYER)) {
             // TODO add some sound
+            Global.getSector().getIntelManager().addIntel(new EventIntelPlugin(campaign));
             if (campaign.getOriginator().isPlayer()) {
                 Global.getSector().getCampaignUI().addMessage(
                         StringUtil.getString(CATEGORY, "campaign_start",
@@ -137,6 +140,7 @@ public class EventController extends BaseIntelPlugin {
 
     public static void endCampaign(LordEvent campaign) {
         getInstance().campaigns.remove(campaign);
+        campaign.setAlive(false);
         for (Lord lord : campaign.getParticipants()) {
             lord.setCurrAction(null);
         }
@@ -281,11 +285,13 @@ public class EventController extends BaseIntelPlugin {
                             feast.getOriginator().getLordAPI().getNameString(),
                             feast.getTarget().getMarket().getName()),
                     faction.getBaseUIColor());
+            Global.getSector().getIntelManager().addIntel(new EventIntelPlugin(feast));
         }
     }
 
     public static void endFeast(LordEvent feast) {
         getInstance().feasts.remove(feast);
+        feast.setAlive(false);
         FactionAPI faction = feast.getOriginator().getFaction();
         for (Lord lord : LordController.getLordsList()) {
             if (lord.getLordAPI().getFaction().equals(faction) && LordAction.base(lord.getCurrAction()) == LordAction.FEAST) {
