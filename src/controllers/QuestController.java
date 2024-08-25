@@ -2,6 +2,7 @@ package controllers;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.comm.IntelInfoPlugin;
+import com.fs.starfarer.api.characters.PersonAPI;
 import com.fs.starfarer.api.impl.campaign.intel.BaseIntelPlugin;
 import com.fs.starfarer.api.impl.campaign.intel.BaseMissionIntel;
 import com.fs.starfarer.api.impl.campaign.intel.bar.events.DeliveryMissionIntel;
@@ -55,7 +56,8 @@ public class QuestController extends BaseIntelPlugin {
         ArrayList<MissionPreviewIntelPlugin> toRemove = new ArrayList<>();
         for (IntelInfoPlugin intel : Global.getSector().getIntelManager().getIntel()) {
             if (intel instanceof BaseHubMission) {
-                questLords.add(((BaseHubMission) intel).getPersonOverride().getId());
+                PersonAPI potentialLord = ((BaseHubMission) intel).getPersonOverride();
+                if (potentialLord != null) questLords.add(potentialLord.getId());
             }
             if (intel instanceof MissionPreviewIntelPlugin) {
                 questLords.add(((MissionPreviewIntelPlugin) intel).getMission().getPersonOverride().getId());

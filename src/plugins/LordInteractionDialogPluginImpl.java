@@ -173,11 +173,6 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                             }
                         }
                     }
-                    if (!targetLord.isKnownToPlayer()) {
-                        textPanel.addPara("Added intel on " + targetLord.getLordAPI().getNameString(), Color.GREEN);
-                        targetLord.setKnownToPlayer(true);
-                        LordsIntelPlugin.unhide(targetLord);
-                    }
                     options.addOption(StringUtil.getString(CATEGORY, "option_ask_current_task"), OptionId.ASK_CURRENT_TASK);
                     options.addOption(StringUtil.getString(CATEGORY, "option_ask_question"), OptionId.ASK_QUESTION);
                     options.addOption(StringUtil.getString(CATEGORY, "option_suggest_action"), OptionId.SUGGEST_ACTION);
@@ -191,6 +186,12 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                         options.addOption(StringUtil.getString(CATEGORY, "option_avoid_battle"), OptionId.SUGGEST_CEASEFIRE, Color.YELLOW, "-10 Relations if successful");
                         //options.setTooltip(OptionId.SUGGEST_CEASEFIRE, "-10 Relations if successful");
                     }
+                }
+
+                if (!targetLord.isKnownToPlayer()) {
+                    textPanel.addPara("Added intel on " + targetLord.getLordAPI().getNameString(), Color.GREEN);
+                    targetLord.setKnownToPlayer(true);
+                    LordsIntelPlugin.unhide(targetLord);
                 }
                 options.addOption(StringUtil.getString(CATEGORY, "option_speak_privately"), OptionId.SPEAK_PRIVATELY);
                 options.addOption("Cut the comm link.", OptionId.LEAVE);

@@ -80,21 +80,19 @@ public class BattleListener extends BaseCampaignEventListener {
             loserKillsFp += Misc.getSnapshotFPLost(winner);
             // record kills and level up officers
             Lord lord = LordController.getLordOrPlayerById(winner.getCommander().getId());
-            if (lord == null) {
-                continue;
-            }
+            if (lord == null) continue;
             lord.recordKills(kills * winner.getFleetPoints() / totalFP);
             // maybe improve relations with other lords
             for (Lord alliedLord : winnerLords) {
                 float denom = Math.max(1, (alliedLord.getFleet().getFleetPoints() + lord.getFleet().getFleetPoints()) / 2f);
                 if (lord.isPlayer()) {
-                    int change = (int) (2 * battle.getPlayerInvolvementFraction()
+                    int change = (int) (3 * battle.getPlayerInvolvementFraction()
                             * killsFP / Math.max(1, alliedLord.getFleet().getFleetPoints()));
-                    Utils.adjustPlayerReputation(alliedLord.getLordAPI(), change);
+                    Utils.adjustPlayerReputation(alliedLord.getLordAPI(), Math.min(5, change));
                 } else if (alliedLord.isPlayer()) {
-                    int change = (int) (2 * battle.getPlayerInvolvementFraction()
+                    int change = (int) (3 * battle.getPlayerInvolvementFraction()
                             * killsFP / Math.max(1, lord.getFleet().getFleetPoints()));
-                    Utils.adjustPlayerReputation(alliedLord.getLordAPI(), change);
+                    Utils.adjustPlayerReputation(alliedLord.getLordAPI(), Math.min(5, change));
                 } else {
                     RelationController.modifyRelation(lord, alliedLord,
                             Math.min(5, Math.round(killsFP / denom)));
@@ -104,16 +102,14 @@ public class BattleListener extends BaseCampaignEventListener {
             if (!lord.getFleet().isEmpty()) maybeCaptor.add(lord);
 
             // level up if enough stuff is killed
-            levelUpWithChance(winner, 200 * killsFP / totalFP);
+            if (!lord.isPlayer()) levelUpWithChance(winner, 200 * killsFP / totalFP);
         }
         // record kills and levels up losers, but no relations increase
         for (CampaignFleetAPI loser : battle.getOtherSideSnapshotFor(primaryWinner)) {
             Lord lord = LordController.getLordOrPlayerById(loser.getCommander().getId());
-            if (lord == null) {
-                continue;
-            }
+            if (lord == null) continue;
             lord.recordKills(loserKills * loser.getFleetPoints() / loserTotalFP);
-            levelUpWithChance(loser, 200 * loserKillsFp / loserTotalFP);
+            if (!lord.isPlayer()) levelUpWithChance(loser, 200 * loserKillsFp / loserTotalFP);
         }
 
         // update relations between winners and losers
