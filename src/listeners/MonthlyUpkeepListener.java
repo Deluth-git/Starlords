@@ -5,6 +5,7 @@ import com.fs.starfarer.api.campaign.BaseCampaignEventListener;
 import com.fs.starfarer.api.campaign.CampaignFleetAPI;
 import com.fs.starfarer.api.campaign.FactionAPI;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
+import com.fs.starfarer.api.util.Misc;
 import com.fs.starfarer.api.util.Pair;
 import controllers.FiefController;
 import controllers.LordController;
@@ -75,6 +76,11 @@ public class MonthlyUpkeepListener extends BaseCampaignEventListener {
                 if (rand.nextInt(100) < chance) {
                     DefectionUtils.performDefection(lord);
                 }
+            }
+
+            // player faction cant have lords if player is not leading the faction
+            if (lord.getFaction().isPlayerFaction() && Misc.getCommissionFaction() != null) {
+                DefectionUtils.performDefection(lord, Misc.getCommissionFaction(), true);
             }
         }
     }

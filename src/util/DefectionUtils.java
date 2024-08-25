@@ -82,13 +82,13 @@ public class DefectionUtils {
         int loyalty = RelationController.getLoyalty(lord);
         switch(lord.getPersonality()) {
             case UPSTANDING:
-                return Math.min(20, Utils.getThreshold(RepLevel.HOSTILE) - loyalty);
+                return Math.min(15, Utils.getThreshold(RepLevel.HOSTILE) - loyalty);
             case MARTIAL:
-                return Math.min(20, Utils.getThreshold(RepLevel.INHOSPITABLE) - loyalty);
+                return Math.min(15, Utils.getThreshold(RepLevel.INHOSPITABLE) - loyalty);
             case CALCULATING:
-                return Math.min(20, Utils.getThreshold(RepLevel.SUSPICIOUS) - loyalty);
+                return Math.min(15, Utils.getThreshold(RepLevel.SUSPICIOUS) - loyalty);
             case QUARRELSOME:
-                return Math.min(20, Utils.getThreshold(RepLevel.NEUTRAL) - loyalty);
+                return Math.min(15, Utils.getThreshold(RepLevel.NEUTRAL) - loyalty);
         }
         return 0;
     }
@@ -153,6 +153,10 @@ public class DefectionUtils {
         LordController.updateFactionsWithLords();
         Misc.setFlagWithReason(lord.getLordAPI().getFleet().getMemoryWithoutUpdate(),
                 MemFlags.MEMORY_KEY_MAKE_NON_HOSTILE, "starlords", true, 0);
+        int newLoyalty = RelationController.getLoyalty(lord);
+        if (newLoyalty < MIN_STARTING_LOYALTY_DEFECTION) {
+            RelationController.modifyLoyalty(lord, MIN_STARTING_LOYALTY_DEFECTION - newLoyalty);
+        }
         // fiefs defect with the lord as long as they aren't turning pirate
         if (!Misc.isPirateFaction(faction)) {
             for (SectorEntityToken fief : lord.getFiefs()) {

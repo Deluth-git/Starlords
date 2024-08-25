@@ -41,8 +41,8 @@ import static util.Constants.*;
 public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin {
 
     public static Logger log = Global.getLogger(LordInteractionDialogPluginImpl.class);
-    private static String CATEGORY = "starlords_lords_dialog";
-    private enum OptionId {
+    static String CATEGORY = "starlords_lords_dialog";
+    enum OptionId {
         INIT,
         ASK_CURRENT_TASK,
         ASK_QUESTION,
@@ -66,15 +66,15 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
         LEAVE,
     }
 
-    private InteractionDialogPlugin prevPlugin;
-    private InteractionDialogAPI dialog;
-    private TextPanelAPI textPanel;
-    private OptionPanelAPI options;
-    private VisualPanelAPI visual;
+    InteractionDialogPlugin prevPlugin;
+    InteractionDialogAPI dialog;
+    TextPanelAPI textPanel;
+    OptionPanelAPI options;
+    VisualPanelAPI visual;
 
     private HashMap<String, Lord> lordsReference;
     private CampaignFleetAPI lordFleet;
-    private Lord targetLord;
+    Lord targetLord;
     private OptionId nextState;
     private boolean hasGreeted;
 
@@ -123,6 +123,10 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
             if (lordFleet.isHostileTo(Global.getSector().getPlayerFleet()) && Global.getSector().getPlayerFleet().equals(target)) {
                 willEngage = true;
             }
+        }
+
+        if (prevPlugin.equals(this) && !visual.isShowingPersonInfo(targetLord.getLordAPI())) {
+            visual.showPersonInfo(targetLord.getLordAPI(), false, true);
         }
 
         PersonAPI player = Global.getSector().getPlayerPerson();

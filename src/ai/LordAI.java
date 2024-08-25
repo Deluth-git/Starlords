@@ -42,7 +42,7 @@ import java.awt.*;
 import java.util.*;
 import java.util.List;
 
-import static util.Constants.ONE_DAY;
+import static util.Constants.*;
 
 public class LordAI implements EveryFrameScript {
 
@@ -52,7 +52,6 @@ public class LordAI implements EveryFrameScript {
     public static final int PATROL_DURATION = 30;
     public static final int RESPAWN_DURATION = 30;
     public static final int PRISON_ESCAPE_DURATION = 30;
-    public static final int PRISON_ESCAPE_CHANCE = 12;
     public static final int STANDBY_DURATION = 7;
     public static final int SMALL_OP_RECONSIDER_INTERVAL = 4;
     public static final int LARGE_OP_RECONSIDER_INTERVAL = 4;
@@ -531,6 +530,9 @@ public class LordAI implements EveryFrameScript {
                     for (Lord participant : currFeast.getParticipants()) {
                         RelationController.modifyRelation(lord, participant, 2);
                     }
+                    if (!lord.getFaction().equals(Global.getSector().getPlayerFaction())) {
+                        RelationController.modifyLoyalty(lord, 5);
+                    }
                     if (!currFeast.getOriginator().equals(lord)) {
                         lord.setFeastInteracted(false);
                         currFeast.getParticipants().add(lord);
@@ -867,18 +869,26 @@ public class LordAI implements EveryFrameScript {
                 break;
             case IMPRISONED:
                 Lord captor = LordController.getLordOrPlayerById(lord.getCaptor());
-                if (!captor.getFaction().isHostileTo(lord.getFaction())) {
-                    captor.removePrisoner(lord.getLordAPI().getId());
-                    lord.setCaptor(null);
+                if (captor == null || !captor.getFaction().isHostileTo(lord.getFaction())) {
                     beginRespawn(lord);
-                }
-                if (Utils.getDaysSince(lord.getAssignmentStartTime()) >= PRISON_ESCAPE_DURATION) {
+                    if (captor != null) {
+                        lord.setCaptor(null);
+                        captor.removePrisoner(lord.getLordAPI().getId());
+                        Global.getSector().getCampaignUI().addMessage(
+                                StringUtil.getString(CATEGORY_UI, "lord_freed_captivity",
+                                        lord.getTitle() + " " + lord.getLordAPI().getNameString()),
+                                lord.getFaction().getBaseUIColor());
+                    }
+                } else if (Utils.getDaysSince(lord.getAssignmentStartTime()) >= PRISON_ESCAPE_DURATION) {
                     if (new Random(lord.getLordAPI().getId().hashCode()
                             * lord.getAssignmentStartTime()).nextInt(100) < PRISON_ESCAPE_CHANCE) {
-                        // TODO add some messages
                         if (captor.isPlayer()) {
-
+                            Global.getSector().getCampaignUI().addMessage(
+                                    StringUtil.getString(CATEGORY_UI, "lord_escaped_captivity",
+                                            lord.getTitle() + " " + lord.getLordAPI().getNameString(),
+                                            captor.getFaction().getDisplayName()), Color.RED);
                         }
+                        // TODO reduce relations with captor?
                         captor.removePrisoner(lord.getLordAPI().getId());
                         lord.setCaptor(null);
                         beginRespawn(lord);

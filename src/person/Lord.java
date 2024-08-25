@@ -21,6 +21,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.lwjgl.util.vector.Vector2f;
+import ui.PrisonerIntelPlugin;
 import util.LordTags;
 import util.StringUtil;
 import util.Utils;
@@ -239,6 +240,12 @@ public class Lord {
         for (String fiefStr : storedFiefs) {
             fiefs.add(Global.getSector().getEconomy().getMarket(fiefStr).getPrimaryEntity());
         }
+        if (persistentData.containsKey("prisoners")) {
+            prisoners = (ArrayList<String>) persistentData.get("prisoners");
+        } else {
+            prisoners = new ArrayList<>();
+            persistentData.put("prisoners", prisoners);
+        }
     }
 
     public void addFief(MarketAPI fief) {
@@ -252,6 +259,10 @@ public class Lord {
     }
 
     public void addPrisoner(String lordId) {
+        if (isPlayer) {
+            PrisonerIntelPlugin intel = new PrisonerIntelPlugin(lordId);
+            Global.getSector().getIntelManager().addIntel(intel);
+        }
         prisoners.add(lordId);
     }
 
@@ -299,6 +310,12 @@ public class Lord {
         if (isPlayer) return;
         currAction = action;
         ModularFleetAIAPI lordAI = (ModularFleetAIAPI) getFleet().getAI();
+        if (!(lordAI.getStrategicModule() instanceof LordStrategicModule)) {
+            // this seems to happen when lords are defeated
+            lordAI.setStrategicModule(new LordStrategicModule(this, lordAI.getStrategicModule()));
+            //LordController.log.info("WARNING: AI WAS RESET: " + getLordAPI().getNameString());
+        }
+
         if (action != null) {
             persistentData.put("currAction", action.toString());
             ((LordStrategicModule) lordAI.getStrategicModule()).setInTransit(action.toString().contains("TRANSIT"));

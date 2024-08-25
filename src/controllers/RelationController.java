@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import static util.Constants.DEBUG_MODE;
+import static util.Constants.STARTING_LOYALTY;
 
 // tracks relations between all lords, lieges, and player
 public class RelationController extends BaseIntelPlugin {
@@ -24,7 +25,7 @@ public class RelationController extends BaseIntelPlugin {
         setHidden(true);
         int numLords = LordController.getLordsList().size();
         List<FactionAPI> factions = Global.getSector().getAllFactions();
-        int numLieges = factions.size();
+        int numLieges = 24 + factions.size();  // save some space for adding new factions
         for (FactionAPI faction : factions) {
             factionIdxMap.put(faction.getId(), factionIdxMap.size());
         }
@@ -37,9 +38,9 @@ public class RelationController extends BaseIntelPlugin {
         }
         for (Lord lord : LordController.getLordsList()) {
             int factionIdx = factionIdxMap.get(lord.getLordAPI().getFaction().getId());
-            factionRelations[factionIdx][LordController.indexOf(lord)] = 25;
+            factionRelations[factionIdx][LordController.indexOf(lord)] = STARTING_LOYALTY;
             if (DEBUG_MODE) {
-                factionRelations[factionIdx][LordController.indexOf(lord)] = 0; // TODO DEBUG
+                factionRelations[factionIdx][LordController.indexOf(lord)] = 0;
             }
         }
     }
@@ -72,13 +73,17 @@ public class RelationController extends BaseIntelPlugin {
     }
 
     public static void modifyLoyalty(Lord lord, int amount) {
-        modifyLoyalty(lord, lord.getLordAPI().getFaction().getId(), amount);
+        modifyLoyalty(lord, lord.getFaction().getId(), amount);
     }
 
     public static void modifyLoyalty(Lord lord, String factionId, int amount) {
-        int newLoyalty = Math.min(100, Math.max(-100, amount +
-                getInstance().factionRelations[getInstance().factionIdxMap.get(factionId)][LordController.indexOf(lord)]));
-        getInstance().factionRelations[getInstance().factionIdxMap.get(factionId)][LordController.indexOf(lord)] = newLoyalty;
+        if (Global.getSector().getPlayerFaction().getId().equals(factionId)) {
+            modifyRelation(lord, LordController.getPlayerLord(), amount);
+        } else {
+            int newLoyalty = Math.min(100, Math.max(-100, amount +
+                    getInstance().factionRelations[getFactionIdx(factionId)][LordController.indexOf(lord)]));
+            getInstance().factionRelations[getFactionIdx(factionId)][LordController.indexOf(lord)] = newLoyalty;
+        }
     }
 
     public static int getLoyalty(Lord lord) {
@@ -87,7 +92,16 @@ public class RelationController extends BaseIntelPlugin {
 
     public static int getLoyalty(Lord lord, String factionId) {
         if (Global.getSector().getPlayerFaction().getId().equals(factionId)) return lord.getPlayerRel();
-        return getInstance().factionRelations[getInstance().factionIdxMap.get(factionId)][LordController.indexOf(lord)];
+        return getInstance().factionRelations[getFactionIdx(factionId)][LordController.indexOf(lord)];
+    }
+
+    private static int getFactionIdx(String factionId) {
+        HashMap<String, Integer> tmp = getInstance().factionIdxMap;
+        if (!tmp.containsKey(factionId)) {
+            // new faction must've been added after gamestart
+            tmp.put(factionId, tmp.size());
+        }
+        return tmp.get(factionId);
     }
 
     public static RelationController getInstance(boolean forceReset) {

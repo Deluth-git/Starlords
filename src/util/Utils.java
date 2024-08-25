@@ -4,8 +4,10 @@ import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.*;
 import com.fs.starfarer.api.campaign.econ.Industry;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
+import com.fs.starfarer.api.characters.FullName;
 import com.fs.starfarer.api.characters.PersonAPI;
 import com.fs.starfarer.api.combat.StatBonus;
+import com.fs.starfarer.api.impl.campaign.CoreReputationPlugin;
 import com.fs.starfarer.api.impl.campaign.ids.*;
 import com.fs.starfarer.api.util.Misc;
 import controllers.LordController;
@@ -24,10 +26,41 @@ public class Utils {
     private static final int FAST_PATROL_FP = 20;
     private static final int COMBAT_PATROL_FP = 40;
     private static final int HEAVY_PATROL_FP = 65;
+    private static final Random rand = new Random();
 
+    public static int nextInt(int bound) {
+        return rand.nextInt(bound);
+    }
+
+    public static boolean nextBoolean() {
+        return rand.nextBoolean();
+    }
 
     public static boolean nexEnabled() {
         return Global.getSettings().getModManager().isModEnabled("nexerelin");
+    }
+
+    public static String sirOrMaam(PersonAPI person, boolean caps) {
+        if (caps) {
+            return person.getGender() == FullName.Gender.FEMALE ? "Ma'am" : "Sir";
+        }
+        return person.getGender() == FullName.Gender.FEMALE ? "ma'am" : "sir";
+    }
+
+    public static String manOrWoman(PersonAPI person, boolean caps) {
+        if (caps) {
+            return person.getGender() == FullName.Gender.FEMALE ? "Woman" : "Man";
+        }
+        return person.getGender() == FullName.Gender.FEMALE ? "woman" : "man";
+    }
+
+    public static void adjustPlayerReputation(PersonAPI target, int delta) {
+        CoreReputationPlugin.CustomRepImpact param = new CoreReputationPlugin.CustomRepImpact();
+        param.delta = delta / 100f;
+        Global.getSector().adjustPlayerReputation(
+                new CoreReputationPlugin.RepActionEnvelope(CoreReputationPlugin.RepActions.CUSTOM,
+                        param, null, null, false, true),
+                target);
     }
 
     public static List<MarketAPI> getFactionMarkets(String factionId)

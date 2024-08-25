@@ -22,6 +22,8 @@ This mod is currently in early development. Expect plenty of bugs, crashes, ques
 ### Installation
 Download this repository as a zip and unzip in your Starsector mod folder
 
+__This mod only runs with Java 8__ or higher. This means that the default jre on starsector versions 0.97 and lower does not support this mod. Please refer to the following [instructions](https://fractalsoftworks.com/forum/index.php?topic=25974.0) for updating your java version.
+
 ### Full Feature List
 * Adds __48 unique Lords__ spread among all the base major factions
 * Adds fief system, where each market is a fiefdom which can be owned by a Lord. 
@@ -36,6 +38,7 @@ Download this repository as a zip and unzip in your Starsector mod folder
 * __Feast system__- Take a reprieve from braving the sector and join the lords of the realms in a night of feasting and revelry. Feasts are an excellent chance to meet all the lords and build rapport with them.
 * __Campaign system__- Campaigns may be started by a faction's appointed marshal. All lords of the realm will gather to launch a grand invasion into enemy territory or defend against an enemy's invasion. If Nexerelin is enabled, lords may also use the Nexerelin ground combat system to capture markets.
 * __Defection system__- Lords who are dissatisfied with their faction may defect to another. Or you can speed along the process and persuade or bribe Lords to join your own faction as your subordinates.
+* __Prisoner system__- Lords may be captured in battle and either ransomed for credits or released for future goodwill.
 * __Political system__- The cornerstone of all lord relations, the new political system is where all Lords of the realm gather to propose and vote on legislation. Appoint new marshals, squabble for newly conquered fiefs, conduct foreign policy, and more, as long as you can control the political situation.
 
 
@@ -45,7 +48,6 @@ Most of these are inspired by Mount & Blade.
 * Continued Lord AI improvement and optimization
 * Political marriage/courtship system for forming marriage alliances.
 * Expanded subterfuge system involving scheming with friendly lords to increase your status in the realm or discredit mutual rivals.
-* Prisoner/ransom system for capturing Lords in battle
 * "Freelancer" system for enlisting in a Lord's army and fighting as a common pilot.
 * Flesh out feast system, with feast tournaments as friendly competition with fellow Lords
 * Better integration with Nexerelin invasions and base game crises.
