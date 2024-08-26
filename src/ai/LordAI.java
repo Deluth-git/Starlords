@@ -49,7 +49,7 @@ public class LordAI implements EveryFrameScript {
     public static Logger log = Global.getLogger(LordAI.class);
     // all times in days
     public static final float UPDATE_INTERVAL = 0.25f;
-    public static final int PATROL_DURATION = 30;
+    public static final int PATROL_DURATION = 21;
     public static final int RESPAWN_DURATION = 30;
     public static final int PRISON_ESCAPE_DURATION = 30;
     public static final int STANDBY_DURATION = 7;
@@ -256,7 +256,7 @@ public class LordAI implements EveryFrameScript {
         if (priority >= LordAction.UPGRADE_FLEET.priority) {
             int upgradeWeight = 0;
             if (lord.getFleet().getFlagship() == null) {
-                upgradeWeight += 25;
+                upgradeWeight += 40;
             }
             if (econLevel > 1) {
                 upgradeWeight += 25;
@@ -439,6 +439,13 @@ public class LordAI implements EveryFrameScript {
         boolean hostileFactionFail = hostileTargetActions.contains(lord.getCurrAction().base)
                 && !lord.getFaction().isHostileTo(lord.getTarget().getFaction());
         if (sameFactionFail || friendlyFactionFail || hostileFactionFail) {
+            EventController.removeFromAllEvents(lord);
+            lord.setCurrAction(null);
+            return;
+        }
+
+        // failsafe- transit assignments have no time limit, so if something breaks they can be stuck forever
+        if (fleetAI.getCurrentAssignment() == null && !lord.isActionComplete() && lord.getCurrAction().isTransit()) {
             EventController.removeFromAllEvents(lord);
             lord.setCurrAction(null);
             return;
@@ -985,49 +992,7 @@ public class LordAI implements EveryFrameScript {
         CampaignFleetAIAPI fleetAI = lord.getFleet().getAI();
         MemoryAPI mem = lord.getFleet().getMemoryWithoutUpdate();
 
-        // remove any events lord is participating in
-        switch (LordAction.base(lord.getCurrAction())) {
-            case RAID:
-                LordEvent raid = EventController.getCurrentRaid(lord);
-                if (raid != null) {
-                    if (raid.getOriginator().equals(lord)) {
-                        EventController.endCampaign(raid);
-                    } else {
-                        raid.getParticipants().remove(lord);
-                    }
-                }
-                break;
-            case DEFEND:
-                LordEvent defense = EventController.getCurrentDefense(lord);
-                if (defense != null) {
-                    defense.getOpposition().remove(lord);
-                }
-                break;
-            case CAMPAIGN:
-                LordEvent campaign = EventController.getCurrentCampaign(lord.getFaction());
-                if (campaign != null) {
-                    if (campaign.getOriginator().equals(lord)) {
-                        EventController.endCampaign(campaign);
-                    } else {
-                        campaign.getParticipants().remove(lord);
-                        if (campaign.getParticipants().isEmpty()) {
-                            EventController.endCampaign(campaign);
-                        }
-                    }
-                }
-                break;
-            case FEAST:
-                LordEvent feast = EventController.getCurrentFeast(lord.getFaction());
-                if (feast != null) {
-                    if (feast.getOriginator().equals(lord)) {
-                        EventController.endFeast(feast);
-                    } else {
-                        feast.getParticipants().remove(lord);
-                    }
-                }
-                break;
-        }
-
+        EventController.removeFromAllEvents(lord);
         lord.setCurrAction(LordAction.RESPAWNING);
         lord.setTarget(null);
         fleetAI.clearAssignments();

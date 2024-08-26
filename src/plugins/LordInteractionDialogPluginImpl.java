@@ -191,7 +191,6 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                 if (!targetLord.isKnownToPlayer()) {
                     textPanel.addPara("Added intel on " + targetLord.getLordAPI().getNameString(), Color.GREEN);
                     targetLord.setKnownToPlayer(true);
-                    LordsIntelPlugin.unhide(targetLord);
                 }
                 options.addOption(StringUtil.getString(CATEGORY, "option_speak_privately"), OptionId.SPEAK_PRIVATELY);
                 options.addOption("Cut the comm link.", OptionId.LEAVE);

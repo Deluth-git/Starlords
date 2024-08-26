@@ -442,13 +442,16 @@ public class PoliticsController implements EveryFrameScript {
                 || (beneficiary != null && beneficiary.isPlayer())) && proposal.isPlayerSupports();
         playerImportant |= (victim != null && victim.isPlayer() && !proposal.isPlayerSupports());
         playerImportant |= proposal.isForcePassed();
+        FactionAPI playerFaction = Utils.getRecruitmentFaction();
         for (int i = 0; i < proposal.getSupporters().size(); i++) {
             Lord supporter = LordController.getLordById(proposal.getSupporters().get(i));
             boolean important = supporter.equals(beneficiary)
                     || supporter.getLordAPI().getId().equals(proposal.originator);
-            int playerDelta = (proposal.isPlayerSupports() ? 1 : -1) * ((important || playerImportant)
-                    ? RELATION_CHANGE_LAW_IMPORTANT : RELATION_CHANGE_LAW_NORMAL);
-            RelationController.modifyRelation(supporter, LordController.getPlayerLord(), playerDelta);
+            if (proposal.getFaction().equals(playerFaction)) {
+                int playerDelta = (proposal.isPlayerSupports() ? 1 : -1) * ((important || playerImportant)
+                        ? RELATION_CHANGE_LAW_IMPORTANT : RELATION_CHANGE_LAW_NORMAL);
+                RelationController.modifyRelation(supporter, LordController.getPlayerLord(), playerDelta);
+            }
             for (String opposerStr : proposal.getOpposers()) {
                 Lord opposer = LordController.getLordById(opposerStr);
                 boolean opposerImportant = opposer.equals(victim);
@@ -466,9 +469,11 @@ public class PoliticsController implements EveryFrameScript {
         for (int i = 0; i < proposal.getOpposers().size(); i++) {
             Lord opposer = LordController.getLordById(proposal.getOpposers().get(i));
             boolean opposerImportant = opposer.equals(victim);
-            int playerDelta = (proposal.isPlayerSupports() ? -1 : 1) * ((opposerImportant || playerImportant)
-                    ? RELATION_CHANGE_LAW_IMPORTANT : RELATION_CHANGE_LAW_NORMAL);
-            RelationController.modifyRelation(opposer, LordController.getPlayerLord(), playerDelta);
+            if (proposal.getFaction().equals(playerFaction)) {
+                int playerDelta = (proposal.isPlayerSupports() ? -1 : 1) * ((opposerImportant || playerImportant)
+                        ? RELATION_CHANGE_LAW_IMPORTANT : RELATION_CHANGE_LAW_NORMAL);
+                RelationController.modifyRelation(opposer, LordController.getPlayerLord(), playerDelta);
+            }
             for (int j = i + 1; j < proposal.getOpposers().size(); j++) {
                 Lord opposer2 = LordController.getLordById(proposal.getOpposers().get(j));
                 boolean opposerImportant2 = opposer2.equals(victim);
@@ -1056,7 +1061,7 @@ public class PoliticsController implements EveryFrameScript {
                         ctr += 1;
                     }
                 }
-                delta /= Math.max(1, ctr);
+                delta /= Math.max(1, 2 * ctr);
                 approval += delta;
                 if (itemized && delta != 0) reasons.add(addPlus(delta) + " Political considerations");
             }
@@ -1109,7 +1114,8 @@ public class PoliticsController implements EveryFrameScript {
                                                     ArrayList<Lord> supporters, ArrayList<Lord> opposition) {
         int totalSupport = 0;
         int totalOpposition = 0;
-        if (!proposal.getFaction().equals(Global.getSector().getPlayerFaction())) {
+        if (proposal.getFaction().equals(Utils.getRecruitmentFaction())
+                && !proposal.getFaction().equals(Global.getSector().getPlayerFaction())) {
             if (proposal.isPlayerSupports()) {
                 totalSupport += PoliticsController.getPoliticalWeight(LordController.getPlayerLord());
                 if (supporters != null) supporters.add(LordController.getPlayerLord());

@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 
 import static util.Constants.CATEGORY_UI;
+import static util.Constants.DEBUG_MODE;
 
 public class LordsIntelPlugin extends BaseIntelPlugin {
 
@@ -40,8 +41,12 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
     private Lord lord;
 
     private LordsIntelPlugin(Lord lord) {
-        setHidden(!lord.isKnownToPlayer());
         this.lord = lord;
+    }
+
+    @Override
+    public boolean isHidden() {
+        return !lord.isKnownToPlayer() && !DEBUG_MODE;
     }
 
     @Override
@@ -79,7 +84,7 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
             fiefStr = fiefStr.substring(0, fiefStr.length() - 2);
         }
         String wealthStr;
-        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.WELCOMING) && !isSubject) {
+        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.WELCOMING) && !isSubject && !DEBUG_MODE) {
             wealthStr = "[REDACTED]";
         } else {
             wealthStr = Integer.toString((int) lord.getWealth());
@@ -93,7 +98,7 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
             personalityStr = "Unknown";
         }
         String orderStr;
-        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.FRIENDLY) && !isSubject) {
+        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.FRIENDLY) && !isSubject && !DEBUG_MODE) {
             orderStr = "[REDACTED]";
         } else if (lord.getCurrAction() == LordAction.IMPRISONED) {
             orderStr = "Imprisoned by " + LordController.getLordOrPlayerById(lord.getCaptor()).getLordAPI().getNameString();
@@ -101,6 +106,7 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
             orderStr = "None";
         } else if (lord.getCurrAction() != LordAction.CAMPAIGN) {
             orderStr = StringUtil.getString(CATEGORY_UI, "fleet_" + lord.getCurrAction().base.toString().toLowerCase() + "_desc", lord.getTarget().getName());
+            orderStr = lord.getCurrAction().toString();
         } else {
             if (lord.isMarshal()) {
                 LordEvent campaign = EventController.getCurrentCampaign(lord.getLordAPI().getFaction());
@@ -114,7 +120,7 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
             }
         }
         String lastSeenStr;
-        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.COOPERATIVE) && !isSubject) {
+        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.COOPERATIVE) && !isSubject && !DEBUG_MODE) {
             lastSeenStr = "[REDACTED]";
         }  else if (!fleet.isAlive()) {
             lastSeenStr = "N/A";
@@ -141,7 +147,7 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
 
         outer.addSectionHeading("Fleet Composition", faction.getBrightUIColor(), faction.getDarkUIColor(), Alignment.LMID, opad);
         // shiplist
-        if (lord.getPlayerRel() >= Utils.getThreshold(RepLevel.FRIENDLY) || isSubject) {
+        if (lord.getPlayerRel() >= Utils.getThreshold(RepLevel.FRIENDLY) || isSubject || DEBUG_MODE) {
             int rows = 3;
             if (lord.getLordAPI().getFleet().getNumShips() <= 30) rows = 2;
             outer.addShipList(15, rows, 48, factionColor,
@@ -155,7 +161,7 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
         float buttonPad = Math.min(Math.max(opad, height - outer.getHeightSoFar() - 160), 100 + pad);
         ButtonAPI button = outer.addButton("Open Comms", OPEN_COMMS_BUTTON, 150, 20, buttonPad);
         button.setShortcut(Keyboard.KEY_C, true);
-        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.COOPERATIVE) && !isSubject) {
+        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.COOPERATIVE) && !isSubject && !DEBUG_MODE) {
             button.setEnabled(false);
             outer.addTooltipToPrevious(new ToolTip(175, "Requires higher relations"), TooltipMakerAPI.TooltipLocation.BELOW);
         }
@@ -219,9 +225,4 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
         profile.setNew(false);
     }
 
-    public static void unhide(Lord lord) {
-        for (IntelInfoPlugin info : Global.getSector().getIntelManager().getIntel(LordsIntelPlugin.class)) {
-            if (((LordsIntelPlugin) info).lord.equals(lord)) info.setHidden(false);
-        }
-    }
 }

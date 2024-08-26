@@ -23,7 +23,7 @@ import java.util.*;
 public class LordFleetFactory extends FleetFactoryV3 {
 
     public static final float DP_CAP = 500;
-    public static final float COST_MULT = 500;  // cost for a lord to buy a ship is its base DP cost * COST_MULT
+    public static final float COST_MULT = 750;  // cost for a lord to buy a ship is its base DP cost * COST_MULT
     public static final float MOD_COST = 2000;  // cost for lord to buy 1 s-mod
     public static final int FUEL_COST = 10;  // cost for lord to buy 1 fuel
     public static final int MARINE_COST = 80;  // cost for lord to buy 1 marine
@@ -185,7 +185,7 @@ public class LordFleetFactory extends FleetFactoryV3 {
         // Restore flagship if it was destroyed previously
         float totalDP = 0;
         boolean hasFlagship = false;
-        for (FleetMemberAPI ship : lord.getLordAPI().getFleet().getMembersWithFightersCopy()) {
+        for (FleetMemberAPI ship : lord.getFleet().getMembersWithFightersCopy()) {
             if (ship.isFighterWing()) {
                 continue;
             }
@@ -196,16 +196,18 @@ public class LordFleetFactory extends FleetFactoryV3 {
         }
         if (!hasFlagship) {
             FleetMemberAPI flagShip = Global.getFactory().createFleetMember(FleetMemberType.SHIP, lord.getTemplate().flagShip);
+            String name =  lord.getFleet().getFleetData().pickShipName(flagShip, Utils.rand);
+            flagShip.setShipName(name);
+            lord.getFleet().getFleetData().addFleetMember(flagShip);
             flagShip.setFlagship(true);
-            lord.getLordAPI().getFleet().getFleetData().addFleetMember(flagShip);
         }
 
         // allocate wealth to buying ships and upgrades
         float shipFunds = Math.min(lord.getWealth(), lord.getWealth() * (2 - 2 * totalDP / DP_CAP));
-        float cost = addToLordFleet(lord.getTemplate().shipPrefs, lord.getLordAPI().getFleet(), new Random(), DP_CAP, shipFunds);
+        float cost = addToLordFleet(lord.getTemplate().shipPrefs, lord.getFleet(), new Random(), DP_CAP, shipFunds);
         lord.addWealth(-1 * cost);
         log.info("Lord " + lord.getLordAPI().getNameString() + " purchased " + Math.round(cost) + " of ships.");
-        cost = buyGoodsforFleet(lord, lord.getLordAPI().getFleet(), new Random(), lord.getWealth());
+        cost = buyGoodsforFleet(lord, lord.getFleet(), new Random(), lord.getWealth());
         lord.addWealth(-1 * cost);
         //cost = addModsToFleet(lord.getLordAPI().getFleet(), new Random(), lord.getWealth());
         populateCaptains(lord);

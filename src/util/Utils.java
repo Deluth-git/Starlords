@@ -26,7 +26,7 @@ public class Utils {
     private static final int FAST_PATROL_FP = 20;
     private static final int COMBAT_PATROL_FP = 40;
     private static final int HEAVY_PATROL_FP = 65;
-    private static final Random rand = new Random();
+    public static final Random rand = new Random();
 
     public static int nextInt(int bound) {
         return rand.nextInt(bound);

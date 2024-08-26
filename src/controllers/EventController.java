@@ -310,33 +310,44 @@ public class EventController extends BaseIntelPlugin {
     public static void removeFromAllEvents(Lord lord) {
         LordEvent event;
         if (lord.getCurrAction() != null) {
-            switch (lord.getCurrAction()) {
+            switch (LordAction.base(lord.getCurrAction())) {
                 case RAID:
-                    event = EventController.getCurrentRaid(lord);
-                    if (event.getOriginator().equals(lord)) {
-                        EventController.endRaid(event);
-                    } else {
-                        event.getParticipants().remove(lord);
-                    }
-                    break;
-                case FEAST:
-                    event = EventController.getCurrentFeast(lord.getLordAPI().getFaction());
-                    if (event.getOriginator().equals(lord)) {
-                        EventController.endFeast(event);
-                    } else {
-                        event.getParticipants().remove(lord);
+                    LordEvent raid = EventController.getCurrentRaid(lord);
+                    if (raid != null) {
+                        if (raid.getOriginator().equals(lord)) {
+                            EventController.endRaid(raid);
+                        } else {
+                            raid.getParticipants().remove(lord);
+                        }
                     }
                     break;
                 case DEFEND:
-                    event = EventController.getCurrentDefense(lord);
-                    event.getOpposition().remove(lord);
+                    LordEvent defense = EventController.getCurrentDefense(lord);
+                    if (defense != null) {
+                        defense.getOpposition().remove(lord);
+                    }
                     break;
                 case CAMPAIGN:
-                    event = EventController.getCurrentCampaign(lord.getLordAPI().getFaction());
-                    if (event.getOriginator().equals(lord)) {
-                        EventController.endCampaign(event);
-                    } else {
-                        event.getParticipants().remove(lord);
+                    LordEvent campaign = EventController.getCurrentCampaign(lord.getFaction());
+                    if (campaign != null) {
+                        if (campaign.getOriginator().equals(lord)) {
+                            EventController.endCampaign(campaign);
+                        } else {
+                            campaign.getParticipants().remove(lord);
+                            if (campaign.getParticipants().isEmpty()) {
+                                EventController.endCampaign(campaign);
+                            }
+                        }
+                    }
+                    break;
+                case FEAST:
+                    LordEvent feast = EventController.getCurrentFeast(lord.getFaction());
+                    if (feast != null) {
+                        if (feast.getOriginator().equals(lord)) {
+                            EventController.endFeast(feast);
+                        } else {
+                            feast.getParticipants().remove(lord);
+                        }
                     }
                     break;
             }

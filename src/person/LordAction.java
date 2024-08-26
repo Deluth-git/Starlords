@@ -35,6 +35,10 @@ public enum LordAction {
         this.priority = priority;
     }
 
+    public boolean isTransit() {
+        return this.base != this;
+    }
+
     public static LordAction base(LordAction action) {
         if (action == null) return null;
         return action.base;
