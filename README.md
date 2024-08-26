@@ -20,7 +20,7 @@ Star Lords is heavily inspired by campaign mechanics of Mount and Blade. The goa
 This mod is currently in early development. Expect plenty of bugs, crashes, questionable balancing, etc. Don't add this mod to existing saves and remember to save frequently. Please report any crash logs or balance feedback to the forums. Thank you for your cooperation.
 
 ### Installation
-Download this repository as a zip and unzip in your Starsector mod folder
+Download the latest release [here](https://github.com/Deluth-git/Starlords/releases) and unzip in your Starsector mod folder.
 
 __This mod only runs with Java 8__ or higher. This means that the default jre on starsector versions 0.97 and lower does not support this mod. Please refer to the following [instructions](https://fractalsoftworks.com/forum/index.php?topic=25974.0) for updating your java version.
 
