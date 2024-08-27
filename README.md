@@ -25,17 +25,17 @@ Download the latest release [here](https://github.com/Deluth-git/Starlords/relea
 __This mod only runs with Java 8__ or higher. This means that the default jre on starsector versions 0.97 and lower does not support this mod. Please refer to the following [instructions](https://fractalsoftworks.com/forum/index.php?topic=25974.0) for updating your java version.
 
 ### Full Feature List
-* Adds __48 unique Lords__ spread among all the base major factions
+* Adds __48 unique Lords__ spread among all the base major factions.
 * Adds fief system, where each market is a fiefdom which can be owned by a Lord. 
 * Custom __Economic system__ for Lords
   * Lords collect taxes from their own fiefs and participate in business ventures in friendly markets. 
   * Income is used to expand their fleet, hire marines, and maintain existing ships.
 * Custom fleet constructor for Lords, which allows each Lord to have their own __distinctive fleet composition__.
-* Lords are __active on the map__, collecting income and waging war
+* Lords are __active on the map__, collecting income and waging war.
   * Lord actions are heavily dependent on Lord's personality and relations with other Lords
-  * Lord's officer corps slowly level ups from fighting in battles
+  * Lord's officer corps slowly level up from fighting in battles
 * __Player-Lord Interactions__- If a Lord trusts you sufficiently, they may follow the player's military orders, offer quests, participate in scheming, and share sensitive intel about their operations.
-* __Feast system__- Take a reprieve from braving the sector and join the lords of the realms in a night of feasting and revelry. Feasts are an excellent chance to meet all the lords and build rapport with them.
+* __Feast system__- Take a reprieve from braving the sector and join the lords of the realm in a night of feasting and revelry. Feasts are an excellent chance to meet all the lords and build rapport with them.
 * __Campaign system__- Campaigns may be started by a faction's appointed marshal. All lords of the realm will gather to launch a grand invasion into enemy territory or defend against an enemy's invasion. If Nexerelin is enabled, lords may also use the Nexerelin ground combat system to capture markets.
 * __Defection system__- Lords who are dissatisfied with their faction may defect to another. Or you can speed along the process and persuade or bribe Lords to join your own faction as your subordinates.
 * __Prisoner system__- Lords may be captured in battle and either ransomed for credits or released for future goodwill.
@@ -45,7 +45,7 @@ __This mod only runs with Java 8__ or higher. This means that the default jre on
 
 ### Major Planned Features
 Most of these are inspired by Mount & Blade.
-* Continued Lord AI improvement and optimization
+* Continued Lord AI improvement and optimization.
 * Political marriage/courtship system for forming marriage alliances.
 * Expanded subterfuge system involving scheming with friendly lords to increase your status in the realm or discredit mutual rivals.
 * "Freelancer" system for enlisting in a Lord's army and fighting as a common pilot.

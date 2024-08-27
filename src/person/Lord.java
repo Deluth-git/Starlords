@@ -166,60 +166,6 @@ public class Lord {
         }
     }
 
-    /**
-     * Recreates a lord object from an existing person. Used when loading save game.
-     * @param lord existing person
-     */
-    public Lord(PersonAPI lord, LordTemplate template) {
-        Map lordDataMap = (Map) Global.getSector().getPersistentData().get(LORD_TABLE_KEY);
-        if (!lordDataMap.containsKey(lord.getId())) {
-            lordDataMap.put(lord.getId(), new HashMap<String, Object>());
-        }
-        persistentData = (Map<String, Object>) lordDataMap.get(lord.getId());
-        lordAPI = lord;
-        wealth = (float) persistentData.get("wealth");
-        String actionStr = (String) persistentData.get("currAction");
-        ranking = (int) persistentData.get("ranking");
-        personalityKnown = (boolean) persistentData.get("personalityKnown");
-        knownToPlayer = (boolean) persistentData.get("knownToPlayer");
-        playerDirected = (boolean) persistentData.get("playerDirected");
-        feastInteracted = (boolean) persistentData.get("feastInteracted");
-        swayed = (boolean) persistentData.get("swayed");
-        captor = (String) persistentData.get("captor");
-        prisoners = (ArrayList<String>) persistentData.get("prisoners");
-        if (actionStr != null) {
-            currAction = LordAction.valueOf(actionStr);
-        }
-        kills = (int) persistentData.getOrDefault("kills", 0);
-        actionComplete = (boolean) persistentData.getOrDefault("actionComplete", false);
-        if (persistentData.containsKey("assignmentStartTime")) {
-            assignmentStartTime = (long) persistentData.get("assignmentStartTime");
-        }
-        this.template = template;
-        fiefs = new ArrayList<>();
-        List<String> storedFiefs = (List<String>) persistentData.get("fief");
-        for (String fiefStr : storedFiefs) {
-            fiefs.add(Global.getSector().getEconomy().getMarket(fiefStr).getPrimaryEntity());
-        }
-
-        String targetStr = (String) persistentData.get("target");
-        if (targetStr != null) {
-            if (targetStr.startsWith("market_")) {
-                target = Global.getSector().getEconomy().getMarket(targetStr.substring(7)).getPrimaryEntity();
-            } else  {
-                // assumes fleet target is either lord or player
-                String targetId = targetStr.substring(6);
-                if (targetId.equals(Global.getSector().getPlayerPerson().getId())) {
-                    target = Global.getSector().getPlayerFleet();
-                } else {
-                    PersonAPI person = Global.getSector().getImportantPeople().getPerson(targetId);
-                    if (person != null) {
-                        target = person.getFleet();
-                    }
-                }
-            }
-        }
-    }
 
     // Creates special wrapper lords such as the player or lieges
     private Lord(PersonAPI player) {

@@ -201,6 +201,7 @@ public class Utils {
     }
 
     public static <T> T weightedSample(List<T> data, List<Integer> weights, Random rand) {
+        if (data.isEmpty()) return null;
         if (rand == null) rand = new Random();
         int totalWeight = 0;
         for (int w : weights) {

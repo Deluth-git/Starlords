@@ -93,25 +93,12 @@ public class LordController {
     public static void loadLords() {
         lordsList.clear();
         lordsMap.clear();
-        Map lordTable = (Map) Global.getSector().getPersistentData().get(LORD_TABLE_KEY);
-        for (Object key : lordTable.keySet()) {
-            String keyStr = (String) key;
-            if (!lordsMap.containsKey(keyStr)) {
-                PersonAPI lordPerson = Global.getSector().getImportantPeople().getPerson(keyStr);
-                if (lordPerson == null) {
-                    continue;
-                }
-                Lord toAdd = new Lord(lordPerson, lordTemplates.get(lordPerson.getNameString()));
-                addLord(toAdd);
-            }
-        }
 
         // update lords in intel plugin
         List<IntelInfoPlugin> lordIntel = Global.getSector().getIntelManager().getIntel();
         for (IntelInfoPlugin plugin : lordIntel) {
             if (plugin instanceof LordsIntelPlugin) {
-                String id = ((LordsIntelPlugin) plugin).getLord().getLordAPI().getId();
-                ((LordsIntelPlugin) plugin).setLord(lordsMap.get(id));
+                addLord(((LordsIntelPlugin) plugin).getLord());
             }
         }
         ensureLordOrder();
