@@ -556,6 +556,13 @@ public class EventController extends BaseIntelPlugin {
                     throw new IllegalStateException("Should only be one EventController intel registered");
                 }
                 instance = (EventController) intel.get(0);
+                // update lord references
+                for (LordEvent event : instance.feasts) {
+                    event.updateReferences();
+                }
+                for (LordEvent event : instance.campaigns) {
+                    event.updateReferences();
+                }
             }
         }
         return instance;

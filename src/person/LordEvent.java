@@ -79,6 +79,11 @@ public class LordEvent {
         return null;
     }
 
+    // used on save load to remove outdated lord references
+    public void updateReferences() {
+        originator = LordController.getLordOrPlayerById(originator.getLordAPI().getId());
+    }
+
     public float getTotalMarines() {
         float marines = originator.getFleet().getCargo().getMarines();
         for (Lord supporter : participants) {

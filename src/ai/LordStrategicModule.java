@@ -41,9 +41,10 @@ public class LordStrategicModule implements StrategicModulePlugin {
                 CampaignFleetAPI otherFleet = (CampaignFleetAPI) other;
                 CampaignFleetAPI lordFleet = lord.getLordAPI().getFleet();
                 boolean canReach = (otherFleet.getFleetData().getMinBurnLevel() < lordFleet.getFleetData().getMinBurnLevel())
-                        || Misc.getDistance(otherFleet.getLocation(), lordFleet.getLocation()) < 100; // TODO
+                        || Misc.getDistance(otherFleet.getLocation(), lordFleet.getLocation()) < 300;
                 boolean interesting = otherFleet.getFleetPoints() > Math.min(lordFleet.getFleetPoints() / 2, 100);
-                engageInTransit = canReach && interesting;
+                boolean inBattle = otherFleet.getBattle() != null;
+                engageInTransit = (inBattle || canReach) && interesting;
             }
             ret = ret && engageInTransit;
         }
