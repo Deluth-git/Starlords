@@ -16,9 +16,9 @@ import static util.Constants.DEBUG_MODE;
 public class LordEvent {
     public enum OffensiveType {
         HARASS(0, DEBUG_MODE ? 1 : 7),
-        RAID_GENERIC(1, DEBUG_MODE ? 1 : 7),
-        RAID_INDUSTRY(1, DEBUG_MODE ? 1 : 7),
-        BOMBARD_TACTICAL(4, DEBUG_MODE ? 2 : 14),
+        RAID_GENERIC(3, DEBUG_MODE ? 1 : 7),
+        RAID_INDUSTRY(3, DEBUG_MODE ? 1 : 7),
+        BOMBARD_TACTICAL(6, DEBUG_MODE ? 2 : 14),
         BOMBARD_SATURATION(6, DEBUG_MODE ? 2 : 14),
         NEX_GROUND_BATTLE(6, DEBUG_MODE ? 1 : 7);
 

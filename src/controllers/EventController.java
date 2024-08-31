@@ -184,7 +184,8 @@ public class EventController extends BaseIntelPlugin {
         // check offensive options
         for (MarketAPI market : Global.getSector().getEconomy().getMarketsCopy()) {
             FactionAPI otherFaction = market.getFaction();
-            if (!Misc.isPirateFaction(otherFaction) && otherFaction.isHostileTo(faction)) {
+            if (!Misc.isPirateFaction(otherFaction) && (LordController.getFactionsWithLords().contains(otherFaction) || otherFaction.isPlayerFaction())
+                    && otherFaction.isHostileTo(faction)) {
                 int weight = 15000 - (int) Utils.getHyperspaceDistance(market.getPrimaryEntity(), lord.getLordAPI().getFleet());
                 if (weight > preferredWeight) {
                     preferred = market;

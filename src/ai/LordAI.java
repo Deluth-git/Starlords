@@ -588,7 +588,7 @@ public class LordAI implements EveryFrameScript {
                                 boolean failed = false;
                                 switch (raid.getOffensiveType()) {
                                     case RAID_GENERIC:
-                                        cmd.doGenericRaid(faction, attackerStr);
+                                        cmd.doGenericRaid(faction, attackerStr, 1);
                                         break;
                                     case RAID_INDUSTRY:
                                         Industry raidTarget = Utils.getIndustryToRaid(raid.getTarget().getMarket());

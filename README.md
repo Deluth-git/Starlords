@@ -57,6 +57,17 @@ Most of these are inspired by Mount & Blade.
 ### Dependencies/Compatibility
 This mod has no dependencies, though it's recommended to play with [Nexerelin](https://github.com/Histidine91/Nexerelin/tree/master) for planet capture mechanics. This mod should work with faction/ship/weapon mods which don't impact base campaign mechanics. Any kind of mod that only affects in-battle gameplay is also fine. All specific compatibilities are not yet tested.
 
+
+### Adding your own Lords
+If you're a modder or just want to put your own characters into the game, all you have to do is add another entry to the [lords.json](https://github.com/Deluth-git/Starlords/blob/master/data/lords/lords.json) file. A few notes:
+* "faction" should be a valid [faction id](https://fractalsoftworks.com/starfarer.api/constant-values.html#com.fs.starfarer.api.impl.campaign.ids.Factions.DIKTAT)
+* "fief" should be a valid market id or null
+* "ranking" is the lord's rank, which affects their political weight and base income. It should be between 0 and 2, where 2 is highest.
+* Flagship and ship preferences must contain valid ship variant ids. You can find these under the `/data/variants` folder of `starsector-core` or any mod directories.
+* Faction and fief will be automatically converted to lower case. Ship variants are case-sensitive.
+
+After that, your lord should be created automatically upon starting a new game. Also, templates are only referenced when starting a new game, so you won't be able to modify your lord past gamestart.
+
 ### Credits
 Starsector team for developing the game\
 [Nexerelin](https://github.com/Histidine91/Nexerelin/tree/master) team's codebase for providing excellent references to many obscure parts of the Starsector API \
