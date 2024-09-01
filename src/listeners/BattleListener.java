@@ -21,8 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 
-import static util.Constants.CATEGORY_UI;
-import static util.Constants.LORD_CAPTURE_CHANCE;
+import static util.Constants.*;
 
 public class BattleListener extends BaseCampaignEventListener {
     public BattleListener(boolean permaRegister) {
@@ -62,7 +61,8 @@ public class BattleListener extends BaseCampaignEventListener {
             Lord lord = LordController.getLordOrPlayerById(loser.getCommander().getId());
             if (lord != null) {
                 loserLords.add(lord);
-                if (!lord.isPlayer() && lord.getFleet().isEmpty()) maybeCaptured.add(lord);
+                // make lords just die if they get down to a couple frigates
+                if (!lord.isPlayer() && loser.getFleetPoints() < LORD_DEFEATED_IF_UNDER) maybeCaptured.add(lord);
             }
         }
 
@@ -92,7 +92,7 @@ public class BattleListener extends BaseCampaignEventListener {
                 } else if (alliedLord.isPlayer()) {
                     int change = (int) (3 * battle.getPlayerInvolvementFraction()
                             * killsFP / Math.max(1, lord.getFleet().getFleetPoints()));
-                    Utils.adjustPlayerReputation(alliedLord.getLordAPI(), Math.min(5, change));
+                    Utils.adjustPlayerReputation(lord.getLordAPI(), Math.min(5, change));
                 } else {
                     RelationController.modifyRelation(lord, alliedLord,
                             Math.min(5, Math.round(killsFP / denom)));
@@ -132,6 +132,12 @@ public class BattleListener extends BaseCampaignEventListener {
                     defeated.getLordAPI().getId().hashCode() * Global.getSector().getClock().getTimestamp());
             Lord captor = null;
             int captorFreeChance = 0;
+
+            // if lord still has a couple ships left, destroy them
+            for (FleetMemberAPI toDestroy : defeated.getFleet().getMembersWithFightersCopy()) {
+                if (!toDestroy.isFighterWing()) defeated.getFleet().removeFleetMemberWithDestructionFlash(toDestroy);
+            }
+
             if (canCapture && rand.nextInt(100) < LORD_CAPTURE_CHANCE) {
                 // capture lord. If player is winner, player captures all lords. Else allocates prisoners randomly
                 boolean freed = false;

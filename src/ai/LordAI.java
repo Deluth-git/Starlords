@@ -58,6 +58,7 @@ public class LordAI implements EveryFrameScript {
     public static final int[] FEAST_COOLDOWN = new int[]{30, 90, 180, 365, 1000000};
     public static final int FOLLOW_DURATION = 30;
     public static final int CAMPAIGN_COOLDOWN = 180;
+    public static final int RAID_COOLDOWN = 45;  // applies per market, not per lord
     public static final int CAMPAIGN_MAX_VIOLENCE= 6;
     public static final int RAID_MAX_VIOLENCE = 3;
     public static final int CAMPAIGN_MAX_DURATION = 120;
@@ -743,7 +744,7 @@ public class LordAI implements EveryFrameScript {
                                             CargoAPI cargo;
                                             switch (campaign.getOffensiveType()) {
                                                 case RAID_GENERIC:
-                                                    cmd.doGenericRaid(faction, attackerStr);
+                                                    cmd.doGenericRaid(faction, attackerStr, 1);
                                                     break;
                                                 case RAID_INDUSTRY:
                                                     Industry raidTarget = Utils.getIndustryToRaid(target);

@@ -28,6 +28,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import static ai.LordAI.RAID_COOLDOWN;
+
 // Catalogues events that Lords may want to participate in
 // such as ongoing campaigns, contested sectors, pirate infestations, or feasts
 // has nothing to do with java events
@@ -261,6 +263,7 @@ public class EventController extends BaseIntelPlugin {
             if (!market.getFaction().isHostileTo(lord.getLordAPI().getFaction())) continue;
             if (Misc.isPirateFaction(market.getFaction())) continue;
             if (seen.contains(market)) continue;
+            if (Misc.getDaysSinceLastRaided(market) < RAID_COOLDOWN) continue;
             int currWeight = getMilitaryOpWeight(lord, market, null, false);
             if (currWeight > preferredWeight) {
                 preferred = market;

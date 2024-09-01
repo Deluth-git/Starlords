@@ -10,6 +10,9 @@ public class Constants {
     // percent chance lord is captured when defeated in combat against other lords
     public static final int LORD_CAPTURE_CHANCE = 70;
     public static final int PRISON_ESCAPE_CHANCE = 15;
+    // if lord's fp is under this number after a battle, the remaining ships will be scuttled
+    // and the lord will be considered captured
+    public static final int LORD_DEFEATED_IF_UNDER = 15;
     public static final int BASE_RANSOM = 50000;
 
     public static final Color LIGHT_RED = new Color(194, 29, 29);

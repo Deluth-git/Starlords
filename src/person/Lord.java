@@ -6,6 +6,7 @@ import com.fs.starfarer.api.campaign.CampaignFleetAPI;
 import com.fs.starfarer.api.campaign.FactionAPI;
 import com.fs.starfarer.api.campaign.RepLevel;
 import com.fs.starfarer.api.campaign.SectorEntityToken;
+import com.fs.starfarer.api.campaign.ai.FleetAssignmentDataAPI;
 import com.fs.starfarer.api.campaign.ai.ModularFleetAIAPI;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.characters.FullName;
@@ -338,7 +339,8 @@ public class Lord {
     }
 
     public void setActionText(String text) {
-        getFleet().getCurrentAssignment().setActionText(text);
+        FleetAssignmentDataAPI assignment = getFleet().getCurrentAssignment();
+        if (assignment != null) assignment.setActionText(text);
     }
 
     public boolean willSpeakPrivately() {
