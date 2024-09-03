@@ -146,9 +146,6 @@ public class LordAI implements EveryFrameScript {
             Pair<LordEvent, Integer> attackChoice = EventController.getPreferredRaidAttack(lord);
             attack = attackChoice.one;
             int raidWeight = attackChoice.two;
-            if (raidWeight > 0) {
-                priority = LordAction.RAID.priority;
-            }
 
             // starting own raid
             Pair<SectorEntityToken, Integer> ownAttackChoice = EventController.getPreferredRaidLocation(lord);
@@ -159,6 +156,7 @@ public class LordAI implements EveryFrameScript {
             }
 
             if (raidWeight > 0) {
+                if (attack != null) priority = LordAction.RAID.priority;
                 weights.add(raidWeight);
                 actions.add(LordAction.RAID_TRANSIT);
             }
@@ -180,16 +178,18 @@ public class LordAI implements EveryFrameScript {
             int feastWeight = 0;
             currFeast = EventController.getCurrentFeast(faction);
             if (currFeast != null) {
-                priority = LordAction.FEAST.priority;
                 if (lord.getCurrAction() != LordAction.FEAST) {
                     // weight of joining existing feast
                     feastWeight = 100;
+                    priority = LordAction.FEAST.priority;
                 } else {
                     // weight of staying at feast
                     if (!currFeast.getOriginator().equals(lord)) {
                         feastWeight = 20;
+                        priority = LordAction.FEAST.priority;
                     } else if (Utils.getDaysSince(currFeast.getStart()) < FEAST_MAX_DURATION) {
                         feastWeight = 250;
+                        priority = LordAction.FEAST.priority;
                     }
                 }
 
@@ -230,8 +230,10 @@ public class LordAI implements EveryFrameScript {
             for (SectorEntityToken fief : lord.getFiefs()) {
                 taxWeight += FiefController.getTax(fief.getMarket()) / 1000;
             }
-            weights.add(taxWeight);
-            actions.add(LordAction.COLLECT_TAXES_TRANSIT);
+            if (taxWeight > 0) {
+                weights.add(taxWeight);
+                actions.add(LordAction.COLLECT_TAXES_TRANSIT);
+            }
         }
 
         if (priority >= LordAction.VENTURE.priority) {
@@ -249,8 +251,10 @@ public class LordAI implements EveryFrameScript {
                         ventureWeight = 10;
                 }
                 ventureWeight *= (2 - econLevel);
-                weights.add(ventureWeight);
-                actions.add(LordAction.VENTURE_TRANSIT);
+                if (ventureWeight > 0) {
+                    weights.add(ventureWeight);
+                    actions.add(LordAction.VENTURE_TRANSIT);
+                }
             }
         }
 
