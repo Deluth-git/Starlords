@@ -131,10 +131,10 @@ public class LordController {
                     currLord.getLordAPI().getRelToPlayer().setRel(1);
                 }
                 currLord.getLordAPI().getRelToPlayer().setRel(0.95f);
-                if (currLord.getLordAPI().getFaction().getId().equals(Factions.PIRATES)) {
-                    lordMarket = Global.getSector().getEconomy().getMarket("jangala");
-                    currLord.getLordAPI().getRelToPlayer().setRel(0.5f);
-                }
+//                if (currLord.getLordAPI().getFaction().getId().equals(Factions.PIRATES)) {
+//                    lordMarket = Global.getSector().getEconomy().getMarket("jangala");
+//                    currLord.getLordAPI().getRelToPlayer().setRel(0.5f);
+//                }
 //                if (currLord.getTemplate().name.contains("Brynhild")) {
 //                    lordMarket = Global.getSector().getEconomy().getMarket("jangala");
 //                    currLord.getLordAPI().getRelToPlayer().setRel(1);

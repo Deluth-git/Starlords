@@ -41,9 +41,9 @@ public class PoliticsController implements EveryFrameScript {
 
     private static Logger log = Global.getLogger(PoliticsController.class);
     public static PoliticsController instance;
-    public static final int RELATION_CHANGE_LAW_NORMAL = 5;
+    public static final int RELATION_CHANGE_LAW_NORMAL = 3;
     // relation change when someone is the proposer, direct beneficiary, or victim of a debated law
-    public static final int RELATION_CHANGE_LAW_IMPORTANT = 10;
+    public static final int RELATION_CHANGE_LAW_IMPORTANT = 6;
     public static final float UPDATE_INTERVAL = 1;
     public static final float LORD_THINK_INTERVAL = 7;
     private static final int RECESS_DAYS = DEBUG_MODE ? 2 : 30;//30;

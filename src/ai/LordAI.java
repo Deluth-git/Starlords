@@ -539,7 +539,7 @@ public class LordAI implements EveryFrameScript {
                         RelationController.modifyRelation(lord, participant, 2);
                     }
                     if (!lord.getFaction().equals(Global.getSector().getPlayerFaction())) {
-                        RelationController.modifyLoyalty(lord, 5);
+                        RelationController.modifyLoyalty(lord, 3);
                     }
                     if (!currFeast.getOriginator().equals(lord)) {
                         lord.setFeastInteracted(false);

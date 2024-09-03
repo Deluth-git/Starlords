@@ -206,7 +206,7 @@ public class LordFleetFactory extends FleetFactoryV3 {
         float shipFunds = Math.min(lord.getWealth(), lord.getWealth() * (2 - 2 * totalDP / DP_CAP));
         float cost = addToLordFleet(lord.getTemplate().shipPrefs, lord.getFleet(), new Random(), DP_CAP, shipFunds);
         lord.addWealth(-1 * cost);
-        log.info("Lord " + lord.getLordAPI().getNameString() + " purchased " + Math.round(cost) + " of ships.");
+        //log.info("Lord " + lord.getLordAPI().getNameString() + " purchased " + Math.round(cost) + " of ships.");
         cost = buyGoodsforFleet(lord, lord.getFleet(), new Random(), lord.getWealth());
         lord.addWealth(-1 * cost);
         //cost = addModsToFleet(lord.getLordAPI().getFleet(), new Random(), lord.getWealth());

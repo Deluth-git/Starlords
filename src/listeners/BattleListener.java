@@ -86,16 +86,16 @@ public class BattleListener extends BaseCampaignEventListener {
             for (Lord alliedLord : winnerLords) {
                 float denom = Math.max(1, (alliedLord.getFleet().getFleetPoints() + lord.getFleet().getFleetPoints()) / 2f);
                 if (lord.isPlayer()) {
-                    int change = (int) (3 * battle.getPlayerInvolvementFraction()
+                    int change = (int) (4 * battle.getPlayerInvolvementFraction()
                             * killsFP / Math.max(1, alliedLord.getFleet().getFleetPoints()));
                     Utils.adjustPlayerReputation(alliedLord.getLordAPI(), Math.min(5, change));
                 } else if (alliedLord.isPlayer()) {
-                    int change = (int) (3 * battle.getPlayerInvolvementFraction()
+                    int change = (int) (4 * battle.getPlayerInvolvementFraction()
                             * killsFP / Math.max(1, lord.getFleet().getFleetPoints()));
                     Utils.adjustPlayerReputation(lord.getLordAPI(), Math.min(5, change));
                 } else {
                     RelationController.modifyRelation(lord, alliedLord,
-                            Math.min(5, Math.round(killsFP / denom)));
+                            Math.min(5, Math.round(2 * killsFP / denom)));
                 }
             }
             winnerLords.add(lord);
@@ -234,10 +234,10 @@ public class BattleListener extends BaseCampaignEventListener {
             if (defeated.isPlayerDirected()) {
                 Utils.adjustPlayerReputation(defeated.getLordAPI(), -5);
             } else if (defeated.getFaction().isPlayerFaction()) {
-                int change = Math.min(2, defeated.getPersonality().ordinal());
+                int change = Math.min(3, 1 + defeated.getPersonality().ordinal());
                 Utils.adjustPlayerReputation(defeated.getLordAPI(), -change);
             } else {
-                int change = Math.min(2, defeated.getPersonality().ordinal());
+                int change = Math.min(3, 1 + defeated.getPersonality().ordinal());
                 RelationController.modifyLoyalty(defeated, -change);
             }
         }

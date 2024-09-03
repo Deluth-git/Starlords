@@ -6,6 +6,10 @@ import com.fs.starfarer.api.characters.PersonAPI;
 import com.fs.starfarer.api.impl.campaign.intel.BaseIntelPlugin;
 import com.fs.starfarer.api.impl.campaign.intel.BaseMissionIntel;
 import com.fs.starfarer.api.impl.campaign.intel.bar.events.DeliveryMissionIntel;
+import com.fs.starfarer.api.impl.campaign.missions.DisruptHeavyIndustry;
+import com.fs.starfarer.api.impl.campaign.missions.ExtractionMission;
+import com.fs.starfarer.api.impl.campaign.missions.HijackingMission;
+import com.fs.starfarer.api.impl.campaign.missions.RaidSecretOutpostMission;
 import com.fs.starfarer.api.impl.campaign.missions.hub.BaseHubMission;
 import com.fs.starfarer.api.impl.campaign.missions.hub.BaseMissionHub;
 import com.fs.starfarer.api.loading.PersonMissionSpec;
@@ -41,13 +45,47 @@ public class QuestController extends BaseIntelPlugin {
             questMap.put(lord.getLordAPI().getId(), null);
             questGivenMap.put(lord.getLordAPI().getId(), false);
         }
-        for (PersonMissionSpec spec : Global.getSettings().getAllMissionSpecs()) {
-            if (spec.getPersonId() != null) continue;
-            Set<String> tags = spec.getTagsAny();
-            if (tags.contains("trade")) tradeMissionIds.add(spec.getMissionId());
-            if (tags.contains("military")) militaryMissionIds.add(spec.getMissionId());
-            if (tags.contains("underworld")) underworldMissionIds.add(spec.getMissionId());
-        }
+        /* Good ones:
+           cheapCom- trade
+           proCom- trade
+           ddro- trade
+           ssat- military
+           psb- military
+           tabo- military
+           smug- underworld
+           rsom - underworld
+           rdsm- underworld
+
+           Unknown:
+           dcom
+           cpm - trade
+           extr - military
+           dhi- military
+           dsp- military
+           jabr - underworld
+
+           Bad ones:
+           sShip
+           hmdf
+           cpc
+           mcb
+           ucb
+           hijack
+
+           These two work but make no sense:
+           seco
+           sitm
+        */
+
+        tradeMissionIds.add("cheapCom");
+        tradeMissionIds.add("proCom");
+        tradeMissionIds.add("ddro");
+        militaryMissionIds.add("ssat");
+        militaryMissionIds.add("psb");
+        militaryMissionIds.add("tabo");
+        underworldMissionIds.add("smug");
+        underworldMissionIds.add("rsom");
+        underworldMissionIds.add("rdsm");
         resetQuests();
     }
 

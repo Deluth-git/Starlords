@@ -2,6 +2,7 @@ package ui;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.FactionAPI;
+import com.fs.starfarer.api.campaign.SectorEntityToken;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.characters.PersonAPI;
 import com.fs.starfarer.api.impl.campaign.ids.Tags;
@@ -14,6 +15,7 @@ import com.fs.starfarer.api.ui.TooltipMakerAPI;
 import com.fs.starfarer.api.util.Misc;
 import lombok.Getter;
 import org.lwjgl.input.Keyboard;
+import person.LordEvent;
 
 import java.awt.*;
 import java.util.Arrays;
@@ -114,6 +116,11 @@ public class MissionPreviewIntelPlugin extends BaseIntelPlugin {
     @Override
     public FactionAPI getFactionForUIColors() {
         return mission.getFactionForUIColors();
+    }
+
+    @Override
+    public SectorEntityToken getMapLocation(SectorMapAPI map) {
+        return mission.getMapLocation(map);
     }
 
     @Override
