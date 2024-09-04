@@ -45,6 +45,11 @@ public class QuestController extends BaseIntelPlugin {
             questMap.put(lord.getLordAPI().getId(), null);
             questGivenMap.put(lord.getLordAPI().getId(), false);
         }
+        resetQuestList();
+        resetQuests();
+    }
+
+    public void resetQuestList() {
         /* Good ones:
            cheapCom- trade
            proCom- trade
@@ -76,7 +81,9 @@ public class QuestController extends BaseIntelPlugin {
            seco
            sitm
         */
-
+        tradeMissionIds.clear();
+        militaryMissionIds.clear();
+        underworldMissionIds.clear();
         tradeMissionIds.add("cheapCom");
         tradeMissionIds.add("proCom");
         tradeMissionIds.add("ddro");
@@ -86,7 +93,6 @@ public class QuestController extends BaseIntelPlugin {
         underworldMissionIds.add("smug");
         underworldMissionIds.add("rsom");
         underworldMissionIds.add("rdsm");
-        resetQuests();
     }
 
     public void resetQuests() {
@@ -173,6 +179,7 @@ public class QuestController extends BaseIntelPlugin {
                     throw new IllegalStateException("Should only be one QuestController intel registered");
                 }
                 instance = (QuestController) intel.get(0);
+                instance.resetQuestList();
             }
         }
         return instance;
