@@ -155,10 +155,11 @@ public class Utils {
         if (entity1 == null || entity2 == null) return false;
         LocationAPI loc1 = entity1.getContainingLocation();
         LocationAPI loc2 = entity2.getContainingLocation();
+        if (loc1 == null || loc2 == null) return false;
         if (loc1.isHyperspace() && loc2.isHyperspace()) {
             return Misc.getDistance(entity1.getLocationInHyperspace(), entity2.getLocationInHyperspace()) < thres;
         }
-        if (!loc2.isHyperspace() && !loc2.isHyperspace()) {
+        if (!loc1.isHyperspace() && !loc2.isHyperspace()) {
             return Misc.getDistance(entity1.getLocation(), entity2.getLocation()) < thres;
         }
         return false;
