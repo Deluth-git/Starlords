@@ -7,6 +7,7 @@ import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.characters.PersonAPI;
 import com.fs.starfarer.api.impl.campaign.ids.Tags;
 import com.fs.starfarer.api.impl.campaign.intel.BaseIntelPlugin;
+import com.fs.starfarer.api.impl.campaign.missions.*;
 import com.fs.starfarer.api.impl.campaign.missions.hub.BaseHubMission;
 import com.fs.starfarer.api.ui.ButtonAPI;
 import com.fs.starfarer.api.ui.IntelUIAPI;
@@ -62,6 +63,18 @@ public class MissionPreviewIntelPlugin extends BaseIntelPlugin {
         }
 
         info.addPara("", opad);
+        if (mission.getStartingStage() == null) {
+            // this is insanely hacky
+            if (mission instanceof RuinsDataSwapMission) mission.setStartingStage(RuinsDataSwapMission.Stage.GO_TO_RUINS);
+            if (mission instanceof RaidSecretOutpostMission) mission.setStartingStage(RaidSecretOutpostMission.Stage.GO_TO_OUTPOST);
+            if (mission instanceof PirateSystemBounty) mission.setStartingStage(PirateSystemBounty.Stage.BOUNTY);
+            if (mission instanceof TacticallyBombardColony) mission.setStartingStage(TacticallyBombardColony.Stage.BOMBARD);
+            if (mission instanceof DeadDropMission) mission.setStartingStage(DeadDropMission.Stage.DROP_OFF);
+            if (mission instanceof SmugglingMission) mission.setStartingStage(SmugglingMission.Stage.SMUGGLE);
+            if (mission instanceof SpySatDeployment) mission.setStartingStage(SpySatDeployment.Stage.DEPLOY);
+            if (mission instanceof ProcurementMission) mission.setStartingStage(ProcurementMission.Stage.TALK_TO_PERSON);
+            if (mission instanceof CheapCommodityMission) mission.setStartingStage(CheapCommodityMission.Stage.TALK_TO_PERSON);
+        }
         try {
             mission.setCurrentStage(mission.getStartingStage(), null, null);
             mission.addDescriptionForCurrentStage(info, width, height);

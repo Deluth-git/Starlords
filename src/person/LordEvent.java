@@ -8,7 +8,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static util.Constants.DEBUG_MODE;
 
@@ -52,6 +54,7 @@ public class LordEvent {
     private SectorEntityToken target;
     private List<Lord> participants;
     private List<Lord> opposition; // defenders in a raid/campaign, unused for feast
+    private Set<Lord> pastParticipants; // for feasts, to track who has already had relation increases
 
     public LordEvent(String type, Lord origin) {
         this(type, origin, null);
@@ -62,6 +65,7 @@ public class LordEvent {
         this.type = type;
         this.target = target;
         alive = true;
+        pastParticipants = new HashSet<>();
         participants = new ArrayList<>();
         opposition = new ArrayList<>();
         start = Global.getSector().getClock().getTimestamp();
@@ -81,6 +85,7 @@ public class LordEvent {
 
     // used on save load to remove outdated lord references
     public void updateReferences() {
+        if (pastParticipants == null) pastParticipants = new HashSet<>();
         originator = LordController.getLordOrPlayerById(originator.getLordAPI().getId());
     }
 

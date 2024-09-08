@@ -538,15 +538,21 @@ public class LordAI implements EveryFrameScript {
                     standby(lord, lord.getTarget(), StringUtil.getString(
                             CATEGORY, "fleet_feast_desc", lord.getTarget().getMarket().getName()));
                     LordEvent currFeast = EventController.getCurrentFeast(lord.getFaction());
-                    RelationController.modifyRelation(lord, currFeast.getOriginator(), 3);
-                    for (Lord participant : currFeast.getParticipants()) {
-                        RelationController.modifyRelation(lord, participant, 2);
-                    }
-                    if (!lord.getFaction().equals(Global.getSector().getPlayerFaction())) {
-                        RelationController.modifyLoyalty(lord, 3);
+
+                    if (!currFeast.getPastParticipants().contains(lord)) {
+                        RelationController.modifyRelation(lord, currFeast.getOriginator(), 3);
+                        for (Lord participant : currFeast.getParticipants()) {
+                            RelationController.modifyRelation(lord, participant, 2);
+                        }
+                        if (!lord.getFaction().equals(Global.getSector().getPlayerFaction())) {
+                            RelationController.modifyLoyalty(lord, 3);
+                        }
                     }
                     if (!currFeast.getOriginator().equals(lord)) {
-                        lord.setFeastInteracted(false);
+                        if (!currFeast.getPastParticipants().contains(lord)) {
+                            lord.setFeastInteracted(false);
+                            currFeast.getPastParticipants().add(lord);
+                        }
                         currFeast.getParticipants().add(lord);
                     }
                 }
