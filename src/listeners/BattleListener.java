@@ -118,7 +118,7 @@ public class BattleListener extends BaseCampaignEventListener {
                 if (winner.isPlayer()) {
                     Utils.adjustPlayerReputation(loser.getLordAPI(), -1);
                 } else if (loser.isPlayer()) {
-                    Utils.adjustPlayerReputation(loser.getLordAPI(), -1);
+                    Utils.adjustPlayerReputation(winner.getLordAPI(), -1);
                 } else {
                     RelationController.modifyRelation(winner, loser, -1);
                 }
