@@ -19,10 +19,12 @@ import person.LordAction;
 import person.LordEvent;
 import person.LordPersonality;
 import ui.EventIntelPlugin;
+import ui.HostileEventIntelPlugin;
 import util.StringUtil;
 import util.Utils;
 
 import java.awt.*;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -103,6 +105,11 @@ public class EventController extends BaseIntelPlugin {
 
     public static void addRaid(LordEvent raid) {
         getInstance().raids.add(raid);
+        FactionAPI targetFaction = raid.getTarget().getFaction();
+        if (targetFaction.equals(Utils.getRecruitmentFaction())
+                || targetFaction.equals(Global.getSector().getPlayerFaction())) {
+            Global.getSector().getIntelManager().addIntel(new HostileEventIntelPlugin(raid));
+        }
         LordAI.triggerPreemptingEvent(raid);
     }
 
@@ -159,12 +166,15 @@ public class EventController extends BaseIntelPlugin {
                     StringUtil.getString(CATEGORY, "campaign_end"),
                     faction.getBaseUIColor());
         }
-        getInstance().campaignCounter.put(faction.getId(), Global.getSector().getClock().getTimestamp());
+        if (!campaign.isDefensive()) {
+            getInstance().campaignCounter.put(faction.getId(), Global.getSector().getClock().getTimestamp());
+        }
     }
 
     // lord must be the marshal leading an existing campaign
     public static MarketAPI getCampaignTarget(Lord lord) {
-        FactionAPI faction = lord.getLordAPI().getFaction();;
+        FactionAPI faction = lord.getFaction();
+        LordEvent currCampaign = getCurrentCampaign(faction);
         MarketAPI preferred = null;
         int preferredWeight = Integer.MIN_VALUE;
         // check defensive options
@@ -184,14 +194,16 @@ public class EventController extends BaseIntelPlugin {
             }
         }
         // check offensive options
-        for (MarketAPI market : Global.getSector().getEconomy().getMarketsCopy()) {
-            FactionAPI otherFaction = market.getFaction();
-            if (!Misc.isPirateFaction(otherFaction) && (LordController.getFactionsWithLords().contains(otherFaction) || otherFaction.isPlayerFaction())
-                    && otherFaction.isHostileTo(faction)) {
-                int weight = 15000 - (int) Utils.getHyperspaceDistance(market.getPrimaryEntity(), lord.getLordAPI().getFleet());
-                if (weight > preferredWeight) {
-                    preferred = market;
-                    preferredWeight = weight;
+        if (!currCampaign.isDefensive()) {
+            for (MarketAPI market : Global.getSector().getEconomy().getMarketsCopy()) {
+                FactionAPI otherFaction = market.getFaction();
+                if (!Misc.isPirateFaction(otherFaction) && (LordController.getFactionsWithLords().contains(otherFaction) || otherFaction.isPlayerFaction())
+                        && otherFaction.isHostileTo(faction)) {
+                    int weight = 15000 - (int) Utils.getHyperspaceDistance(market.getPrimaryEntity(), lord.getLordAPI().getFleet());
+                    if (weight > preferredWeight) {
+                        preferred = market;
+                        preferredWeight = weight;
+                    }
                 }
             }
         }

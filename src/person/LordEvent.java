@@ -51,6 +51,8 @@ public class LordEvent {
     @Setter
     private boolean alive;
     @Setter
+    private boolean defensive; // factions are rate-limited in offensive campaigns, but not defensive ones
+    @Setter
     private SectorEntityToken target;
     private List<Lord> participants;
     private List<Lord> opposition; // defenders in a raid/campaign, unused for feast

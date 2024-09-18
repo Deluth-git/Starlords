@@ -621,11 +621,13 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                 }
                 break;
             case FOLLOW_ME:
-                targetLord.getLordAPI().getRelToPlayer().adjustRelationship(-0.02f, null);
                 LordAI.playerOrder(targetLord, LordAction.FOLLOW, Global.getSector().getPlayerFleet());
                 textPanel.addParagraph(StringUtil.getString(CATEGORY, "accept_suggest_action"));
-                textPanel.addParagraph(StringUtil.getString(
-                        CATEGORY, "relation_decrease", targetLord.getLordAPI().getNameString(), "2"), Color.RED);
+                if (!targetLord.getFaction().equals(Global.getSector().getPlayerFaction())) {
+                    targetLord.getLordAPI().getRelToPlayer().adjustRelationship(-0.02f, null);
+                    textPanel.addParagraph(StringUtil.getString(
+                            CATEGORY, "relation_decrease", targetLord.getLordAPI().getNameString(), "2"), Color.RED);
+                }
                 optionSelected(null, OptionId.INIT);
                 break;
             case STOP_FOLLOW_ME:

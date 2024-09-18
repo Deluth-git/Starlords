@@ -237,7 +237,7 @@ public class PoliticsController implements EveryFrameScript {
         if (weight > bestWeight && rand.nextBoolean()) {
             ArrayList<String> options = new ArrayList<>();
             for (FactionAPI faction2 : LordController.getFactionsWithLords()) {
-                if (faction2.isHostileTo(faction)) options.add(faction2.getId());
+                if (faction2.isHostileTo(faction) && !Misc.isPirateFaction(faction2)) options.add(faction2.getId());
             }
             if (!options.isEmpty()) {
                 bestWeight = weight;

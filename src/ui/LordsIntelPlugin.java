@@ -106,7 +106,6 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
             orderStr = "None";
         } else if (lord.getCurrAction() != LordAction.CAMPAIGN) {
             orderStr = StringUtil.getString(CATEGORY_UI, "fleet_" + lord.getCurrAction().base.toString().toLowerCase() + "_desc", lord.getTarget().getName());
-            orderStr = lord.getCurrAction().toString();
         } else {
             if (lord.isMarshal()) {
                 LordEvent campaign = EventController.getCurrentCampaign(lord.getLordAPI().getFaction());

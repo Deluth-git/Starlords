@@ -34,6 +34,8 @@ import person.LordEvent;
 import person.LordPersonality;
 import scripts.ActionCompleteScript;
 import scripts.RemoveBusyFlagScript;
+import ui.EventIntelPlugin;
+import ui.HostileEventIntelPlugin;
 import util.LordFleetFactory;
 import util.StringUtil;
 import util.Utils;
@@ -1032,7 +1034,8 @@ public class LordAI implements EveryFrameScript {
     }
 
     private static void chooseNextCampaignTarget(Lord lord, LordEvent campaign) {
-        CampaignFleetAIAPI fleetAI = lord.getFleet().getAI();
+        CampaignFleetAPI fleet = lord.getFleet();
+        CampaignFleetAIAPI fleetAI = fleet.getAI();
         MemoryAPI mem = lord.getFleet().getMemoryWithoutUpdate();
         MarketAPI target = EventController.getCampaignTarget(lord);
 
@@ -1043,15 +1046,23 @@ public class LordAI implements EveryFrameScript {
             campaign.setTarget(target.getPrimaryEntity());
             fleetAI.clearAssignments();
             if (target.getFaction().isHostileTo(lord.getFaction())) {
-                fleetAI.addAssignmentAtStart(
-                        FleetAssignment.GO_TO_LOCATION, Misc.findNearestJumpPoint(target.getPrimaryEntity()), 1000, null);
+                if (!fleet.getContainingLocation().equals(target.getContainingLocation())) {
+                    fleetAI.addAssignmentAtStart(
+                            FleetAssignment.GO_TO_LOCATION, Misc.findNearestJumpPoint(target.getPrimaryEntity()), 1000, null);
+                }
                 fleetAI.addAssignment(
                         FleetAssignment.ATTACK_LOCATION, target.getPrimaryEntity(), 1000, null);
                 Misc.setFlagWithReason(mem, MemFlags.FLEET_BUSY, BUSY_REASON, true, 1000);
+                if (target.getFaction().equals(Utils.getRecruitmentFaction())
+                        || target.getFaction().equals(Global.getSector().getPlayerFaction())) {
+                    Global.getSector().getIntelManager().addIntel(new HostileEventIntelPlugin(campaign));
+                }
 
             } else {
-                fleetAI.addAssignmentAtStart(
-                        FleetAssignment.GO_TO_LOCATION, Misc.findNearestJumpPoint(target.getPrimaryEntity()), 1000, null);
+                if (!fleet.getContainingLocation().equals(target.getContainingLocation())) {
+                    fleetAI.addAssignmentAtStart(
+                            FleetAssignment.GO_TO_LOCATION, Misc.findNearestJumpPoint(target.getPrimaryEntity()), 1000, null);
+                }
                 fleetAI.addAssignment(
                         FleetAssignment.GO_TO_LOCATION, target.getPrimaryEntity(), 1000, null);
                 fleetAI.addAssignment(

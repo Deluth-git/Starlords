@@ -7,6 +7,7 @@ import com.fs.starfarer.api.fleet.FleetMemberAPI;
 import com.fs.starfarer.api.impl.campaign.CoreCampaignPluginImpl;
 import com.fs.starfarer.api.impl.campaign.CoreReputationPlugin;
 import com.fs.starfarer.api.util.Misc;
+import controllers.EventController;
 import controllers.LordController;
 import controllers.RelationController;
 import person.Lord;
@@ -86,13 +87,13 @@ public class BattleListener extends BaseCampaignEventListener {
             for (Lord alliedLord : winnerLords) {
                 float denom = Math.max(1, (alliedLord.getFleet().getFleetPoints() + lord.getFleet().getFleetPoints()) / 2f);
                 if (lord.isPlayer()) {
-                    int change = (int) (4 * battle.getPlayerInvolvementFraction()
+                    int change = (int) (3 * battle.getPlayerInvolvementFraction()
                             * killsFP / Math.max(1, alliedLord.getFleet().getFleetPoints()));
-                    Utils.adjustPlayerReputation(alliedLord.getLordAPI(), Math.min(5, change));
+                    Utils.adjustPlayerReputation(alliedLord.getLordAPI(), Math.min(4, change));
                 } else if (alliedLord.isPlayer()) {
-                    int change = (int) (4 * battle.getPlayerInvolvementFraction()
+                    int change = (int) (3 * battle.getPlayerInvolvementFraction()
                             * killsFP / Math.max(1, lord.getFleet().getFleetPoints()));
-                    Utils.adjustPlayerReputation(lord.getLordAPI(), Math.min(5, change));
+                    Utils.adjustPlayerReputation(lord.getLordAPI(), Math.min(4, change));
                 } else {
                     RelationController.modifyRelation(lord, alliedLord,
                             Math.min(5, Math.round(2 * killsFP / denom)));
@@ -229,6 +230,7 @@ public class BattleListener extends BaseCampaignEventListener {
                 }
             }
             defeated.getPrisoners().clear();
+            EventController.removeFromAllEvents(defeated);
 
             // penalize player for lords dying under their rule or command
             if (defeated.isPlayerDirected()) {
