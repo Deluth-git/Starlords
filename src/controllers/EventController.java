@@ -58,7 +58,7 @@ public class EventController extends BaseIntelPlugin {
     private float lastUpdate;
 
     public static final int CROWDED_MALUS = 25;
-    public static final float UPDATE_INTERVAL = 7;
+    public static final float UPDATE_INTERVAL = 4;
 
     private EventController() {
         setHidden(true);
@@ -208,7 +208,7 @@ public class EventController extends BaseIntelPlugin {
         for (IntelInfoPlugin intel : Global.getSector().getIntelManager().getIntel()) {
             if (!(intel instanceof RaidIntel)) continue;
             RaidIntel raidIntel = (RaidIntel) intel;
-            boolean valid = (!seen.contains(raidIntel) && raidIntel.getETA() < 25
+            boolean valid = (!seen.contains(raidIntel) && raidIntel.getETA() < 20
                     && !raidIntel.isFailed() && !raidIntel.isSucceeded());
             if (valid) {
                 SectorEntityToken target = null;
@@ -240,7 +240,7 @@ public class EventController extends BaseIntelPlugin {
                 }
                 LordEvent newRaid = new LordEvent(LordEvent.RAID, raidIntel, target);
                 addRaid(newRaid);
-                log.info("Added base game raid: " + newRaid.getFaction().getDisplayName() + ", " + target.getName());
+                //log.info("Added base game raid: " + newRaid.getFaction().getDisplayName() + ", " + target.getName());
             }
         }
     }
@@ -659,6 +659,10 @@ public class EventController extends BaseIntelPlugin {
                 for (LordEvent event : instance.campaigns) {
                     event.updateReferences();
                 }
+            }
+
+            if (!Global.getSector().getScripts().contains(instance)) {
+                Global.getSector().addScript(instance);
             }
         }
         return instance;
