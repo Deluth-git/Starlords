@@ -42,7 +42,7 @@ import static ai.LordAI.RAID_COOLDOWN;
 // also this isn't actually intel, it's only used for easy save/loading
 public class EventController extends BaseIntelPlugin {
 
-    // TODO nex invasions, pirate activity events
+    // TODO pirate activity events
     private List<LordEvent> feasts = new ArrayList<>();
     private List<LordEvent> raids = new ArrayList<>();
     @Getter
@@ -85,7 +85,7 @@ public class EventController extends BaseIntelPlugin {
 
     public static LordEvent getCurrentRaid(Lord lord) {
         for (LordEvent raid : getInstance().raids) {
-            if (raid.getOriginator().equals(lord) || raid.getParticipants().contains(lord)) return raid;
+            if (lord.equals(raid.getOriginator()) || raid.getParticipants().contains(lord)) return raid;
         }
         return null;
     }
@@ -193,6 +193,11 @@ public class EventController extends BaseIntelPlugin {
                 seen.add(raidIntel);
                 boolean valid = !raidIntel.isFailed() && !raidIntel.isSucceeded() && !raidIntel.isEnded();
                 if (!valid) toRemove.add(raid);
+            }
+            // might as well clean up leaked raids
+            Lord originator = raid.getOriginator();
+            if (originator != null && LordAction.base(originator.getCurrAction()) != LordAction.RAID) {
+                toRemove.add(raid);
             }
         }
 
@@ -324,7 +329,7 @@ public class EventController extends BaseIntelPlugin {
     }
 
     // gets location that lord would stage a raid, if he wanted to start his own
-    public static Pair<SectorEntityToken, Integer>  getPreferredRaidLocation(Lord lord) {
+    public static Pair<SectorEntityToken, Integer> getPreferredRaidLocation(Lord lord) {
         MarketAPI preferred = null;
         int preferredWeight = 0;
         // skip locations that already have a raid from the same faction
@@ -334,10 +339,10 @@ public class EventController extends BaseIntelPlugin {
                 seen.add(raid.getTarget().getMarket());
             }
         }
-        for (LordEvent raid : getInstance().campaigns) {
-            if (raid.getOriginator().equals(lord.getLordAPI().getFaction())
-                    && raid.getTarget() != null) {
-                seen.add(raid.getTarget().getMarket());
+        for (LordEvent campaign : getInstance().campaigns) {
+            if (campaign.getFaction().equals(lord.getLordAPI().getFaction())
+                    && campaign.getTarget() != null) {
+                seen.add(campaign.getTarget().getMarket());
             }
         }
         for (MarketAPI market : Global.getSector().getEconomy().getMarketsCopy()) {
@@ -399,7 +404,7 @@ public class EventController extends BaseIntelPlugin {
                 case RAID:
                     LordEvent raid = EventController.getCurrentRaid(lord);
                     if (raid != null) {
-                        if (raid.getOriginator().equals(lord)) {
+                        if (lord.equals(raid.getOriginator())) {
                             EventController.endRaid(raid);
                         } else {
                             raid.getParticipants().remove(lord);
@@ -561,7 +566,9 @@ public class EventController extends BaseIntelPlugin {
         }
         if (event != null) {
             if (defensive) {
-                enemyStrength += event.getOriginator().getFleet().getFleetPoints();
+                if (event.getOriginator() != null) {
+                    enemyStrength += event.getOriginator().getFleet().getFleetPoints();
+                }
                 for (Lord attacker : event.getParticipants()) {
                     enemyStrength += attacker.getLordAPI().getFleet().getFleetPoints();
                 }
@@ -599,7 +606,9 @@ public class EventController extends BaseIntelPlugin {
         currWeight += lordFleet.getFleetPoints() / 10 - 5;
         if (defensive) {
             //log.info("Opponent Relation factor -" + relation_mod * RelationController.getRelation(lord, event.getOriginator()) / 8);
-            currWeight -= relation_mod * RelationController.getRelation(lord, event.getOriginator()) / 8;
+            if (event.getOriginator() != null) {
+                currWeight -= relation_mod * RelationController.getRelation(lord, event.getOriginator()) / 8;
+            }
         } else if (targetOwner != null) {
             //log.info("Opponent Relation factor -" + relation_mod * RelationController.getRelation(lord, targetOwner) / 4);
             currWeight -= relation_mod * RelationController.getRelation(lord, targetOwner) / 4;
@@ -621,7 +630,9 @@ public class EventController extends BaseIntelPlugin {
                 currWeight += relation_mod * RelationController.getRelation(lord, targetOwner) / 2;
             } else if (!defensive) {
                 //log.info("Ally Relation factor " + relation_mod * RelationController.getRelation(lord, event.getOriginator()) / 2);
-                currWeight += relation_mod * RelationController.getRelation(lord, event.getOriginator()) / 2;
+                if (event.getOriginator() != null) {
+                    currWeight += relation_mod * RelationController.getRelation(lord, event.getOriginator()) / 2;
+                }
                 for (Lord participant : event.getParticipants()) {
                     currWeight += relation_mod * Math.min(0, RelationController.getRelation(lord, participant) / 8);
                 }
