@@ -1,8 +1,10 @@
 package person;
 
 import com.fs.starfarer.api.Global;
+import com.fs.starfarer.api.campaign.FactionAPI;
 import com.fs.starfarer.api.campaign.SectorEntityToken;
 import com.fs.starfarer.api.impl.campaign.ids.Commodities;
+import com.fs.starfarer.api.impl.campaign.intel.raid.RaidIntel;
 import controllers.LordController;
 import lombok.Getter;
 import lombok.Setter;
@@ -47,6 +49,8 @@ public class LordEvent {
     private Object battle;
     private final long start;
     private final String type;
+    // this is set if this event is actually a base game/nex raid
+    private final RaidIntel baseRaidIntel;
     private Lord originator;
     @Setter
     private boolean alive;
@@ -58,11 +62,20 @@ public class LordEvent {
     private List<Lord> opposition; // defenders in a raid/campaign, unused for feast
     private Set<Lord> pastParticipants; // for feasts, to track who has already had relation increases
 
+
+    public LordEvent(String type, RaidIntel intel, SectorEntityToken target) {
+        this(type, null, target, intel);
+    }
+
     public LordEvent(String type, Lord origin) {
-        this(type, origin, null);
+        this(type, origin, null, null);
     }
 
     public LordEvent(String type, Lord origin, SectorEntityToken target) {
+        this(type, origin, target, null);
+    }
+
+    private LordEvent(String type, Lord origin, SectorEntityToken target, RaidIntel intel) {
         originator = origin;
         this.type = type;
         this.target = target;
@@ -71,7 +84,9 @@ public class LordEvent {
         participants = new ArrayList<>();
         opposition = new ArrayList<>();
         start = Global.getSector().getClock().getTimestamp();
+        baseRaidIntel = intel;
     }
+
 
     public LordAction getAction() {
         switch(type) {
@@ -88,10 +103,14 @@ public class LordEvent {
     // used on save load to remove outdated lord references
     public void updateReferences() {
         if (pastParticipants == null) pastParticipants = new HashSet<>();
-        originator = LordController.getLordOrPlayerById(originator.getLordAPI().getId());
+        if (originator != null) {
+            originator = LordController.getLordOrPlayerById(
+                    originator.getLordAPI().getId());
+        }
     }
 
     public float getTotalMarines() {
+        if (originator == null) return 0;
         float marines = originator.getFleet().getCargo().getMarines();
         for (Lord supporter : participants) {
             if (originator.getFleet().getContainingLocation().equals(
@@ -103,6 +122,7 @@ public class LordEvent {
     }
 
     public float getTotalFuel() {
+        if (originator == null) return 0;
         float fuel = originator.getFleet().getCargo().getFuel();
         for (Lord supporter : participants) {
             if (originator.getFleet().getContainingLocation().equals(
@@ -114,6 +134,7 @@ public class LordEvent {
     }
 
     public float getTotalArms() {
+        if (originator == null) return 0;
         float arms = originator.getFleet().getCargo().getCommodityQuantity(Commodities.HAND_WEAPONS);
         for (Lord supporter : participants) {
             if (originator.getFleet().getContainingLocation().equals(
@@ -122,5 +143,10 @@ public class LordEvent {
             }
         }
         return arms;
+    }
+
+    public FactionAPI getFaction() {
+        if (originator != null) return originator.getFaction();
+        return baseRaidIntel.getFaction();
     }
 }

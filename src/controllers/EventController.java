@@ -10,8 +10,12 @@ import com.fs.starfarer.api.campaign.comm.IntelInfoPlugin;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.impl.campaign.ids.Factions;
 import com.fs.starfarer.api.impl.campaign.intel.BaseIntelPlugin;
+import com.fs.starfarer.api.impl.campaign.intel.inspection.HegemonyInspectionIntel;
+import com.fs.starfarer.api.impl.campaign.intel.punitive.PunitiveExpeditionIntel;
+import com.fs.starfarer.api.impl.campaign.intel.raid.RaidIntel;
 import com.fs.starfarer.api.util.Misc;
 import com.fs.starfarer.api.util.Pair;
+import exerelin.campaign.intel.fleets.OffensiveFleetIntel;
 import lombok.Getter;
 import org.apache.log4j.Logger;
 import person.Lord;
@@ -51,8 +55,10 @@ public class EventController extends BaseIntelPlugin {
     private static EventController instance = null;
     public static Logger log = Global.getLogger(EventController.class);
     private static String CATEGORY = "starlords_ui";
+    private float lastUpdate;
 
     public static final int CROWDED_MALUS = 25;
+    public static final float UPDATE_INTERVAL = 7;
 
     private EventController() {
         setHidden(true);
@@ -70,7 +76,7 @@ public class EventController extends BaseIntelPlugin {
 
     public static LordEvent getCurrentFeast(FactionAPI faction) {
         for (LordEvent feast : getInstance().feasts) {
-            if (feast.getOriginator().getFaction().equals(faction)) {
+            if (feast.getFaction().equals(faction)) {
                 return feast;
             }
         }
@@ -96,7 +102,7 @@ public class EventController extends BaseIntelPlugin {
 
     public static LordEvent getCurrentCampaign(FactionAPI faction) {
         for (LordEvent feast : getInstance().campaigns) {
-            if (feast.getOriginator().getFaction().equals(faction)) {
+            if (feast.getFaction().equals(faction)) {
                 return feast;
             }
         }
@@ -106,8 +112,8 @@ public class EventController extends BaseIntelPlugin {
     public static void addRaid(LordEvent raid) {
         getInstance().raids.add(raid);
         FactionAPI targetFaction = raid.getTarget().getFaction();
-        if (targetFaction.equals(Utils.getRecruitmentFaction())
-                || targetFaction.equals(Global.getSector().getPlayerFaction())) {
+        if (raid.getOriginator() != null && (targetFaction.equals(Utils.getRecruitmentFaction())
+                || targetFaction.equals(Global.getSector().getPlayerFaction()))) {
             Global.getSector().getIntelManager().addIntel(new HostileEventIntelPlugin(raid));
         }
         LordAI.triggerPreemptingEvent(raid);
@@ -127,7 +133,7 @@ public class EventController extends BaseIntelPlugin {
     public static void addCampaign(LordEvent campaign) {
         getInstance().campaigns.add(campaign);
         LordAI.triggerPreemptingEvent(campaign);
-        FactionAPI faction = campaign.getOriginator().getFaction();
+        FactionAPI faction = campaign.getFaction();
         if (faction.getId().equals(Misc.getCommissionFactionId()) || faction.getId().equals(Factions.PLAYER)) {
             // TODO add some sound
             Global.getSector().getIntelManager().addIntel(new EventIntelPlugin(campaign));
@@ -160,7 +166,7 @@ public class EventController extends BaseIntelPlugin {
             campaign.getOriginator().setCurrAction(null);
         }
 
-        FactionAPI faction = campaign.getOriginator().getFaction();
+        FactionAPI faction = campaign.getFaction();
         if (faction.getId().equals(Misc.getCommissionFactionId()) || faction.getId().equals(Factions.PLAYER)) {
             Global.getSector().getCampaignUI().addMessage(
                     StringUtil.getString(CATEGORY, "campaign_end"),
@@ -168,6 +174,69 @@ public class EventController extends BaseIntelPlugin {
         }
         if (!campaign.isDefensive()) {
             getInstance().campaignCounter.put(faction.getId(), Global.getSector().getClock().getTimestamp());
+        }
+    }
+
+    @Override
+    public void advance(float amount) {
+        float days = Global.getSector().getClock().convertToDays(amount);
+        lastUpdate += days;
+        if (lastUpdate < UPDATE_INTERVAL) {
+            return;
+        }
+        // checks for new base game/nex raids and removes completed ones
+        HashSet<RaidIntel> seen = new HashSet<>();
+        ArrayList<LordEvent> toRemove = new ArrayList<>();
+        for (LordEvent raid : raids) {
+            RaidIntel raidIntel = raid.getBaseRaidIntel();
+            if (raidIntel != null) {
+                seen.add(raidIntel);
+                boolean valid = !raidIntel.isFailed() && !raidIntel.isSucceeded() && !raidIntel.isEnded();
+                if (!valid) toRemove.add(raid);
+            }
+        }
+
+        for (LordEvent raid : toRemove) {
+            endRaid(raid);
+        }
+
+        for (IntelInfoPlugin intel : Global.getSector().getIntelManager().getIntel()) {
+            if (!(intel instanceof RaidIntel)) continue;
+            RaidIntel raidIntel = (RaidIntel) intel;
+            boolean valid = (!seen.contains(raidIntel) && raidIntel.getETA() < 25
+                    && !raidIntel.isFailed() && !raidIntel.isSucceeded());
+            if (valid) {
+                SectorEntityToken target = null;
+                if (Utils.nexEnabled()) {
+                    if (raidIntel instanceof OffensiveFleetIntel) {
+                        target = ((OffensiveFleetIntel) raidIntel).getTarget().getPrimaryEntity();
+                    }
+                }
+                if (raidIntel instanceof HegemonyInspectionIntel) {
+                    target = ((HegemonyInspectionIntel) raidIntel).getTarget().getPrimaryEntity();
+                }
+                if (raidIntel instanceof PunitiveExpeditionIntel) {
+                    target = ((PunitiveExpeditionIntel) raidIntel).getTarget().getPrimaryEntity();
+                }
+                if (target == null) {
+                    // this is a default base game intel
+                    FactionAPI faction = raidIntel.getFaction();
+                    MarketAPI targetMarket = null;
+                    int max = 0;
+                    for (MarketAPI other : Misc.getMarketsInLocation(raidIntel.getSystem())) {
+                        if (!other.getFaction().isHostileTo(faction)) continue;
+                        int size = other.getSize();
+                        if (size > max || (size == max && other.getFaction().isPlayerFaction())) {
+                            max = size;
+                            targetMarket = other;
+                        }
+                    }
+                    target = targetMarket.getPrimaryEntity();
+                }
+                LordEvent newRaid = new LordEvent(LordEvent.RAID, raidIntel, target);
+                addRaid(newRaid);
+                log.info("Added base game raid: " + newRaid.getFaction().getDisplayName() + ", " + target.getName());
+            }
         }
     }
 
@@ -179,7 +248,7 @@ public class EventController extends BaseIntelPlugin {
         int preferredWeight = Integer.MIN_VALUE;
         // check defensive options
         for (LordEvent campaign : getInstance().campaigns) {
-            if (campaign.getOriginator().getFaction().isHostileTo(faction) && campaign.getTarget() != null) {
+            if (campaign.getFaction().isHostileTo(faction) && campaign.getTarget() != null) {
                 FactionAPI defender = campaign.getTarget().getFaction();
                 int weight = Integer.MIN_VALUE;
                 if (defender.equals(faction)) {
@@ -216,7 +285,7 @@ public class EventController extends BaseIntelPlugin {
         LordEvent preferred = null;
         int preferredWeight = 0;
         for (LordEvent raid : getInstance().raids) {
-            if (!raid.getOriginator().getFaction().equals(lord.getLordAPI().getFaction())) continue;
+            if (!raid.getFaction().equals(lord.getLordAPI().getFaction())) continue;
             int currWeight = getMilitaryOpWeight(lord, raid.getTarget().getMarket(), raid, false);
 
             if (currWeight > preferredWeight) {
@@ -243,7 +312,7 @@ public class EventController extends BaseIntelPlugin {
         for (LordEvent raid : getInstance().campaigns) {
             // make sure it's not a defensive or in-preparation campaign
             if (raid.getTarget() == null || !raid.getTarget().getFaction().equals(lord.getLordAPI().getFaction())) continue;
-            if (!lord.getLordAPI().getFaction().isHostileTo(raid.getOriginator().getFaction())) continue;
+            if (!lord.getLordAPI().getFaction().isHostileTo(raid.getFaction())) continue;
             int currWeight = getMilitaryOpWeight(lord, raid.getTarget().getMarket(), raid, true);
 
             if (currWeight > preferredWeight) {
@@ -261,7 +330,7 @@ public class EventController extends BaseIntelPlugin {
         // skip locations that already have a raid from the same faction
         HashSet<MarketAPI> seen = new HashSet<>();
         for (LordEvent raid : getInstance().raids) {
-            if (raid.getOriginator().getFaction().equals(lord.getLordAPI().getFaction())) {
+            if (raid.getFaction().equals(lord.getLordAPI().getFaction())) {
                 seen.add(raid.getTarget().getMarket());
             }
         }
@@ -294,7 +363,7 @@ public class EventController extends BaseIntelPlugin {
     public static void addFeast(LordEvent feast) {
         getInstance().feasts.add(feast);
         LordAI.triggerPreemptingEvent(feast);
-        FactionAPI faction = feast.getOriginator().getFaction();
+        FactionAPI faction = feast.getFaction();
         if (faction.getId().equals(Misc.getCommissionFactionId()) || faction.getId().equals(Factions.PLAYER)) {
             Global.getSector().getCampaignUI().addMessage(
                     StringUtil.getString(CATEGORY, "feast_start",
@@ -308,7 +377,7 @@ public class EventController extends BaseIntelPlugin {
     public static void endFeast(LordEvent feast) {
         getInstance().feasts.remove(feast);
         feast.setAlive(false);
-        FactionAPI faction = feast.getOriginator().getFaction();
+        FactionAPI faction = feast.getFaction();
         for (Lord lord : LordController.getLordsList()) {
             if (lord.getLordAPI().getFaction().equals(faction) && LordAction.base(lord.getCurrAction()) == LordAction.FEAST) {
                 lord.setCurrAction(null);
@@ -403,7 +472,7 @@ public class EventController extends BaseIntelPlugin {
 
         // enemies starting a campaign makes campaign more likely
         for (LordEvent campaign : getInstance().campaigns) {
-            if (campaign.getOriginator().getFaction().isHostileTo(faction)) {
+            if (campaign.getFaction().isHostileTo(faction)) {
                 weight += 10;
             }
         }

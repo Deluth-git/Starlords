@@ -634,7 +634,7 @@ public class LordAI implements EveryFrameScript {
                     if (raid.getOffensiveType() == null && (raid.getTotalViolence() >= RAID_MAX_VIOLENCE
                             || newWeight.two <= 0 || rand.nextInt(8) == 0)) {
                         // choose new assignment
-                        if (raid.getOriginator().equals(lord)) {
+                        if (lord.equals(raid.getOriginator())) {
                             EventController.endRaid(raid);
                         } else {
                             raid.getParticipants().remove(lord);
@@ -728,7 +728,7 @@ public class LordAI implements EveryFrameScript {
                                     // defensive campaign
                                     boolean defenseNeeded = false;
                                     for (LordEvent otherCampaign : EventController.getInstance().getCampaigns()) {
-                                        if (otherCampaign.getOriginator().getFaction().isHostileTo(faction)
+                                        if (otherCampaign.getFaction().isHostileTo(faction)
                                                 && otherCampaign.getTarget() != null && otherCampaign.getTarget().getMarket().equals(target)) {
                                             defenseNeeded = true;
                                         }
@@ -927,7 +927,7 @@ public class LordAI implements EveryFrameScript {
     // calls when feasts, raids, and campaigns begin, to preempt lords on less important tasks
     public static void triggerPreemptingEvent(LordEvent event) {
         if (event.getType().equals(LordEvent.FEAST)) {
-            FactionAPI faction = event.getOriginator().getFaction();
+            FactionAPI faction = event.getFaction();
             for (Lord lord : LordController.getLordsList()) {
                 if (!lord.getFaction().equals(faction)) continue;
                 if (lord.getCurrAction() == null || lord.getOrderPriority() > event.getAction().priority) {
@@ -937,7 +937,7 @@ public class LordAI implements EveryFrameScript {
             }
         }
         if (event.getType().equals(LordEvent.RAID)) {
-            FactionAPI attackerFaction = event.getOriginator().getFaction();
+            FactionAPI attackerFaction = event.getFaction();
             FactionAPI defenderFaction = event.getTarget().getMarket().getFaction();
 
             PriorityQueue<Pair<Lord, Integer>> attackPQ = new PriorityQueue<>((o1, o2) -> Integer.compare(o2.two, o1.two));
@@ -977,7 +977,7 @@ public class LordAI implements EveryFrameScript {
             }
         }
         if (event.getType().equals(LordEvent.CAMPAIGN)) {
-            FactionAPI faction = event.getOriginator().getFaction();
+            FactionAPI faction = event.getFaction();
             for (Lord lord : LordController.getLordsList()) {
                 // start opposing campaign
                 // TODO account for cooldown?
