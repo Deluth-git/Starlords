@@ -57,7 +57,9 @@ public final class LordTemplate {
         flagShip = template.getString("flagship");
         lore = template.getString("lore");
         portrait = template.getString("portrait");
-        fief = template.getString("fief").toLowerCase();
+        // What kind of parser maps null to the string null???
+        String fief = template.getString("fief").toLowerCase();
+        this.fief = fief.equals("null") ? null : fief;
         battlePersonality = template.getString("battle_personality").toLowerCase();
         level = template.getInt("level");
         ranking = template.getInt("ranking");

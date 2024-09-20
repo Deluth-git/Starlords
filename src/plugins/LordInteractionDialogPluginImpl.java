@@ -565,7 +565,7 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                     if (marketEntity != null) {
                         newMarket = marketEntity.getMarket();
                     } else {  // last resort, just make it some market for now
-                        newMarket = Global.getSector().getEconomy().getMarket("culann");
+                        newMarket = Global.getSector().getEconomy().getMarketsCopy().get(0);
                     }
                     lordFleet.setMarket(newMarket);
                     targetLord.getLordAPI().setMarket(newMarket);

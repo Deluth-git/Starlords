@@ -112,11 +112,27 @@ public class LordController {
         lordsList.clear();
         lordsMap.clear();
 
+        HashSet<String> allocatedFiefs = new HashSet<>();
+        for (LordTemplate template : lordTemplates.values()) {
+            if (template.fief != null) allocatedFiefs.add(template.fief);
+        }
+
         for (LordTemplate template : lordTemplates.values()) {
             Lord currLord = new Lord(template);
-            MarketAPI lordMarket;
+            MarketAPI lordMarket = null;
             if (currLord.getFiefs().isEmpty()) {
-                lordMarket = getDefaultSpawnLoc(currLord);
+                if (template.fief != null) {
+                    // world map was changed by some other mod, give this lord a random fief
+                    lordMarket = getDefaultSpawnLoc(currLord, allocatedFiefs);
+                    if (lordMarket != null) {
+                        log.info("Dynamic allocating fief " + lordMarket.getId() + " to " + currLord.getLordAPI().getNameString());
+                        allocatedFiefs.add(lordMarket.getId());
+                        currLord.addFief(lordMarket);
+                    }
+                }
+                if (lordMarket == null) {
+                    lordMarket = getDefaultSpawnLoc(currLord, null);
+                }
             } else {
                 lordMarket = currLord.getFiefs().get(0).getMarket();
             }
@@ -207,41 +223,17 @@ public class LordController {
         }
     }
 
-    private static MarketAPI getDefaultSpawnLoc(Lord lord) {
+    private static MarketAPI getDefaultSpawnLoc(Lord lord, HashSet<String> forbidden) {
         String id = null;
-        switch(lord.getLordAPI().getFaction().getId()) {
-            case Factions.HEGEMONY:
-                id = "chicomoztoc";
-                break;
-            case Factions.TRITACHYON:
-                id = "culann";
-                break;
-            case Factions.DIKTAT:
-                id = "sindria";
-                break;
-            case Factions.LUDDIC_CHURCH:
-                id = "gilead";
-                break;
-            case Factions.PERSEAN:
-                id = "kazeron";
-                break;
-            case Factions.LUDDIC_PATH:
-                id = "chalcedon";
-                break;
-            case Factions.PIRATES:
-                for (MarketAPI market : Global.getSector().getEconomy().getMarketsCopy()) {
-                    if (market.getFaction().getId().equals(Factions.PIRATES)) {
-                        if (id == null) {
-                            id = market.getId();
-                        } else if (market.getId().hashCode() % 8 == lord.getLordAPI().getId().hashCode() % 8) {
-                            id = market.getId();
-                        }
-                    }
+        for (MarketAPI market : Global.getSector().getEconomy().getMarketsCopy()) {
+            if (forbidden != null && forbidden.contains(market.getId())) continue;
+            if (market.getFaction().getId().equals(lord.getFaction().getId())) {
+                if (id == null) {
+                    id = market.getId();
+                } else if (market.getId().hashCode() % 8 == lord.getLordAPI().getId().hashCode() % 8) {
+                    id = market.getId();
                 }
-                break;
-            default:
-                id = "new_maxios";
-                break;
+            }
         }
         return Global.getSector().getEconomy().getMarket(id);
     }

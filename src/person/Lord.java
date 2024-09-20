@@ -107,8 +107,7 @@ public class Lord {
         persistentData.put("swayed", false);
         persistentData.put("fief", new ArrayList<String>());
         persistentData.put("prisoners", prisoners);
-        // What kind of parser maps null to the string null???
-        if (template.fief != null && !template.fief.equals("null")) {
+        if (template.fief != null) {
             MarketAPI toAdd = Global.getSector().getEconomy().getMarket(template.fief);
             if (toAdd != null) {
                 fiefs.add(toAdd.getPrimaryEntity());
