@@ -68,7 +68,8 @@ public class LordsModPlugin extends BaseModPlugin {
 
 
     @Override
-    public void onNewGameAfterTimePass() {
+    public void onEnabled(boolean wasEnabledBefore) {
+        if (wasEnabledBefore) return;
         SectorAPI sector = Global.getSector();
         // creates table for lords in persistent data
         if (!sector.getPersistentData().containsKey(LORD_TABLE_KEY)) {

@@ -22,6 +22,8 @@ This mod is currently in early development. Expect plenty of bugs, crashes, ques
 ### Installation
 Download the latest release [here](https://github.com/Deluth-git/Starlords/releases) and unzip in your Starsector mod folder.
 
+This mod may be added to existing savegames, but may not be removed after being added. Make sure to back up your save game first in case of unexpected issues.
+
 ### Full Feature List
 * Adds __48 unique Lords__ spread among all the base major factions.
 * Adds fief system, where each market is a fiefdom which can be owned by a Lord. 
