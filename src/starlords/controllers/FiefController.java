@@ -161,9 +161,12 @@ public class FiefController extends BaseIntelPlugin {
             }
         }
         if (candidates.isEmpty()) return null;
-        candidates.sort((o1, o2) -> {
-            if (o2.getSize() != o1.getSize()) return o2.getSize() - o1.getSize();
-            return o1.getName().compareTo(o2.getName());
+        Collections.sort(candidates, new Comparator<MarketAPI>() {
+            @Override
+            public int compare(MarketAPI o1, MarketAPI o2) {
+                if (o2.getSize() != o1.getSize()) return o2.getSize() - o1.getSize();
+                return o1.getName().compareTo(o2.getName());
+            }
         });
         return candidates.get(0);
     }

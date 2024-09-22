@@ -13,9 +13,7 @@ import com.fs.starfarer.api.util.Misc;
 import starlords.controllers.LordController;
 import starlords.person.Lord;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 
 public class Utils {
@@ -127,13 +125,16 @@ public class Utils {
     // sorts lords so player is first, then marshal, then by rank, then alphabetically within the same rank
     // used for a bunch of uis
     public static void canonicalLordSort(ArrayList<Lord> lords) {
-        lords.sort((o1, o2) -> {
-            if (o1.isPlayer()) return -1;
-            if (o2.isPlayer()) return 1;
-            if (o1.isMarshal()) return -1;
-            if (o2.isMarshal()) return 1;
-            if (o1.getRanking() != o2.getRanking()) return o2.getRanking() - o1.getRanking();
-            return o1.getLordAPI().getNameString().compareTo(o2.getLordAPI().getNameString());
+        Collections.sort(lords, new Comparator<Lord>() {
+            @Override
+            public int compare(Lord o1, Lord o2) {
+                if (o1.isPlayer()) return -1;
+                if (o2.isPlayer()) return 1;
+                if (o1.isMarshal()) return -1;
+                if (o2.isMarshal()) return 1;
+                if (o1.getRanking() != o2.getRanking()) return o2.getRanking() - o1.getRanking();
+                return o1.getLordAPI().getNameString().compareTo(o2.getLordAPI().getNameString());
+            }
         });
     }
 

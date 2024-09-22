@@ -296,8 +296,8 @@ public class CouncilIntelPlugin extends BaseIntelPlugin {
     }
 
     private Pair<List<String>, List<String>> generatePoliticalWeightBreakdown() {
-        ArrayList<String> supporterTooltip = new ArrayList<>();
-        ArrayList<String> oppositionTooltip = new ArrayList<>();
+        List<String> supporterTooltip = new ArrayList<>();
+        List<String> oppositionTooltip = new ArrayList<>();
         for (Lord supporter : supporters) {
             supporterTooltip.add("+" + PoliticsController.getPoliticalWeight(supporter)
                     + " " + supporter.getLordAPI().getNameString());

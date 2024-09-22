@@ -70,7 +70,12 @@ public class LordController {
 
     // ensures lords are in a consistent order for save/reload
     private static void ensureLordOrder() {
-        lordsList.sort(Comparator.comparing(o -> o.getLordAPI().getId()));
+        Collections.sort(lordsList, new Comparator<Lord>() {
+            @Override
+            public int compare(Lord o1, Lord o2) {
+                return o1.getLordAPI().getId().compareTo(o2.getLordAPI().getId());
+            }
+        });
         lordIdxMap.clear();
         for (int i = 0; i < lordsList.size(); i++) {
             lordIdxMap.put(lordsList.get(i).getLordAPI().getId(), i);

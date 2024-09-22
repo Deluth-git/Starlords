@@ -17,12 +17,10 @@ Curry favor with Lords by completing their quests, fighting alongside them in ba
 Star Lords is heavily inspired by campaign mechanics of Mount and Blade. The goal is to eventually add all major campaign mechanics from Warband. This mod aims to have minimal side-effects on the game. There are no changes to in-battle gameplay, and no direct effects on campaign balance aside from the actions of the Lords themselves.
 
 ### Disclaimer
-This mod is currently in early development. Expect plenty of bugs, crashes, questionable balancing, etc. Don't add this mod to existing saves and remember to save frequently. Please report any crash logs or balance feedback to the forums. Thank you for your cooperation.
+This mod is currently in early development. Expect plenty of bugs, crashes, questionable balancing, etc. Please report any crash logs or balance feedback to the forums. Thank you for your cooperation.
 
 ### Installation
 Download the latest release [here](https://github.com/Deluth-git/Starlords/releases) and unzip in your Starsector mod folder.
-
-__This mod only runs with Java 8__ or higher. This means that the default jre on starsector versions 0.97 and lower does not support this mod. Please refer to the following [instructions](https://fractalsoftworks.com/forum/index.php?topic=25974.0) for updating your java version.
 
 ### Full Feature List
 * Adds __48 unique Lords__ spread among all the base major factions.

@@ -2,6 +2,7 @@ package starlords.ai;
 
 import com.fs.starfarer.api.EveryFrameScript;
 import com.fs.starfarer.api.Global;
+import com.fs.starfarer.api.Script;
 import com.fs.starfarer.api.campaign.*;
 import com.fs.starfarer.api.campaign.ai.CampaignFleetAIAPI;
 import com.fs.starfarer.api.campaign.ai.FleetAIFlags;
@@ -420,8 +421,8 @@ public class LordAI implements EveryFrameScript {
 
     public static void progressAssignment(Lord lord) {
         CampaignFleetAIAPI fleetAI = lord.getFleet().getAI();
-        CampaignFleetAPI fleet = lord.getFleet();
-        MemoryAPI mem = fleet.getMemoryWithoutUpdate();
+        final CampaignFleetAPI fleet = lord.getFleet();
+        final MemoryAPI mem = fleet.getMemoryWithoutUpdate();
         // check for lord fleet defeat
         if (fleet.isEmpty() && lord.getCurrAction() != LordAction.RESPAWNING
                 && lord.getCurrAction() != LordAction.IMPRISONED) {
@@ -854,23 +855,29 @@ public class LordAI implements EveryFrameScript {
                     //fleet.getAbility(Abilities.TRANSVERSE_JUMP).activate();
                     JumpPointAPI waypoint = Misc.findNearestJumpPoint(fleet);
                     // TODO why are there multiple destinations?
-                    JumpPointAPI.JumpDestination dest = waypoint.getDestinations().get(0);  // in hyperspace
-                    fleetAI.addAssignmentAtStart(FleetAssignment.GO_TO_LOCATION, waypoint, 7, () -> {
-                        Global.getSector().doHyperspaceTransition(fleet, null, dest);
-                        Misc.clearFlag(mem, MemFlags.FLEET_IGNORES_OTHER_FLEETS);
+                    final JumpPointAPI.JumpDestination dest = waypoint.getDestinations().get(0);  // in hyperspace
+                    fleetAI.addAssignmentAtStart(FleetAssignment.GO_TO_LOCATION, waypoint, 7, new Script() {
+                        @Override
+                        public void run() {
+                            Global.getSector().doHyperspaceTransition(fleet, null, dest);
+                            Misc.clearFlag(mem, MemFlags.FLEET_IGNORES_OTHER_FLEETS);
+                        }
                     });
                     Misc.setFlagWithReason(mem, MemFlags.FLEET_IGNORES_OTHER_FLEETS, BUSY_REASON, true, 7);
                 } else if (!target.isInHyperspace() && fleet.isInHyperspace()
                         && !fleet.isInHyperspaceTransition()
                         && fleetAI.getCurrentAssignmentType() == FleetAssignment.ORBIT_AGGRESSIVE) {
                     JumpPointAPI waypoint = Misc.findNearestJumpPoint(target);
-                    JumpPointAPI.JumpDestination dest = new JumpPointAPI.JumpDestination(
+                    final JumpPointAPI.JumpDestination dest = new JumpPointAPI.JumpDestination(
                             waypoint, null);
                     fleetAI.addAssignmentAtStart(FleetAssignment.GO_TO_LOCATION,
-                            waypoint.getDestinations().get(0).getDestination(), 7, () -> {
-                        Global.getSector().doHyperspaceTransition(fleet, null, dest);
-                        Misc.clearFlag(mem, MemFlags.FLEET_IGNORES_OTHER_FLEETS);
-                    });
+                            waypoint.getDestinations().get(0).getDestination(), 7, new Script() {
+                                @Override
+                                public void run() {
+                                    Global.getSector().doHyperspaceTransition(fleet, null, dest);
+                                    Misc.clearFlag(mem, MemFlags.FLEET_IGNORES_OTHER_FLEETS);
+                                }
+                            });
                     Misc.setFlagWithReason(mem, MemFlags.FLEET_IGNORES_OTHER_FLEETS, BUSY_REASON, true, 7);
 
                 }
@@ -931,8 +938,18 @@ public class LordAI implements EveryFrameScript {
             FactionAPI attackerFaction = event.getFaction();
             FactionAPI defenderFaction = event.getTarget().getMarket().getFaction();
 
-            PriorityQueue<Pair<Lord, Integer>> attackPQ = new PriorityQueue<>((o1, o2) -> Integer.compare(o2.two, o1.two));
-            PriorityQueue<Pair<Lord, Integer>> defendPQ = new PriorityQueue<>((o1, o2) -> Integer.compare(o2.two, o1.two));
+            PriorityQueue<Pair<Lord, Integer>> attackPQ = new PriorityQueue<>(11, new Comparator<Pair<Lord, Integer>>() {
+                @Override
+                public int compare(Pair<Lord, Integer> o1, Pair<Lord, Integer> o2) {
+                    return Integer.compare(o2.two, o1.two);
+                }
+            });
+            PriorityQueue<Pair<Lord, Integer>> defendPQ = new PriorityQueue<>(11, new Comparator<Pair<Lord, Integer>>() {
+                @Override
+                public int compare(Pair<Lord, Integer> o1, Pair<Lord, Integer> o2) {
+                    return Integer.compare(o2.two, o1.two);
+                }
+            });
             for (Lord lord : LordController.getLordsList()) {
                 if (lord.getFaction().equals(attackerFaction)) {
                     if (lord.getCurrAction() == null || lord.getOrderPriority() > event.getAction().priority) {

@@ -1,5 +1,6 @@
 package starlords.ui;
 
+import com.fs.starfarer.api.Script;
 import starlords.ai.LordAI;
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.FactionAPI;
@@ -250,7 +251,7 @@ public class LawsIntelPlugin extends BaseIntelPlugin {
     }
 
     @Override
-    public void buttonPressConfirmed(Object buttonId, IntelUIAPI ui) {
+    public void buttonPressConfirmed(Object buttonId, final IntelUIAPI ui) {
         if (buttonId == START_CAMPAIGN_BUTTON) {
             // TODO
             LordEvent campaign = new LordEvent(LordEvent.CAMPAIGN, LordController.getPlayerLord());
@@ -280,9 +281,9 @@ public class LawsIntelPlugin extends BaseIntelPlugin {
             ui.updateIntelList();
         } else if (buttonId == APPOINT_MARSHAL_BUTTON || buttonId == AWARD_FIEF_BUTTON || buttonId == EXILE_LORD_BUTTON) {
             String message;
-            String targetFief;
-            Lawset.LawType law;
-            Lord playerLord = LordController.getPlayerLord();
+            final String targetFief;
+            final Lawset.LawType law;
+            final Lord playerLord = LordController.getPlayerLord();
             if (buttonId == APPOINT_MARSHAL_BUTTON) {
                 law = Lawset.LawType.APPOINT_MARSHAL;
                 targetFief = null;
@@ -315,23 +316,26 @@ public class LawsIntelPlugin extends BaseIntelPlugin {
                     options.add(lord.getTitle() + " " + lord.getLordAPI().getNameString());
                     retVals.add(lord.getLordAPI().getId());
             }
-            SelectItemDialogPlugin plugin = new SelectItemDialogPlugin(message, options, retVals);
-            plugin.setPostScript(() -> {
-                String selection = plugin.getRetVal();
-                if (selection != null) {
-                    LawProposal proposal = new LawProposal(law, playerLord.getLordAPI().getId(),
-                            selection, targetFief, null, 0);
-                    proposal.setPlayerSupports(true);
-                    PoliticsController.addProposal(LordController.getPlayerLord(), proposal);
-                    PoliticsController.updateProposal(proposal);
-                    ui.updateIntelList();
+            final SelectItemDialogPlugin plugin = new SelectItemDialogPlugin(message, options, retVals);
+            plugin.setPostScript(new Script() {
+                @Override
+                public void run() {
+                    String selection = plugin.getRetVal();
+                    if (selection != null) {
+                        LawProposal proposal = new LawProposal(law, playerLord.getLordAPI().getId(),
+                                selection, targetFief, null, 0);
+                        proposal.setPlayerSupports(true);
+                        PoliticsController.addProposal(LordController.getPlayerLord(), proposal);
+                        PoliticsController.updateProposal(proposal);
+                        ui.updateIntelList();
+                    }
                 }
             });
             ui.showDialog(null, plugin);
 
         } else if (buttonId == DECLARE_WAR_BUTTON || buttonId == SUE_FOR_PEACE_BUTTON) {
             String message;
-            Lawset.LawType law;
+            final Lawset.LawType law;
             if (buttonId == DECLARE_WAR_BUTTON) {
                 law = Lawset.LawType.DECLARE_WAR;
                 message = "You are proposing new legislation. Select the faction you propose to declare war on.";
@@ -353,16 +357,19 @@ public class LawsIntelPlugin extends BaseIntelPlugin {
                     retVals.add(faction.getId());
                 }
             }
-            SelectItemDialogPlugin plugin = new SelectItemDialogPlugin(message, options, retVals);
-            plugin.setPostScript(() -> {
-                String selection = plugin.getRetVal();
-                if (selection != null) {
-                    LawProposal proposal = new LawProposal(law, LordController.getPlayerLord().getLordAPI().getId(),
-                            null, null, selection, 0);
-                    proposal.setPlayerSupports(true);
-                    PoliticsController.addProposal(LordController.getPlayerLord(), proposal);
-                    PoliticsController.updateProposal(proposal);
-                    ui.updateIntelList();
+            final SelectItemDialogPlugin plugin = new SelectItemDialogPlugin(message, options, retVals);
+            plugin.setPostScript(new Script() {
+                @Override
+                public void run() {
+                    String selection = plugin.getRetVal();
+                    if (selection != null) {
+                        LawProposal proposal = new LawProposal(law, LordController.getPlayerLord().getLordAPI().getId(),
+                                null, null, selection, 0);
+                        proposal.setPlayerSupports(true);
+                        PoliticsController.addProposal(LordController.getPlayerLord(), proposal);
+                        PoliticsController.updateProposal(proposal);
+                        ui.updateIntelList();
+                    }
                 }
             });
             ui.showDialog(null, plugin);
@@ -379,19 +386,22 @@ public class LawsIntelPlugin extends BaseIntelPlugin {
                     retVals.add(market.getId());
                 }
             }
-            SelectItemDialogPlugin plugin = new SelectItemDialogPlugin(message, options, retVals);
-            plugin.setPostScript(() -> {
-                String selection = plugin.getRetVal();
-                if (selection != null) {
-                    MarketAPI market = Global.getSector().getEconomy().getMarket(selection);
-                    LawProposal proposal = new LawProposal(Lawset.LawType.REVOKE_FIEF,
-                            LordController.getPlayerLord().getLordAPI().getId(),
-                            FiefController.getOwner(market).getLordAPI().getId(),
-                            selection, null, 0);
-                    proposal.setPlayerSupports(true);
-                    PoliticsController.addProposal(LordController.getPlayerLord(), proposal);
-                    PoliticsController.updateProposal(proposal);
-                    ui.updateIntelList();
+            final SelectItemDialogPlugin plugin = new SelectItemDialogPlugin(message, options, retVals);
+            plugin.setPostScript(new Script() {
+                @Override
+                public void run() {
+                    String selection = plugin.getRetVal();
+                    if (selection != null) {
+                        MarketAPI market = Global.getSector().getEconomy().getMarket(selection);
+                        LawProposal proposal = new LawProposal(Lawset.LawType.REVOKE_FIEF,
+                                LordController.getPlayerLord().getLordAPI().getId(),
+                                FiefController.getOwner(market).getLordAPI().getId(),
+                                selection, null, 0);
+                        proposal.setPlayerSupports(true);
+                        PoliticsController.addProposal(LordController.getPlayerLord(), proposal);
+                        PoliticsController.updateProposal(proposal);
+                        ui.updateIntelList();
+                    }
                 }
             });
             ui.showDialog(null, plugin);
@@ -412,38 +422,43 @@ public class LawsIntelPlugin extends BaseIntelPlugin {
                 retVals.add(lord.getLordAPI().getId());
             }
 
-            SelectItemDialogPlugin plugin = new SelectItemDialogPlugin(message, options, retVals);
-            plugin.setPostScript(() -> {
-                String selection = plugin.getRetVal();
-                if (selection != null) {
-                    // nested dialogs, yay
-                    Lord lord = LordController.getLordOrPlayerById(selection);
-                    String message2 = "Select new rank for " + lord.getLordAPI().getNameString();
-                    int rank = lord.getRanking();
-                    ArrayList<String> options2 = new ArrayList<>();
-                    ArrayList<String> retVals2 = new ArrayList<>();
-                    for (int i = 0; i < 3; i++) {
-                        if (rank != i) {
-                            options2.add(Utils.getTitle(lord.getFaction(), i));
-                            retVals2.add(Integer.toString(i));
+            final SelectItemDialogPlugin plugin = new SelectItemDialogPlugin(message, options, retVals);
+            plugin.setPostScript(new Script() {
+                @Override
+                public void run() {
+                    final String selection = plugin.getRetVal();
+                    if (selection != null) {
+                        // nested dialogs, yay
+                        Lord lord = LordController.getLordOrPlayerById(selection);
+                        String message2 = "Select new rank for " + lord.getLordAPI().getNameString();
+                        int rank = lord.getRanking();
+                        ArrayList<String> options2 = new ArrayList<>();
+                        ArrayList<String> retVals2 = new ArrayList<>();
+                        for (int i = 0; i < 3; i++) {
+                            if (rank != i) {
+                                options2.add(Utils.getTitle(lord.getFaction(), i));
+                                retVals2.add(Integer.toString(i));
+                            }
                         }
+                        final SelectItemDialogPlugin plugin2 = new SelectItemDialogPlugin(message2, options2, retVals2);
+                        plugin2.setPostScript(new Script() {
+                            @Override
+                            public void run() {
+                                String selection2 = plugin2.getRetVal();
+                                if (selection2 != null) {
+                                    int newRank = Integer.valueOf(selection2);
+                                    LawProposal proposal = new LawProposal(Lawset.LawType.CHANGE_RANK,
+                                            LordController.getPlayerLord().getLordAPI().getId(),
+                                            selection, null, null, newRank);
+                                    proposal.setPlayerSupports(true);
+                                    PoliticsController.addProposal(LordController.getPlayerLord(), proposal);
+                                    PoliticsController.updateProposal(proposal);
+                                    ui.updateIntelList();
+                                }
+                            }
+                        });
+                        ui.showDialog(null, plugin2);
                     }
-                    SelectItemDialogPlugin plugin2 = new SelectItemDialogPlugin(message2, options2, retVals2);
-                    plugin2.setPostScript(() -> {
-                        String selection2 = plugin2.getRetVal();
-                        if (selection2 != null) {
-                            int newRank = Integer.valueOf(selection2);
-                            LawProposal proposal = new LawProposal(Lawset.LawType.CHANGE_RANK,
-                                    LordController.getPlayerLord().getLordAPI().getId(),
-                                    selection, null, null, newRank);
-                            proposal.setPlayerSupports(true);
-                            PoliticsController.addProposal(LordController.getPlayerLord(), proposal);
-                            PoliticsController.updateProposal(proposal);
-                            ui.updateIntelList();
-                        }
-                    });
-                    ui.showDialog(null, plugin2);
-
                 }
             });
             ui.showDialog(null, plugin);
