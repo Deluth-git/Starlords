@@ -12,5 +12,5 @@
   "totalConversion":false,
   "jars":["jars/StarLords.jar"],
   "dependencies": [],
-  "modPlugin":"plugins.LordsModPlugin",
+  "modPlugin":"starlords.plugins.LordsModPlugin",
 }

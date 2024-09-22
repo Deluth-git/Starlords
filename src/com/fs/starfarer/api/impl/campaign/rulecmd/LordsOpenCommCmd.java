@@ -3,7 +3,7 @@ package com.fs.starfarer.api.impl.campaign.rulecmd;
 import com.fs.starfarer.api.campaign.InteractionDialogAPI;
 import com.fs.starfarer.api.campaign.rules.MemoryAPI;
 import com.fs.starfarer.api.util.Misc;
-import plugins.LordInteractionDialogPluginImpl;
+import starlords.plugins.LordInteractionDialogPluginImpl;
 
 import java.util.List;
 import java.util.Map;
