@@ -193,7 +193,7 @@ public class LordFleetFactory extends FleetFactoryV3 {
         }
         if (!hasFlagship) {
             FleetMemberAPI flagShip = Global.getFactory().createFleetMember(FleetMemberType.SHIP, lord.getTemplate().flagShip);
-            String name =  lord.getFleet().getFleetData().pickShipName(flagShip, Utils.rand);
+            String name = lord.getFleet().getFleetData().pickShipName(flagShip, Utils.rand);
             flagShip.setShipName(name);
             lord.getFleet().getFleetData().addFleetMember(flagShip);
             flagShip.setFlagship(true);

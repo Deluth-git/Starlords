@@ -234,10 +234,14 @@ public class EventController extends BaseIntelPlugin {
                             targetMarket = other;
                         }
                     }
-                    target = targetMarket.getPrimaryEntity();
+                    if (targetMarket != null) {
+                        target = targetMarket.getPrimaryEntity();
+                    }
                 }
-                LordEvent newRaid = new LordEvent(LordEvent.RAID, raidIntel, target);
-                addRaid(newRaid);
+                if (target != null) {
+                    LordEvent newRaid = new LordEvent(LordEvent.RAID, raidIntel, target);
+                    addRaid(newRaid);
+                }
                 //log.info("Added base game raid: " + newRaid.getFaction().getDisplayName() + ", " + target.getName());
             }
         }

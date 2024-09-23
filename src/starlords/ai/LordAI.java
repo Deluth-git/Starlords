@@ -25,6 +25,7 @@ import starlords.person.Lord;
 import starlords.person.LordAction;
 import starlords.person.LordEvent;
 import starlords.person.LordPersonality;
+import starlords.plugins.TournamentDialogPlugin;
 import starlords.scripts.ActionCompleteScript;
 import starlords.ui.HostileEventIntelPlugin;
 import starlords.util.LordFleetFactory;
@@ -85,7 +86,8 @@ public class LordAI implements EveryFrameScript {
         if (lastUpdate < UPDATE_INTERVAL) {
             return;
         }
-        //Global.getSector().getCampaignUI().showInteractionDialog(new TournamentDialogPlugin(), LordController.getLordsList().get(0).getFleet());
+//        Global.getSector().getCampaignUI().showInteractionDialog(
+//                new TournamentDialogPlugin(null), null);
         lastUpdate = 0;
         for (Lord lord : LordController.getLordsList()) {
             if (lord.getCurrAction() == null) {
