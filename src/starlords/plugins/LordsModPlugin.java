@@ -5,15 +5,20 @@ import com.fs.starfarer.api.Global;
 
 import com.fs.starfarer.api.campaign.SectorAPI;
 import com.thoughtworks.xstream.XStream;
+import starlords.ai.LordStrategicModule;
 import starlords.controllers.*;
 import starlords.ai.LordAI;
+import starlords.faction.LawProposal;
+import starlords.faction.Lawset;
 import starlords.listeners.BattleListener;
 import starlords.listeners.MarketStateChangeListener;
 import starlords.listeners.MarketStateChangeNexListener;
 import starlords.listeners.MonthlyUpkeepListener;
 import org.apache.log4j.Logger;
-import starlords.ui.CouncilIntelPlugin;
-import starlords.ui.LawsIntelPlugin;
+import starlords.person.Lord;
+import starlords.person.LordEvent;
+import starlords.scripts.ActionCompleteScript;
+import starlords.ui.*;
 import starlords.util.Utils;
 
 import java.util.HashMap;
@@ -28,14 +33,30 @@ public class LordsModPlugin extends BaseModPlugin {
     @Override
     public void configureXStream(XStream x) {
         // for backwards compatibility
-        x.aliasPackage("ai", "starlords.ai");
-        x.aliasPackage("controllers", "starlords.controllers");
-        x.aliasPackage("faction", "starlords.faction");
-        x.aliasPackage("listeners", "starlords.listeners");
-        x.aliasPackage("person", "starlords.person");
-        x.aliasPackage("plugins", "starlords.plugins");
-        x.aliasPackage("scripts", "starlords.scripts");
-        x.aliasPackage("ui", "starlords.ui");
+        x.alias("ai.LordAI", LordAI.class);
+        x.alias("ai.LordStrategicModule", LordStrategicModule.class);
+        x.alias("faction.Lawset", Lawset.class);
+        x.alias("faction.LawProposal", LawProposal.class);
+        x.alias("scripts.ActionCompleteScript", ActionCompleteScript.class);
+        x.alias("person.Lord", Lord.class);
+        x.alias("person.LordEvent", LordEvent.class);
+        x.alias("controllers.EventController", EventController.class);
+        x.alias("controllers.FiefController", FiefController.class);
+        x.alias("controllers.LordController", LordController.class);
+        x.alias("controllers.PoliticsController", PoliticsController.class);
+        x.alias("controllers.QuestController", QuestController.class);
+        x.alias("controllers.RelationController", RelationController.class);
+        x.alias("listeners.BattleListener", BattleListener.class);
+        x.alias("listeners.MarketStateChangeListener", MarketStateChangeListener.class);
+        x.alias("listeners.MonthlyUpkeepListener", MonthlyUpkeepListener.class);
+        x.alias("ui.CouncilIntelPlugin", CouncilIntelPlugin.class);
+        x.alias("ui.EventIntelPlugin", EventIntelPlugin.class);
+        x.alias("ui.HostileEventIntelPlugin", HostileEventIntelPlugin.class);
+        x.alias("ui.LawsIntelPlugin", LawsIntelPlugin.class);
+        x.alias("ui.LordsIntelPlugin", LordsIntelPlugin.class);
+        x.alias("ui.MissionPreviewIntelPlugin", MissionPreviewIntelPlugin.class);
+        x.alias("ui.PrisonerIntelPlugin", PrisonerIntelPlugin.class);
+        x.alias("ui.ProposalIntelPlugin", ProposalIntelPlugin.class);
     }
 
     @Override
