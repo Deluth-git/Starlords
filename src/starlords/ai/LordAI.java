@@ -12,6 +12,7 @@ import com.fs.starfarer.api.campaign.rules.MemoryAPI;
 import com.fs.starfarer.api.fleet.ShipRolePick;
 import com.fs.starfarer.api.impl.campaign.ids.*;
 import com.fs.starfarer.api.impl.campaign.rulecmd.salvage.MarketCMD;
+import com.fs.starfarer.api.impl.combat.BattleCreationPluginImpl;
 import com.fs.starfarer.api.util.Misc;
 import com.fs.starfarer.api.util.Pair;
 import starlords.controllers.*;
@@ -88,6 +89,11 @@ public class LordAI implements EveryFrameScript {
         }
 //        Global.getSector().getCampaignUI().showInteractionDialog(
 //                new TournamentDialogPlugin(null), null);
+//        for (Lord lord : LordController.getLordsList()) {
+//            lord.addWealth(500000);
+//            LordFleetFactory.upgradeFleet(lord);
+//        }
+
         lastUpdate = 0;
         for (Lord lord : LordController.getLordsList()) {
             if (lord.getCurrAction() == null) {
@@ -257,10 +263,10 @@ public class LordAI implements EveryFrameScript {
         if (priority >= LordAction.UPGRADE_FLEET.priority) {
             int upgradeWeight = 0;
             if (lord.getFleet().getFlagship() == null) {
-                upgradeWeight += 40;
+                upgradeWeight += 50;
             }
             if (econLevel > 1) {
-                upgradeWeight += 25;
+                upgradeWeight += 35;
             }
             if (milLevel < 1 && econLevel > milLevel) {
                 upgradeWeight += 10;
