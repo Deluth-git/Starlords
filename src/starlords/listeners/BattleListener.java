@@ -159,19 +159,20 @@ public class BattleListener extends BaseCampaignEventListener {
                     captorFreeChance += RelationController.getRelation(captor, defeated) / 5;
                     freed = rand.nextInt(100) < captorFreeChance;
                 }
-                Global.getSector().getCampaignUI().addMessage(
-                        StringUtil.getString(CATEGORY_UI, "lord_defeated_captured",
-                                defeated.getTitle() + " " + defeated.getLordAPI().getNameString(),
-                                captor.getFaction().getDisplayName()),
-                        defeated.getFaction().getBaseUIColor());
 
                 if (freed) {
-                    RelationController.modifyRelation(captor, defeated, defeated.getPersonality().releaseRepGain);
                     Global.getSector().getCampaignUI().addMessage(
-                            StringUtil.getString(CATEGORY_UI, "lord_freed_captivity",
-                                    defeated.getTitle() + " " + defeated.getLordAPI().getNameString()),
+                            StringUtil.getString(CATEGORY_UI, "lord_defeated_released",
+                                    defeated.getTitle() + " " + defeated.getLordAPI().getNameString(),
+                                    captor.getFaction().getDisplayName()),
                             defeated.getFaction().getBaseUIColor());
+                    RelationController.modifyRelation(captor, defeated, defeated.getPersonality().releaseRepGain);
                 } else {
+                    Global.getSector().getCampaignUI().addMessage(
+                            StringUtil.getString(CATEGORY_UI, "lord_defeated_captured",
+                                    defeated.getTitle() + " " + defeated.getLordAPI().getNameString(),
+                                    captor.getFaction().getDisplayName()),
+                            defeated.getFaction().getBaseUIColor());
                     defeated.setCurrAction(LordAction.IMPRISONED);
                     defeated.setCaptor(captor.getLordAPI().getId());
                     captor.addPrisoner(defeated.getLordAPI().getId());
@@ -248,7 +249,7 @@ public class BattleListener extends BaseCampaignEventListener {
             int currLevel = ship.getCaptain().getStats().getLevel();
             if (currLevel < LordFleetFactory.OFFICER_MAX_LEVEL && Utils.nextInt(100) < chance) {
                 ship.getCaptain().getStats().setLevel(currLevel + 1);
-                LordFleetFactory.upskillOfficer(ship.getCaptain());
+                LordFleetFactory.upskillOfficer(ship.getCaptain(), true);
             }
         }
     }

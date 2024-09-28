@@ -273,4 +273,18 @@ public class Utils {
         }
         return null;
     }
+
+    public static PersonAPI clonePerson(PersonAPI person) {
+        PersonAPI clone = person.getFaction().createRandomPerson(person.getGender());
+        clone.setPortraitSprite(person.getPortraitSprite());
+        clone.setPersonality(person.getPersonalityAPI().getId());
+        clone.setName(person.getName());
+        clone.setVoice(person.getVoice());
+        clone.setImportance(person.getImportance());
+        clone.setMarket(person.getMarket());
+        clone.setPostId(person.getPostId());
+        clone.setRankId(person.getRankId());
+        clone.getStats().setLevel(person.getStats().getLevel());
+        return clone;
+    }
 }

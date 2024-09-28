@@ -361,7 +361,7 @@ public class PoliticsController implements EveryFrameScript {
                     break;
                 case SUE_FOR_PEACE:
                     LawProposal tmp = new LawProposal(
-                            Lawset.LawType.SUE_FOR_PEACE, laws.getMarshal(), null, null,
+                            Lawset.LawType.SUE_FOR_PEACE, proposal.getOriginator(), null, null,
                             proposal.getFaction().getId(), 0);
                     tmp.faction = Global.getSector().getFaction(proposal.getTargetFaction()); // have to mess with this a bit
                     updateProposal(tmp);

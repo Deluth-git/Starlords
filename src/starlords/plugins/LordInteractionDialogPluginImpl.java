@@ -1,5 +1,6 @@
 package starlords.plugins;
 
+import com.fs.starfarer.api.EveryFrameScript;
 import starlords.ai.LordAI;
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.*;
@@ -37,6 +38,8 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
     static String CATEGORY = "starlords_lords_dialog";
     enum OptionId {
         INIT,
+        ASK_TOURNAMENT,
+        CONTINUE_TO_TOURNAMENT,
         ASK_CURRENT_TASK,
         ASK_QUESTION,
         ASK_QUEST,
@@ -56,6 +59,11 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
         SUGGEST_ACTION,
         FOLLOW_ME,
         STOP_FOLLOW_ME,
+        SUGGEST_RAID,
+        SUGGEST_RAID_LOC,
+        SUGGEST_PATROL,
+        SUGGEST_PATROL_LOC,
+        SUGGEST_UPGRADE,
         LEAVE,
     }
 
@@ -108,6 +116,7 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
         }
 
         // TODO
+        nextState = null;
         boolean willEngage = false;
         boolean hostile = false;
         if (lordFleet.getFaction().isHostileTo(Global.getSector().getPlayerFleet().getFaction())) {
@@ -165,6 +174,9 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                                         CATEGORY, "relation_increase", lord.getLordAPI().getNameString(), "2"), Color.GREEN);
                             }
                         }
+                        if (!feast.isHeldTournament()) {
+                            options.addOption(StringUtil.getString(CATEGORY, "option_ask_tournament"), OptionId.ASK_TOURNAMENT);
+                        }
                     }
                     options.addOption(StringUtil.getString(CATEGORY, "option_ask_current_task"), OptionId.ASK_CURRENT_TASK);
                     options.addOption(StringUtil.getString(CATEGORY, "option_ask_question"), OptionId.ASK_QUESTION);
@@ -187,6 +199,43 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                 }
                 options.addOption(StringUtil.getString(CATEGORY, "option_speak_privately"), OptionId.SPEAK_PRIVATELY);
                 options.addOption("Cut the comm link.", OptionId.LEAVE);
+                break;
+            case ASK_TOURNAMENT:
+                LordEvent currFeast = EventController.getCurrentFeast(targetLord.getFaction());
+                if (currFeast == null || currFeast.getParticipants().size() < 3) {
+                    textPanel.addPara(StringUtil.getString(CATEGORY, "cant_start_tournament"));
+
+                } else {
+                    textPanel.addPara(StringUtil.getString(CATEGORY, "confirm_start_tournament"));
+                    options.clearOptions();
+                    options.addOption(StringUtil.getString(CATEGORY, "option_continue_to_tournament"),
+                            OptionId.CONTINUE_TO_TOURNAMENT);
+                    options.addOption("Never mind", OptionId.INIT);
+                }
+                break;
+            case CONTINUE_TO_TOURNAMENT:
+                dialog.dismiss();
+                // cant open new dialogue immediately
+                Global.getSector().addTransientScript(new EveryFrameScript() {
+                    boolean isDone;
+                    @Override
+                    public boolean isDone() {
+                        return isDone;
+                    }
+
+                    @Override
+                    public boolean runWhilePaused() {
+                        return true;
+                    }
+
+                    @Override
+                    public void advance(float amount) {
+                        if (!isDone && Global.getSector().getCampaignUI().showInteractionDialog(
+                                new TournamentDialogPlugin(EventController.getCurrentFeast(targetLord.getFaction())), null)) {
+                            isDone = true;
+                        }
+                    }
+                });
                 break;
             case ASK_CURRENT_TASK:
                 String id = "current_task_desc_none";
@@ -610,6 +659,9 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                     } else {
                         options.addOption(StringUtil.getString(CATEGORY, "option_follow_me"), OptionId.FOLLOW_ME);
                     }
+                    options.addOption(StringUtil.getString(CATEGORY, "option_suggest_raid"), OptionId.SUGGEST_RAID);
+                    options.addOption(StringUtil.getString(CATEGORY, "option_suggest_patrol"), OptionId.SUGGEST_PATROL);
+                    options.addOption(StringUtil.getString(CATEGORY, "option_suggest_upgrade"), OptionId.SUGGEST_UPGRADE);
                     options.addOption(StringUtil.getString(CATEGORY, "option_nevermind"), OptionId.INIT);
                 }
                 break;
@@ -627,6 +679,71 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                 targetLord.setCurrAction(null);
                 lordFleet.clearAssignments();
                 textPanel.addParagraph(StringUtil.getString(CATEGORY, "accept_suggest_action"));
+                optionSelected(null, OptionId.INIT);
+                break;
+            case SUGGEST_PATROL:
+                textPanel.addParagraph(StringUtil.getString(CATEGORY, "ask_patrol_location"));
+                options.clearOptions();
+                for (MarketAPI market : Global.getSector().getEconomy().getMarketsCopy()) {
+                    if (market.getFaction().equals(targetLord.getFaction()) || market.getFaction().isPlayerFaction()) {
+                        options.addOption(market.getName(), market.getId());
+                    }
+                }
+                options.addOption(StringUtil.getString(CATEGORY, "option_nevermind"), OptionId.INIT);
+                nextState = OptionId.SUGGEST_PATROL_LOC;
+                break;
+            case SUGGEST_PATROL_LOC:
+                if (optionData instanceof String) {
+                    SectorEntityToken patrolTarget = Global.getSector().getEconomy().getMarket((String) optionData).getPrimaryEntity();
+                    LordAI.playerOrder(targetLord, LordAction.PATROL_TRANSIT, patrolTarget);
+                    textPanel.addParagraph(StringUtil.getString(CATEGORY, "accept_suggest_action"));
+                    if (!targetLord.getFaction().equals(Global.getSector().getPlayerFaction())) {
+                        targetLord.getLordAPI().getRelToPlayer().adjustRelationship(-0.02f, null);
+                        textPanel.addParagraph(StringUtil.getString(
+                                CATEGORY, "relation_decrease", targetLord.getLordAPI().getNameString(), "2"), Color.RED);
+                    }
+                } else {
+                    // This should never happen
+                    textPanel.addParagraph(StringUtil.getString(CATEGORY, "refuse_suggest_action"));
+                }
+                optionSelected(null, OptionId.INIT);
+                break;
+            case SUGGEST_RAID:
+                textPanel.addParagraph(StringUtil.getString(CATEGORY, "ask_raid_location"));
+                options.clearOptions();
+                for (MarketAPI market : Global.getSector().getEconomy().getMarketsCopy()) {
+                    if (!Misc.isPirateFaction(market.getFaction())
+                            && market.getFaction().isHostileTo(targetLord.getFaction())) {
+                        options.addOption(market.getName(), market.getId());
+                    }
+                }
+                options.addOption(StringUtil.getString(CATEGORY, "option_nevermind"), OptionId.INIT);
+                nextState = OptionId.SUGGEST_RAID_LOC;
+                break;
+            case SUGGEST_RAID_LOC:
+                if (optionData instanceof String) {
+                    SectorEntityToken raidTarget = Global.getSector().getEconomy().getMarket((String) optionData).getPrimaryEntity();
+                    LordAI.playerOrder(targetLord, LordAction.RAID_TRANSIT, raidTarget);
+                    textPanel.addParagraph(StringUtil.getString(CATEGORY, "accept_suggest_action"));
+                    if (!targetLord.getFaction().equals(Global.getSector().getPlayerFaction())) {
+                        targetLord.getLordAPI().getRelToPlayer().adjustRelationship(-0.02f, null);
+                        textPanel.addParagraph(StringUtil.getString(
+                                CATEGORY, "relation_decrease", targetLord.getLordAPI().getNameString(), "2"), Color.RED);
+                    }
+                } else {
+                    // This should never happen
+                    textPanel.addParagraph(StringUtil.getString(CATEGORY, "refuse_suggest_action"));
+                }
+                optionSelected(null, OptionId.INIT);
+                break;
+            case SUGGEST_UPGRADE:
+                LordAI.playerOrder(targetLord, LordAction.UPGRADE_FLEET_TRANSIT, null);
+                textPanel.addParagraph(StringUtil.getString(CATEGORY, "accept_suggest_action"));
+                if (!targetLord.getFaction().equals(Global.getSector().getPlayerFaction())) {
+                    targetLord.getLordAPI().getRelToPlayer().adjustRelationship(-0.01f, null);
+                    textPanel.addParagraph(StringUtil.getString(
+                            CATEGORY, "relation_decrease", targetLord.getLordAPI().getNameString(), "1"), Color.RED);
+                }
                 optionSelected(null, OptionId.INIT);
                 break;
             case SUGGEST_CEASEFIRE:

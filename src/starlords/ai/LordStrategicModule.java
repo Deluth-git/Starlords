@@ -2,6 +2,7 @@ package starlords.ai;
 
 import com.fs.starfarer.api.campaign.CampaignFleetAPI;
 import com.fs.starfarer.api.campaign.FactionAPI;
+import com.fs.starfarer.api.campaign.OrbitalStationAPI;
 import com.fs.starfarer.api.campaign.SectorEntityToken;
 import com.fs.starfarer.api.campaign.ai.StrategicModulePlugin;
 import com.fs.starfarer.api.impl.campaign.ids.MemFlags;
@@ -49,6 +50,9 @@ public class LordStrategicModule implements StrategicModulePlugin {
                 boolean interesting = otherFleet.getFleetPoints() > Math.min(lordFleet.getFleetPoints() / 2, 75);
                 boolean inBattle = otherFleet.getBattle() != null;
                 engageInTransit = (inBattle || canReach) && interesting;
+            }
+            if (other instanceof OrbitalStationAPI) {
+                engageInTransit = false;
             }
             ret = ret && engageInTransit;
         }

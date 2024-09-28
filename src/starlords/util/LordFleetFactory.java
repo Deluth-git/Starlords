@@ -54,7 +54,7 @@ public class LordFleetFactory extends FleetFactoryV3 {
             } else {
                 PersonAPI officer = lord.getLordAPI().getFaction().createRandomPerson();
                 officer.setPersonality(lord.getTemplate().battlePersonality);
-                upskillOfficer(officer);
+                upskillOfficer(officer, true);
                 Misc.setUnremovable(officer, true);
                 lord.getLordAPI().getFleet().getFleetData().addOfficer(officer);
                 ship.setCaptain(officer);
@@ -260,13 +260,14 @@ public class LordFleetFactory extends FleetFactoryV3 {
     }
 
     // gives person a combat skill that they didn't have previously
-    public static void upskillOfficer(PersonAPI officer) {
+    public static void upskillOfficer(PersonAPI officer, boolean elite) {
         ArrayList<String> candidates = new ArrayList<>();
         for (String skill : OFFICER_SKILLS) {
             if (officer.getStats().getSkillLevel(skill) == 0) candidates.add(skill);
         }
         if (candidates.isEmpty()) return;
-        officer.getStats().setSkillLevel(candidates.get(new Random().nextInt(candidates.size())), 2);
+        int skillLevel = elite ? 2 : 1;
+        officer.getStats().setSkillLevel(candidates.get(new Random().nextInt(candidates.size())), skillLevel);
     }
 
     private static String chooseSMod(FleetMemberAPI member) {
@@ -294,7 +295,11 @@ public class LordFleetFactory extends FleetFactoryV3 {
         addOption(options, weights, member, HullMods.MISSLERACKS, 10);
         // every ai likes omni shields
         if (member.getVariant().getHullSpec().getShieldType() == ShieldAPI.ShieldType.FRONT) {
-            addOption(options, weights, member, HullMods.OMNI_SHIELD_CONVERSION, 40);
+            addOption(options, weights, member, HullMods.OMNI_SHIELD_CONVERSION, 30);
+        }
+        // safety overrides needs hardened subsystems
+        if (member.getVariant().hasHullMod(HullMods.SAFETYOVERRIDES)) {
+            addOption(options, weights, member, HullMods.HARDENED_SUBSYSTEMS, 100);
         }
 
         // add ITU if it's not there for some reason

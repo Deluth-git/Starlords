@@ -3,6 +3,7 @@ package starlords.person;
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.FactionAPI;
 import com.fs.starfarer.api.campaign.SectorEntityToken;
+import com.fs.starfarer.api.characters.PersonAPI;
 import com.fs.starfarer.api.impl.campaign.ids.Commodities;
 import com.fs.starfarer.api.impl.campaign.intel.raid.RaidIntel;
 import starlords.controllers.LordController;
@@ -61,6 +62,16 @@ public class LordEvent {
     private List<Lord> participants;
     private List<Lord> opposition; // defenders in a raid/campaign, unused for feast
     private Set<Lord> pastParticipants; // for feasts, to track who has already had relation increases
+
+    // flags for feasts
+    @Setter
+    private boolean heldTournament;
+    @Setter
+    private PersonAPI tournamentWinner;
+    @Setter
+    private boolean victoryDedicated;
+    @Setter
+    private boolean heldDate;
 
 
     public LordEvent(String type, RaidIntel intel, SectorEntityToken target) {

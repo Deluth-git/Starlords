@@ -307,13 +307,14 @@ public class CouncilIntelPlugin extends BaseIntelPlugin {
                     + " " + opposer.getLordAPI().getNameString());
         }
         PersonAPI ruler = Utils.getLeader(currProposal.faction);
-        if (currProposal.isLiegeSupports()) {
-            supporterTooltip.add("x" + String.format("%.1f", PoliticsController.getLiegeMultiplier(currProposal.faction))
-                    + " " + Utils.getLeader(currProposal.faction).getNameString());
-
-        } else if (ruler != null) {
-            oppositionTooltip.add("x" + String.format("%.1f",PoliticsController.getLiegeMultiplier(currProposal.faction))
-                    + " " + Utils.getLeader(currProposal.faction).getNameString());
+        if (ruler != null) {
+            if (currProposal.isLiegeSupports()) {
+                supporterTooltip.add("x" + String.format("%.1f", PoliticsController.getLiegeMultiplier(currProposal.faction))
+                        + " " + ruler.getNameString());
+            } else {
+                oppositionTooltip.add("x" + String.format("%.1f",PoliticsController.getLiegeMultiplier(currProposal.faction))
+                        + " " + ruler.getNameString());
+            }
         }
         return new Pair<>(supporterTooltip, oppositionTooltip);
     }

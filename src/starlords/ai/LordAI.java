@@ -87,12 +87,6 @@ public class LordAI implements EveryFrameScript {
         if (lastUpdate < UPDATE_INTERVAL) {
             return;
         }
-//        Global.getSector().getCampaignUI().showInteractionDialog(
-//                new TournamentDialogPlugin(null), null);
-//        for (Lord lord : LordController.getLordsList()) {
-//            lord.addWealth(500000);
-//            LordFleetFactory.upgradeFleet(lord);
-//        }
 
         lastUpdate = 0;
         for (Lord lord : LordController.getLordsList()) {
@@ -336,9 +330,13 @@ public class LordAI implements EveryFrameScript {
             case PATROL_TRANSIT:
                 // same as collect taxes
             case COLLECT_TAXES_TRANSIT:
-                targetEntity = lord.getClosestBase();
-                if (targetEntity == null) {
-                    targetEntity = Misc.findNearestLocalMarket(lord.getFleet(), 1e10f, null).getPrimaryEntity();
+                if (target == null) {
+                    targetEntity = lord.getClosestBase();
+                    if (targetEntity == null) {
+                        targetEntity = Misc.findNearestLocalMarket(lord.getFleet(), 1e10f, null).getPrimaryEntity();
+                    }
+                } else {
+                    targetEntity = target;
                 }
                 lord.setTarget(targetEntity);
                 fleetAI.addAssignmentAtStart(
