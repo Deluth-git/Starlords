@@ -91,7 +91,11 @@ public class LordController {
         List<IntelInfoPlugin> lordIntel = Global.getSector().getIntelManager().getIntel();
         for (IntelInfoPlugin plugin : lordIntel) {
             if (plugin instanceof LordsIntelPlugin) {
-                addLord(((LordsIntelPlugin) plugin).getLord());
+                Lord newLord = ((LordsIntelPlugin) plugin).getLord();
+                if (lordTemplates.containsKey(newLord.getTemplate().name)) {
+                    newLord.setTemplate(lordTemplates.get(newLord.getTemplate().name));
+                }
+                addLord(newLord);
             }
         }
         ensureLordOrder();

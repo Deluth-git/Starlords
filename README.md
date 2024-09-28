@@ -66,7 +66,7 @@ If you're a modder or just want to put your own characters into the game, all yo
 * Flagship and ship preferences must contain valid ship variant ids. You can find these under the `/data/variants` folder of `starsector-core` or any mod directories.
 * Faction and fief will be automatically converted to lower case. Ship variants are case-sensitive.
 
-After that, your lord should be created automatically upon starting a new game. Also, templates are only referenced when starting a new game, so you won't be able to modify your lord past gamestart.
+After that, your lord should be created automatically upon starting a new game.
 
 ### Credits
 Starsector team for developing the game\

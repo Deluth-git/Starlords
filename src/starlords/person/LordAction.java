@@ -18,6 +18,7 @@ public enum LordAction {
     VENTURE_TRANSIT(VENTURE),
     CAMPAIGN(2),
     IMPRISONED(1),
+    COMPANION(1),
     RESPAWNING(1);
 
     public final LordAction base;

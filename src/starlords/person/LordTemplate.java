@@ -22,6 +22,7 @@ public final class LordTemplate {
     public final int level;
     public final String battlePersonality;
     public final int ranking;
+    public final String preferredItemId;
 
     public LordTemplate(String name, JSONObject template){
         this.name = name;
@@ -56,6 +57,7 @@ public final class LordTemplate {
         flagShip = template.getString("flagship");
         lore = template.getString("lore");
         portrait = template.getString("portrait");
+        preferredItemId = template.getString("preferredItem");
         // What kind of parser maps null to the string null???
         String fief = template.getString("fief").toLowerCase();
         this.fief = fief.equals("null") ? null : fief;

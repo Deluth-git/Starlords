@@ -1,5 +1,6 @@
 package starlords.person;
 
+import lombok.Setter;
 import starlords.ai.LordStrategicModule;
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.CampaignFleetAPI;
@@ -43,6 +44,7 @@ public class Lord {
 
     private float wealth;
 
+    @Setter
     private LordTemplate template;
 
     private List<SectorEntityToken> fiefs;
@@ -75,6 +77,18 @@ public class Lord {
 
     // whether the player has attempted to sway this lord recently
     private boolean swayed;
+
+    // whether the player has initiated courtship with this lord
+    @Setter
+    private boolean courted;
+
+    // whether the player has married this lord
+    @Setter
+    private boolean married;
+
+    // number of romantic actions the player has performed for this lord
+    @Setter
+    private int romanticActions;
 
     // Creates a lord from scratch, only run at campaign start
     public Lord(LordTemplate template) {
