@@ -12,21 +12,30 @@ public class StringUtil {
         }
     }
 
-    public static String getString(String category, String id, String replacement) {
+//    public static String getString(String category, String id, String replacement) {
+//        String str = getString(category, id);
+//        if (str == null) return null;
+//        return str.replaceFirst("\\$string", replacement);
+//    }
+//
+//    public static String getString(String category, String id, String replacement, String replacement2) {
+//        String str = getString(category, id, replacement);
+//        if (str == null) return null;
+//        return str.replaceFirst("\\$string", replacement2);
+//    }
+//
+//    public static String getString(String category, String id, String replacement, String replacement2, String replacement3) {
+//        String str = getString(category, id, replacement, replacement2);
+//        if (str == null) return null;
+//        return str.replaceFirst("\\$string", replacement3);
+//    }
+
+    public static String getString(String category, String id, String ... replacements) {
         String str = getString(category, id);
         if (str == null) return null;
-        return str.replaceFirst("\\$string", replacement);
-    }
-
-    public static String getString(String category, String id, String replacement, String replacement2) {
-        String str = getString(category, id, replacement);
-        if (str == null) return null;
-        return str.replaceFirst("\\$string", replacement2);
-    }
-
-    public static String getString(String category, String id, String replacement, String replacement2, String replacement3) {
-        String str = getString(category, id, replacement, replacement2);
-        if (str == null) return null;
-        return str.replaceFirst("\\$string", replacement3);
+        for (String replacement : replacements) {
+            str = str.replaceFirst("\\$string", replacement);
+        }
+        return str;
     }
 }

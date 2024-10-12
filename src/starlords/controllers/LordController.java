@@ -19,6 +19,7 @@ import starlords.person.LordTemplate;
 import starlords.ui.LordsIntelPlugin;
 import starlords.util.Constants;
 import starlords.util.LordFleetFactory;
+import starlords.util.Utils;
 
 import java.util.*;
 
@@ -95,6 +96,10 @@ public class LordController {
                 if (lordTemplates.containsKey(newLord.getTemplate().name)) {
                     newLord.setTemplate(lordTemplates.get(newLord.getTemplate().name));
                 }
+                // prevents capture from take no prisoners
+                if (!newLord.getLordAPI().hasTag("coff_nocapture")) {
+                    newLord.getLordAPI().addTag("coff_nocapture");
+                }
                 addLord(newLord);
             }
         }
@@ -127,8 +132,14 @@ public class LordController {
                         currLord.addFief(lordMarket);
                     }
                 }
+                // backup
                 if (lordMarket == null) {
                     lordMarket = getDefaultSpawnLoc(currLord, null);
+                }
+                // backup-backup
+                if (lordMarket == null) {
+                    List<MarketAPI> markets = Global.getSector().getEconomy().getMarketsCopy();
+                    lordMarket = markets.get(Utils.rand.nextInt(markets.size()));
                 }
             } else {
                 lordMarket = currLord.getFiefs().get(0).getMarket();
@@ -218,6 +229,13 @@ public class LordController {
         for (Lord lord : lordsList) {
             factionsWithLords.add(lord.getFaction());
         }
+    }
+
+    public static Lord getSpouse() {
+        for (Lord lord : lordsList) {
+            if (lord.isMarried()) return lord;
+        }
+        return null;
     }
 
     private static MarketAPI getDefaultSpawnLoc(Lord lord, HashSet<String> forbidden) {

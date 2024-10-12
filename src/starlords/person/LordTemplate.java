@@ -2,6 +2,7 @@ package starlords.person;
 
 import com.fs.starfarer.api.impl.campaign.ids.Factions;
 import org.json.JSONObject;
+import starlords.controllers.LordController;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -57,7 +58,11 @@ public final class LordTemplate {
         flagShip = template.getString("flagship");
         lore = template.getString("lore");
         portrait = template.getString("portrait");
-        preferredItemId = template.getString("preferredItem");
+        if (template.has("preferredItem")) {
+            preferredItemId = template.getString("preferredItem");
+        } else {  // everyone likes butter by default
+            preferredItemId = "food";
+        }
         // What kind of parser maps null to the string null???
         String fief = template.getString("fief").toLowerCase();
         this.fief = fief.equals("null") ? null : fief;

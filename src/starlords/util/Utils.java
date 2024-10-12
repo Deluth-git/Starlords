@@ -23,7 +23,7 @@ public class Utils {
     private static final int FAST_PATROL_FP = 20;
     private static final int COMBAT_PATROL_FP = 40;
     private static final int HEAVY_PATROL_FP = 65;
-    public static final Random rand = new Random();
+    public static final Random rand = new Random(); // for low-priority rng that doesn't need to be savescum-proof
 
     public static int nextInt(int bound) {
         return rand.nextInt(bound);
@@ -37,19 +37,6 @@ public class Utils {
         return Global.getSettings().getModManager().isModEnabled("nexerelin");
     }
 
-    public static String sirOrMaam(PersonAPI person, boolean caps) {
-        if (caps) {
-            return person.getGender() == FullName.Gender.FEMALE ? "Ma'am" : "Sir";
-        }
-        return person.getGender() == FullName.Gender.FEMALE ? "ma'am" : "sir";
-    }
-
-    public static String manOrWoman(PersonAPI person, boolean caps) {
-        if (caps) {
-            return person.getGender() == FullName.Gender.FEMALE ? "Woman" : "Man";
-        }
-        return person.getGender() == FullName.Gender.FEMALE ? "woman" : "man";
-    }
 
     public static void adjustPlayerReputation(PersonAPI target, int delta) {
         CoreReputationPlugin.CustomRepImpact param = new CoreReputationPlugin.CustomRepImpact();

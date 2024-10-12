@@ -49,6 +49,14 @@ public class MonthlyUpkeepListener extends BaseCampaignEventListener {
             float cost = LordFleetFactory.COST_MULT * fleet.getFleetPoints() * 0.15f;
             lord.addWealth(-1 * cost);
             //log.info("DEBUG: Lord " + lord.getLordAPI().getNameString() + " incurred expenses of " + cost);
+
+            // make sure mercenary lords dont expire every month
+            if (Misc.isMercenary(lord.getLordAPI())) {
+                Misc.setMercHiredNow(lord.getLordAPI());
+            }
+            if (!lord.isMarshal()) {
+                lord.setControversy(Math.max(0, lord.getControversy() - 2));
+            }
         }
         FiefController.onMonthPass();
         QuestController.getInstance().resetQuests();

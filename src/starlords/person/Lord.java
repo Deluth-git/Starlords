@@ -82,6 +82,10 @@ public class Lord {
     @Setter
     private boolean courted;
 
+    // whether the player has already dedicated a tournament to this lord
+    @Setter
+    private boolean dedicatedTournament;
+
     // whether the player has married this lord
     @Setter
     private boolean married;
@@ -89,6 +93,10 @@ public class Lord {
     // number of romantic actions the player has performed for this lord
     @Setter
     private int romanticActions;
+
+    // for marshals, goes up when faction loses battles and fiefs. Makes people want to replace the marshal.
+    @Setter
+    private int controversy;
 
     // Creates a lord from scratch, only run at campaign start
     public Lord(LordTemplate template) {
@@ -131,6 +139,7 @@ public class Lord {
         lord.setName(fullName);
         lord.setPortraitSprite("graphics/portraits/" + template.portrait + ".png");
         lord.addTag(LordTags.LORD);
+        lord.addTag("coff_nocapture");  // prevents capture from take no prisoners
 
         lord.getStats().setLevel(template.level);
         lord.setPersonality(template.battlePersonality);

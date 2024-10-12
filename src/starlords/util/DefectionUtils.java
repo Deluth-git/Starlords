@@ -82,13 +82,13 @@ public class DefectionUtils {
         int loyalty = RelationController.getLoyalty(lord);
         switch(lord.getPersonality()) {
             case UPSTANDING:
-                return Math.min(15, Utils.getThreshold(RepLevel.HOSTILE) - loyalty);
+                return Math.min(15, (Utils.getThreshold(RepLevel.HOSTILE) - loyalty) / 2);
             case MARTIAL:
-                return Math.min(15, Utils.getThreshold(RepLevel.INHOSPITABLE) - loyalty);
+                return Math.min(15, (Utils.getThreshold(RepLevel.INHOSPITABLE) - loyalty) / 2);
             case CALCULATING:
-                return Math.min(15, Utils.getThreshold(RepLevel.SUSPICIOUS) - loyalty);
+                return Math.min(15, (Utils.getThreshold(RepLevel.SUSPICIOUS) - loyalty) / 2);
             case QUARRELSOME:
-                return Math.min(15, Utils.getThreshold(RepLevel.NEUTRAL) - loyalty);
+                return Math.min(15, (Utils.getThreshold(RepLevel.NEUTRAL) - loyalty) / 2);
         }
         return 0;
     }
@@ -118,6 +118,8 @@ public class DefectionUtils {
         int preferredWeight = 25;
         for (FactionAPI faction : Global.getSector().getAllFactions()) {
             if (Misc.getCommissionFaction() != null && faction.isPlayerFaction()) continue;
+            if (faction.isPlayerFaction() && lord.getLordAPI().getRelToPlayer().isAtBest(RepLevel.WELCOMING)) continue;
+            if (faction.isPlayerFaction() && !LordController.getFactionsWithLords().contains(faction)) continue;
             if (faction.equals(lord.getFaction())) continue;
             if (faction.getId().equals(Factions.INDEPENDENT)) continue;
             int weight = RelationController.getLoyalty(lord, faction.getId());

@@ -59,6 +59,7 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
 
         FactionAPI faction = lord.getFaction();
         boolean isSubject = faction.equals(Global.getSector().getPlayerFaction());
+        boolean isMarried = lord.isMarried();
         CampaignFleetAPI fleet = lord.getLordAPI().getFleet();
         Color uiColor = Global.getSettings().getBasePlayerColor();
         Color factionColor = faction.getBaseUIColor();
@@ -77,7 +78,8 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
             fiefStr = fiefStr.substring(0, fiefStr.length() - 2);
         }
         String wealthStr;
-        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.WELCOMING) && !isSubject && !DEBUG_MODE) {
+        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.WELCOMING)
+                && !isSubject && !isMarried && !DEBUG_MODE) {
             wealthStr = "[REDACTED]";
         } else {
             wealthStr = Integer.toString((int) lord.getWealth());
@@ -91,14 +93,16 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
             personalityStr = "Unknown";
         }
         String orderStr;
-        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.FRIENDLY) && !isSubject && !DEBUG_MODE) {
+        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.FRIENDLY)
+                && !isSubject && !isMarried && !DEBUG_MODE) {
             orderStr = "[REDACTED]";
         } else if (lord.getCurrAction() == LordAction.IMPRISONED) {
             orderStr = "Imprisoned by " + LordController.getLordOrPlayerById(lord.getCaptor()).getLordAPI().getNameString();
         } else if (lord.getCurrAction() == null || !fleet.isAlive()) {
             orderStr = "None";
         } else if (lord.getCurrAction() != LordAction.CAMPAIGN) {
-            orderStr = StringUtil.getString(CATEGORY_UI, "fleet_" + lord.getCurrAction().base.toString().toLowerCase() + "_desc", lord.getTarget().getName());
+            orderStr = StringUtil.getString(
+                    CATEGORY_UI, "fleet_" + lord.getCurrAction().base.toString().toLowerCase() + "_desc", lord.getTarget().getName());
         } else {
             if (lord.isMarshal()) {
                 LordEvent campaign = EventController.getCurrentCampaign(lord.getLordAPI().getFaction());
@@ -112,7 +116,8 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
             }
         }
         String lastSeenStr;
-        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.COOPERATIVE) && !isSubject && !DEBUG_MODE) {
+        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.COOPERATIVE)
+                && !isSubject && !isMarried && !DEBUG_MODE) {
             lastSeenStr = "[REDACTED]";
         }  else if (!fleet.isAlive()) {
             lastSeenStr = "N/A";
@@ -134,12 +139,14 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
         outer.addImageWithText(pad);
         outer.addRelationshipBar(lord.getLordAPI(), pad);
         // lore
-        outer.addSectionHeading("Character Bio", faction.getBrightUIColor(), faction.getDarkUIColor(), Alignment.LMID, opad);
+        outer.addSectionHeading("Character Bio",
+                faction.getBrightUIColor(), faction.getDarkUIColor(), Alignment.LMID, opad);
         outer.addPara(lord.getTemplate().lore, opad);
 
-        outer.addSectionHeading("Fleet Composition", faction.getBrightUIColor(), faction.getDarkUIColor(), Alignment.LMID, opad);
+        outer.addSectionHeading("Fleet Composition",
+                faction.getBrightUIColor(), faction.getDarkUIColor(), Alignment.LMID, opad);
         // shiplist
-        if (lord.getPlayerRel() >= Utils.getThreshold(RepLevel.FRIENDLY) || isSubject || DEBUG_MODE) {
+        if (lord.getPlayerRel() >= Utils.getThreshold(RepLevel.FRIENDLY) || isSubject || isMarried || DEBUG_MODE) {
             int rows = 3;
             if (lord.getLordAPI().getFleet().getNumShips() <= 30) rows = 2;
             outer.addShipList(15, rows, 48, factionColor,
@@ -153,9 +160,11 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
         float buttonPad = Math.min(Math.max(opad, height - outer.getHeightSoFar() - 160), 100 + pad);
         ButtonAPI button = outer.addButton("Open Comms", OPEN_COMMS_BUTTON, 150, 20, buttonPad);
         button.setShortcut(Keyboard.KEY_C, true);
-        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.COOPERATIVE) && !isSubject && !DEBUG_MODE) {
+        if (lord.getPlayerRel() < Utils.getThreshold(RepLevel.COOPERATIVE)
+                && !isSubject && !isMarried && !DEBUG_MODE) {
             button.setEnabled(false);
-            outer.addTooltipToPrevious(new ToolTip(175, "Requires higher relations"), TooltipMakerAPI.TooltipLocation.BELOW);
+            outer.addTooltipToPrevious(new ToolTip(175, "Requires higher relations"),
+                    TooltipMakerAPI.TooltipLocation.BELOW);
         }
         panel.addUIElement(outer).inTL(0, 0);
     }

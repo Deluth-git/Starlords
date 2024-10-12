@@ -1,6 +1,8 @@
 package starlords.plugins;
 
 import com.fs.starfarer.api.EveryFrameScript;
+import com.fs.starfarer.api.campaign.econ.CommoditySpecAPI;
+import com.fs.starfarer.api.characters.FullName;
 import starlords.ai.LordAI;
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.*;
@@ -23,6 +25,7 @@ import starlords.person.LordAction;
 import starlords.person.LordEvent;
 import starlords.ui.MissionPreviewIntelPlugin;
 import starlords.util.DefectionUtils;
+import starlords.util.GenderUtils;
 import starlords.util.StringUtil;
 import starlords.util.Utils;
 
@@ -30,6 +33,7 @@ import java.awt.*;
 import java.util.*;
 
 import static com.fs.starfarer.api.impl.campaign.rulecmd.BeginMission.TEMP_MISSION_KEY;
+import static starlords.ai.LordAI.BUSY_REASON;
 import static starlords.util.Constants.*;
 
 public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin {
@@ -38,6 +42,8 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
     static String CATEGORY = "starlords_lords_dialog";
     enum OptionId {
         INIT,
+        START_WEDDING,
+        DEDICATE_TOURNAMENT,
         ASK_TOURNAMENT,
         CONTINUE_TO_TOURNAMENT,
         ASK_CURRENT_TASK,
@@ -48,9 +54,19 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
         SWAY_PROPOSAL_PLAYER,
         SWAY_PROPOSAL_COUNCIL,
         SWAY_PROPOSAL_BARGAIN,
+        PROFESS_ADMIRATION,
+        SUGGEST_DATE,
+        OFFER_GIFT,
+        OFFER_GIFT_SELECTION,
+        SUGGEST_MARRIAGE,
+        SUGGEST_JOIN_PARTY,
+        SUGGEST_LEAVE_PARTY,
+        CONFIRM_TOGGLE_PARTY,
         SPEAK_PRIVATELY,
         ASK_WORLDVIEW,
         ASK_LIEGE_OPINION,
+        ASK_FRIEND_FAVORITE_GIFT,
+        ASK_FRIEND_FAVORITE_GIFT_LIST,
         SUGGEST_CEASEFIRE,
         SUGGEST_DEFECT,
         BARGAIN_DEFECT,
@@ -115,7 +131,6 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
             return;
         }
 
-        // TODO
         nextState = null;
         boolean willEngage = false;
         boolean hostile = false;
@@ -134,12 +149,12 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
         PersonAPI player = Global.getSector().getPlayerPerson();
         FactionAPI faction;
         Random rand;
+        boolean isFeast = targetLord.getCurrAction() == LordAction.FEAST;
+        LordEvent feast = isFeast ? EventController.getCurrentFeast(targetLord.getLordAPI().getFaction()) : null;
         switch (option) {
             case INIT:
                 options.clearOptions();
                 if (!hostile) {
-                    boolean isFeast = targetLord.getCurrAction() == LordAction.FEAST;
-                    LordEvent feast = null;
                     String greeting = "greeting_" + targetLord.getPersonality().toString().toLowerCase() + "_";
                     if (isFeast) {
                         feast = EventController.getCurrentFeast(targetLord.getLordAPI().getFaction());
@@ -149,7 +164,13 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                             greeting += "feast";
                         }
                     } else if (targetLord.isKnownToPlayer()) {
-                        greeting += relToString(targetLord.getLordAPI().getRelToPlayer().getRepInt());
+                        if (targetLord.isMarried()) {
+                            greeting += "spouse";
+                        } else if (targetLord.getFaction().isPlayerFaction()) {
+                            greeting += "subject";
+                        } else {
+                            greeting += relToString(targetLord.getLordAPI().getRelToPlayer().getRepInt());
+                        }
                     } else {
                         greeting += "first";
                     }
@@ -177,6 +198,18 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                         if (!feast.isHeldTournament()) {
                             options.addOption(StringUtil.getString(CATEGORY, "option_ask_tournament"), OptionId.ASK_TOURNAMENT);
                         }
+                        if (targetLord.isCourted() && feast.getTournamentWinner() != null
+                                && !feast.isVictoryDedicated() && feast.getTournamentWinner().isPlayer()) {
+                            options.addOption(StringUtil.getString(
+                                    CATEGORY, "option_dedicate_tournament", targetLord.getLordAPI().getName().getFirst()),
+                                    OptionId.DEDICATE_TOURNAMENT);
+                        }
+                        if (feast.getWeddingCeremonyTarget() != null && !feast.getWeddingCeremonyTarget().isMarried()) {
+                            Lord spouse = feast.getWeddingCeremonyTarget();
+                            options.addOption(StringUtil.getString(
+                                            CATEGORY, "option_host_wedding", spouse.getLordAPI().getNameString()),
+                                    OptionId.START_WEDDING);
+                        }
                     }
                     options.addOption(StringUtil.getString(CATEGORY, "option_ask_current_task"), OptionId.ASK_CURRENT_TASK);
                     options.addOption(StringUtil.getString(CATEGORY, "option_ask_question"), OptionId.ASK_QUESTION);
@@ -200,9 +233,39 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                 options.addOption(StringUtil.getString(CATEGORY, "option_speak_privately"), OptionId.SPEAK_PRIVATELY);
                 options.addOption("Cut the comm link.", OptionId.LEAVE);
                 break;
+            case DEDICATE_TOURNAMENT:
+                if (targetLord.isDedicatedTournament()) {
+                    textPanel.addPara((StringUtil.getString(CATEGORY, "dedicate_tournament_again")));
+                    textPanel.addPara(StringUtil.getString(
+                            CATEGORY, "relation_increase",
+                            targetLord.getLordAPI().getNameString(), "5"), Color.GREEN);
+                    targetLord.getLordAPI().getRelToPlayer().adjustRelationship(0.05f, null);
+                } else {
+                    textPanel.addPara((StringUtil.getString(CATEGORY, "dedicate_tournament")));
+                    textPanel.addPara(StringUtil.getString(
+                            CATEGORY, "relation_increase",
+                            targetLord.getLordAPI().getNameString(), "10"), Color.GREEN);
+                    targetLord.getLordAPI().getRelToPlayer().adjustRelationship(0.1f, null);
+                }
+                targetLord.setRomanticActions(targetLord.getRomanticActions() + 1);
+                feast.setVictoryDedicated(true);
+                // other courted lords get jealous
+                for (Lord lord: LordController.getLordsList()) {
+                    if (lord.isCourted() && !lord.equals(targetLord)) {
+                        int decrease = 1;
+                        if (feast.getOriginator().equals(lord) || feast.getParticipants().contains(lord)) {
+                            decrease = 2;
+                        }
+                        textPanel.addPara(StringUtil.getString(
+                                CATEGORY, "relation_decrease",
+                                lord.getLordAPI().getNameString(), Integer.toString(decrease)), Color.RED);
+                        lord.getLordAPI().getRelToPlayer().adjustRelationship(-0.01f * decrease, null);
+                    }
+                }
+                options.removeOption(OptionId.DEDICATE_TOURNAMENT);
+                break;
             case ASK_TOURNAMENT:
-                LordEvent currFeast = EventController.getCurrentFeast(targetLord.getFaction());
-                if (currFeast == null || currFeast.getParticipants().size() < 3) {
+                if (feast == null || feast.getParticipants().size() < 3) {
                     textPanel.addPara(StringUtil.getString(CATEGORY, "cant_start_tournament"));
 
                 } else {
@@ -252,6 +315,37 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                 options.clearOptions();
                 options.addOption(StringUtil.getString(CATEGORY, "option_ask_location"), OptionId.ASK_LOCATION);
                 options.addOption(StringUtil.getString(CATEGORY, "option_ask_quest"), OptionId.ASK_QUEST);
+                if (isFeast) {
+                    boolean playerIsMarried = LordController.getSpouse() != null;
+                    if (!feast.isProfessedAdmiration() && !targetLord.isCourted() && !playerIsMarried) {
+                        options.addOption(StringUtil.getString(CATEGORY, "option_profess_admiration"),
+                                OptionId.PROFESS_ADMIRATION);
+                    }
+                    if (targetLord.isCourted()) {
+                        if (!feast.isHeldDate() && !playerIsMarried) {
+                            options.addOption(StringUtil.getString(CATEGORY, "option_ask_date"),
+                                    OptionId.SUGGEST_DATE);
+                        }
+                        if (!targetLord.isMarried() && feast.getWeddingCeremonyTarget() == null
+                                && !playerIsMarried) {
+                            options.addOption(StringUtil.getString(
+                                    CATEGORY, "option_ask_marriage", targetLord.getLordAPI().getName().getFirst()),
+                                    OptionId.SUGGEST_MARRIAGE);
+                        }
+                    }
+                }
+                if (targetLord.isMarried()) {
+                    if (targetLord.getCurrAction() == LordAction.COMPANION) {
+                        options.addOption(StringUtil.getString(CATEGORY, "option_ask_leave_party",
+                                        GenderUtils.husbandOrWife(targetLord.getLordAPI(), false),
+                                        GenderUtils.hisOrHer(targetLord.getLordAPI(), false)),
+                                OptionId.SUGGEST_LEAVE_PARTY);
+                    } else {
+                        options.addOption(StringUtil.getString(CATEGORY, "option_ask_join_party",
+                                        GenderUtils.husbandOrWife(targetLord.getLordAPI(), false)),
+                                OptionId.SUGGEST_JOIN_PARTY);
+                    }
+                }
                 faction = targetLord.getFaction();
                 if (faction.equals(Utils.getRecruitmentFaction())) {
                     LawProposal councilProposal = PoliticsController.getCurrProposal(faction);
@@ -276,6 +370,267 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                     }
                 }
                 options.addOption(StringUtil.getString(CATEGORY, "option_nevermind"), OptionId.INIT);
+                break;
+            case PROFESS_ADMIRATION:
+                // 0 hate, 1 dislike, 2 like
+                int likedLevel = 0;
+                switch (targetLord.getPersonality()) {
+                    case UPSTANDING:
+                        if (targetLord.getLordAPI().getRelToPlayer().isAtWorst(RepLevel.WELCOMING)) {
+                            likedLevel += 1;
+                        }
+                        int numCourted = 0;
+                        for (Lord lord : LordController.getLordsList()) {
+                            if (lord.isCourted()) numCourted += 1;
+                        }
+                        if (numCourted <= 1) likedLevel += 1;
+                        break;
+                    case MARTIAL:
+                        if (targetLord.getLordAPI().getRelToPlayer().isAtWorst(RepLevel.FAVORABLE)) {
+                            likedLevel += 1;
+                        }
+                        if (player.getStats().getLevel() >= 15) {
+                            likedLevel += 1;
+                        }
+                        break;
+                    case CALCULATING:
+                        likedLevel += LordController.getPlayerLord().getRanking();
+                        int playerCredits = (int) Global.getSector().getPlayerFleet().getCargo().getCredits().get();
+                        if (playerCredits > 2000000) {
+                            likedLevel += 2;
+                        } else if (playerCredits > 500000) {
+                            likedLevel += 1;
+                        }
+                        break;
+                }
+                if (likedLevel == 0) {
+                    textPanel.addPara(StringUtil.getString(CATEGORY, "admiration_response_hate"));
+                    textPanel.addPara(StringUtil.getString(
+                            CATEGORY, "relation_decrease",
+                            targetLord.getLordAPI().getNameString(), "10"), Color.RED);
+                    targetLord.getLordAPI().getRelToPlayer().adjustRelationship(-0.1f, null);
+                } else if (likedLevel == 1) {
+                    textPanel.addPara(StringUtil.getString(CATEGORY, "admiration_response_dislike"));
+                    textPanel.addPara(StringUtil.getString(
+                            CATEGORY, "relation_decrease",
+                            targetLord.getLordAPI().getNameString(), "2"), Color.RED);
+                    targetLord.getLordAPI().getRelToPlayer().adjustRelationship(-0.02f, null);
+                } else {
+                    textPanel.addPara(StringUtil.getString(
+                            CATEGORY, "admiration_response_like", GenderUtils.manOrWoman(player, false)));
+                    textPanel.addPara(StringUtil.getString(
+                            CATEGORY, "relation_increase",
+                            targetLord.getLordAPI().getNameString(), "10"), Color.GREEN);
+                    targetLord.getLordAPI().getRelToPlayer().adjustRelationship(0.1f, null);
+                }
+                targetLord.setCourted(true);
+                feast.setProfessedAdmiration(true);
+                optionSelected(null, OptionId.ASK_QUESTION);
+                break;
+            case SUGGEST_DATE:
+                int dateType = 1 + Utils.rand.nextInt(6);
+                String[] paraArgs;
+                switch(dateType) {
+                    case 1:
+                    case 3:
+                        paraArgs = new String[]{
+                                targetLord.getLordAPI().getNameString(),
+                                targetLord.getLordAPI().getName().getFirst()};
+                        break;
+                    case 2:
+                        paraArgs = new String[]{
+                                targetLord.getLordAPI().getNameString(),
+                                targetLord.getLordAPI().getName().getFirst(),
+                                GenderUtils.heOrShe(targetLord.getLordAPI(), false)};
+                        break;
+                    case 4:
+                        paraArgs = new String[]{
+                                targetLord.getLordAPI().getNameString(),
+                                targetLord.getLordAPI().getName().getFirst(),
+                                GenderUtils.hisOrHer(targetLord.getLordAPI(), false),
+                                GenderUtils.heOrShe(targetLord.getLordAPI(), false)};
+                        break;
+                    case 5:
+                        paraArgs = new String[]{
+                                targetLord.getLordAPI().getNameString(),
+                                targetLord.getLordAPI().getName().getFirst(),
+                                GenderUtils.hisOrHer(targetLord.getLordAPI(), false)};
+                        break;
+                    case 6:
+                    default:
+                        paraArgs = new String[]{
+                                targetLord.getLordAPI().getNameString(),
+                                GenderUtils.heOrShe(targetLord.getLordAPI(), false),
+                                targetLord.getLordAPI().getName().getFirst(),
+                                GenderUtils.heOrShe(targetLord.getLordAPI(), false),
+                                targetLord.getLordAPI().getName().getFirst()};
+                        break;
+                }
+                textPanel.addPara(StringUtil.getString(CATEGORY, "spend_time_together" + dateType, paraArgs));
+                if (dateType == 6) {
+                    // this is the gambling one where you lose money
+                    int loss = (int) Math.min(200 + Utils.rand.nextInt(800),
+                            Global.getSector().getPlayerFleet().getCargo().getCredits().get());
+                    Global.getSector().getPlayerFleet().getCargo().getCredits().subtract(loss);
+                    textPanel.addPara("Lost " + loss + " credits.", Color.RED);
+                }
+                textPanel.addPara(StringUtil.getString(
+                        CATEGORY, "relation_increase",
+                        targetLord.getLordAPI().getNameString(), "5"), Color.GREEN);
+                targetLord.getLordAPI().getRelToPlayer().adjustRelationship(0.05f, null);
+                textPanel.addPara(StringUtil.getString(CATEGORY, "spend_time_together_after"));
+                feast.setHeldDate(true);
+                options.clearOptions();
+                options.addOption(StringUtil.getString(CATEGORY, "option_give_gift"), OptionId.OFFER_GIFT);
+                options.addOption(StringUtil.getString(CATEGORY, "option_dont_give_gift"), OptionId.ASK_QUESTION);
+                options.setTooltip(OptionId.OFFER_GIFT, StringUtil.getString(CATEGORY, "spend_time_together_hint"));
+                break;
+            case OFFER_GIFT:
+                nextState = OptionId.OFFER_GIFT_SELECTION;
+                options.clearOptions();
+                String clothing = targetLord.getLordAPI().getGender() == FullName.Gender.FEMALE ? "dress" : "suit";
+                CargoAPI cargo = Global.getSector().getPlayerFleet().getCargo();
+                options.addOption("An alpha core", "alpha_core");
+                options.setTooltip("alpha_core", "Consumes 1 alpha core");
+                if (cargo.getCommodityQuantity("alpha_core") < 1) {
+                    options.setEnabled("alpha_core", false);
+                }
+                options.addOption("A high-quality handgun", "hand_weapons");
+                options.setTooltip("hand_weapons", "Consumes 100 Heavy Armaments");
+                if (cargo.getCommodityQuantity("hand_weapons") < 100) {
+                    options.setEnabled("hand_weapons", false);
+                }
+                options.addOption("A butter sampler platter", "food");
+                options.setTooltip("food", "Consumes 100 Food");
+                if (cargo.getCommodityQuantity("food") < 100) {
+                    options.setEnabled("food", false);
+                }
+                options.addOption("The latest luxury " + clothing + " from Chicomoztoc", "luxury_goods");
+                options.setTooltip("luxury_goods", "Consumes 100 Luxury Goods");
+                if (cargo.getCommodityQuantity("luxury_goods") < 100) {
+                    options.setEnabled("luxury_goods", false);
+                }
+                options.addOption("Fresh Volturnian Lobster", "lobster");
+                options.setTooltip("lobster", "Consumes 100 Volturnian Lobster");
+                if (cargo.getCommodityQuantity("lobster") < 100) {
+                    options.setEnabled("lobster", false);
+                }
+                options.addOption("A pack of psychedelics", "drugs");
+                options.setTooltip("drugs", "Consumes 100 Recreational Drugs");
+                if (cargo.getCommodityQuantity("drugs") < 100) {
+                    options.setEnabled("drugs", false);
+                }
+                options.addOption("The latest Tri-pad DLC", "domestic_goods");
+                options.setTooltip("domestic_goods", "Consumes 100 Domestic Goods");
+                if (cargo.getCommodityQuantity("domestic_goods") < 100) {
+                    options.setEnabled("domestic_goods", false);
+                }
+                options.addOption("Never mind", OptionId.ASK_QUESTION);
+                break;
+            case OFFER_GIFT_SELECTION:
+                String giftItem = (String) optionData;
+                int quantityGiven = 100;
+                if (giftItem.equals("alpha_core")) quantityGiven = 1;
+                Global.getSector().getPlayerFleet().getCargo().removeCommodity(giftItem, quantityGiven);
+                if (giftItem.equals(targetLord.getTemplate().preferredItemId)) {
+                    textPanel.addPara(StringUtil.getString(CATEGORY, "receive_gift_like"));
+                    textPanel.addPara(StringUtil.getString(
+                            CATEGORY, "relation_increase",
+                            targetLord.getLordAPI().getNameString(), "10"), Color.GREEN);
+                    targetLord.getLordAPI().getRelToPlayer().adjustRelationship(0.1f, null);
+                    targetLord.setRomanticActions(targetLord.getRomanticActions() + 1);
+                } else {
+                    textPanel.addPara(StringUtil.getString(CATEGORY, "receive_gift_dislike"));
+                    textPanel.addPara(StringUtil.getString(
+                            CATEGORY, "relation_decrease",
+                            targetLord.getLordAPI().getNameString(), "10"), Color.RED);
+                    targetLord.getLordAPI().getRelToPlayer().adjustRelationship(-0.1f, null);
+                }
+                optionSelected(null, OptionId.ASK_QUESTION);
+                break;
+            case START_WEDDING:
+                String hostName = feast.getOriginator().getLordAPI().getNameString();
+                if (feast.getOriginator().equals(feast.getWeddingCeremonyTarget())
+                        && !feast.getParticipants().isEmpty()) {
+                    hostName = feast.getParticipants().get(0).getLordAPI().getNameString();
+                }
+                textPanel.addPara(StringUtil.getString(CATEGORY, "marriage_ceremony",
+                        feast.getWeddingCeremonyTarget().getLordAPI().getNameString(), hostName));
+                feast.getWeddingCeremonyTarget().setMarried(true);
+                optionSelected(null, OptionId.INIT);
+                break;
+            case SUGGEST_MARRIAGE:
+                if (targetLord.getLordAPI().getRelToPlayer().isAtWorst(RepLevel.COOPERATIVE)) {
+                    if (targetLord.getRomanticActions() > 0) {
+                        feast.setWeddingCeremonyTarget(targetLord);
+                        textPanel.addPara(StringUtil.getString(
+                                CATEGORY, "accept_marriage_" + targetLord.getPersonality().toString().toLowerCase(),
+                                GenderUtils.manOrWoman(player, false), player.getName().getFirst()));
+                        if (targetLord.equals(feast.getOriginator())) {
+                            textPanel.addPara(StringUtil.getString(CATEGORY, "accept_marriage_is_host"));
+                        } else {
+                            textPanel.addPara(StringUtil.getString(
+                                    CATEGORY, "accept_marriage_see_host",
+                                    feast.getOriginator().getLordAPI().getNameString()));
+                        }
+                    } else {
+                        textPanel.addPara(StringUtil.getString(
+                                CATEGORY, "refuse_marriage_no_gift", GenderUtils.manOrWoman(player, false)));
+                        textPanel.addPara(StringUtil.getString(CATEGORY, "refuse_marriage_no_gift_hint"), Color.YELLOW);
+                    }
+                } else {
+                    // different rejection message depending on relations
+                    if (targetLord.getLordAPI().getRelToPlayer().isAtWorst(RepLevel.FRIENDLY)) {
+                        textPanel.addPara(StringUtil.getString(
+                                CATEGORY, "refuse_marriage_mild", GenderUtils.manOrWoman(player, false)));
+                    } else if (targetLord.getLordAPI().getRelToPlayer().isAtWorst(RepLevel.FAVORABLE)) {
+                        textPanel.addPara(StringUtil.getString(CATEGORY, "refuse_marriage_harsh"));
+                        textPanel.addPara(StringUtil.getString(
+                                CATEGORY, "relation_decrease",
+                                targetLord.getLordAPI().getNameString(), "10"), Color.RED);
+                        targetLord.getLordAPI().getRelToPlayer().adjustRelationship(-0.1f, null);
+
+                    } else {
+                        textPanel.addPara(StringUtil.getString(CATEGORY, "refuse_marriage_joke"));
+                    }
+                }
+                optionSelected(null, OptionId.ASK_QUESTION);
+                break;
+            case SUGGEST_JOIN_PARTY:
+                textPanel.addPara(StringUtil.getString(CATEGORY, "join_party_explanation"));
+                options.clearOptions();
+                options.addOption("Confirm", OptionId.CONFIRM_TOGGLE_PARTY);
+                options.addOption(StringUtil.getString(CATEGORY, "option_nevermind"), OptionId.ASK_QUESTION);
+                break;
+            case SUGGEST_LEAVE_PARTY:
+                textPanel.addPara(StringUtil.getString(CATEGORY, "leave_party_explanation"));
+                options.clearOptions();
+                options.addOption("Confirm", OptionId.CONFIRM_TOGGLE_PARTY);
+                options.addOption(StringUtil.getString(CATEGORY, "option_nevermind"), OptionId.ASK_QUESTION);
+                break;
+            case CONFIRM_TOGGLE_PARTY:
+                if (targetLord.getCurrAction() == LordAction.COMPANION) {
+                    Misc.setMercenary(targetLord.getLordAPI(), false);
+                    Global.getSector().getPlayerFleet().getFleetData().removeOfficer(targetLord.getLordAPI());
+                    targetLord.setCurrAction(null);
+                    targetLord.getFleet().fadeInIndicator();
+                    targetLord.getFleet().setHidden(false);
+                } else {
+                    EventController.removeFromAllEvents(targetLord);
+                    targetLord.setCurrAction(LordAction.COMPANION);
+                    targetLord.getFleet().fadeOutIndicator();
+                    targetLord.getFleet().setHidden(true);
+                    targetLord.getFleet().clearAssignments();
+                    MemoryAPI mem = targetLord.getFleet().getMemoryWithoutUpdate();
+                    Misc.setFlagWithReason(mem,
+                            MemFlags.FLEET_BUSY, BUSY_REASON, true, 1e7f);
+                    Misc.setFlagWithReason(mem,
+                            MemFlags.FLEET_IGNORES_OTHER_FLEETS, BUSY_REASON, true, 1e7f);
+                    Global.getSector().getPlayerFleet().getFleetData().addOfficer(targetLord.getLordAPI());
+                    Misc.setMercenary(targetLord.getLordAPI(), true);
+                    Misc.setMercHiredNow(targetLord.getLordAPI());
+                }
+                optionSelected(null, OptionId.ASK_QUESTION);
                 break;
             case SWAY_PROPOSAL_PLAYER:
             case SWAY_PROPOSAL_COUNCIL:
@@ -417,6 +772,16 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                             options.addOption(StringUtil.getString(CATEGORY, "option_ask_liege_opinion_decentralized"), OptionId.ASK_LIEGE_OPINION);
                         }
                     }
+                    boolean hasCourtedFriend = false;
+                    for (Lord friend : LordController.getLordsList()) {
+                        if (RelationController.getRelation(targetLord, friend) > 30 && friend.isCourted()) {
+                            hasCourtedFriend = true;
+                        }
+                    }
+                    if (hasCourtedFriend) {
+                        options.addOption(StringUtil.getString(CATEGORY, "option_ask_friend_preferences"),
+                                OptionId.ASK_FRIEND_FAVORITE_GIFT);
+                    }
                     options.addOption(StringUtil.getString(CATEGORY, "option_nevermind"), OptionId.INIT);
                 } else {
                     textPanel.addParagraph(StringUtil.getString(CATEGORY, "refuse_speak_privately_" +  targetLord.getPersonality().toString().toLowerCase()));
@@ -438,11 +803,55 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                     textPanel.addParagraph(StringUtil.getString(CATEGORY, "liege_opinion_" + relToString(loyalty), targetLord.getLiegeName()));
                 }
                 faction = Utils.getRecruitmentFaction();
-                if (loyalty < Utils.getThreshold(RepLevel.FAVORABLE) && !faction.equals(targetLord.getLordAPI().getFaction())) {
+                if ((targetLord.isMarried() || loyalty < Utils.getThreshold(RepLevel.FAVORABLE))
+                        && !faction.equals(targetLord.getLordAPI().getFaction())) {
                     options.clearOptions();
                     options.addOption(StringUtil.getString(CATEGORY, "suggest_defect", faction.getDisplayNameWithArticle()), OptionId.SUGGEST_DEFECT);
                     options.addOption("Interesting.", OptionId.INIT);
                 }
+                break;
+            case ASK_FRIEND_FAVORITE_GIFT:
+                textPanel.addParagraph(StringUtil.getString(CATEGORY, "prepare_advise_friend_gift"));
+                options.clearOptions();
+                nextState = OptionId.ASK_FRIEND_FAVORITE_GIFT_LIST;
+                for (Lord friend : LordController.getLordsList()) {
+                    if (RelationController.getRelation(targetLord, friend) > 30 && friend.isCourted()) {
+                        options.addOption(friend.getLordAPI().getNameString(), friend);
+                    }
+                }
+                options.addOption(StringUtil.getString(CATEGORY, "option_nevermind"), OptionId.INIT);
+                break;
+            case ASK_FRIEND_FAVORITE_GIFT_LIST:
+                if (optionData instanceof Lord) {
+                    Lord friend = (Lord) optionData;
+                    String interest = "";
+                    switch (friend.getTemplate().preferredItemId) {
+                        case "alpha_core":
+                            interest = "AI research";
+                            break;
+                        case "hand_weapons":
+                            interest = "rare weapons";
+                            break;
+                        case "food":
+                            interest = "exotic butters";
+                            break;
+                        case "luxury_goods":
+                            interest = "fashion";
+                            break;
+                        case "lobster":
+                            interest = "Sindrian delicacies";
+                            break;
+                        case "drugs":
+                            interest = "drugs";
+                            break;
+                        case "domestic_goods":
+                            interest = "technological gadgets";
+                            break;
+                    }
+                    textPanel.addParagraph(StringUtil.getString(CATEGORY, "advise_friend_gift",
+                            friend.getLordAPI().getName().getFirst(), interest));
+                }
+                optionSelected(null, OptionId.INIT);
                 break;
             case SUGGEST_DEFECT:
                 textPanel.addParagraph(StringUtil.getString(CATEGORY, "consider_defect"));
@@ -564,8 +973,9 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                 int loyaltyFactor = DefectionUtils.computeRelativeFactionPreference(targetLord, Global.getSector().getPlayerFaction());
                 int companionFactor = DefectionUtils.computeRelativeLordPreference(targetLord, faction);
                 int randFactor = rand.nextInt(10);
+                int marriedFactor = targetLord.isMarried() ? 200 : 0;
                 //log.info("DEBUG defection: " + baseReluctance + ", " + legitimacyFactor + ", " + loyaltyFactor + ", " + companionFactor + ", " + claimStrength + ", " + randFactor);
-                int totalWeight = baseReluctance + legitimacyFactor + loyaltyFactor + companionFactor + Math.min(claimConcern, claimStrength) + randFactor;
+                int totalWeight = baseReluctance + legitimacyFactor + loyaltyFactor + companionFactor + marriedFactor + Math.min(claimConcern, claimStrength) + randFactor;
                 if (totalWeight > 0) {
                     String liegeName = Utils.getLiegeName(faction);
                     textPanel.addPara(StringUtil.getString(CATEGORY, "accept_defect", player.getNameString(), liegeName), Color.GREEN);
@@ -636,7 +1046,6 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
             case SUGGEST_ACTION:
                 boolean isBusy = false;
                 // check if lord is leading an event or dead
-                LordEvent feast = EventController.getCurrentFeast(targetLord.getLordAPI().getFaction());
                 LordEvent campaign = EventController.getCurrentCampaign(targetLord.getLordAPI().getFaction());
                 if ((feast != null && feast.getOriginator().equals(targetLord))
                         || (campaign != null && campaign.getOriginator().equals(targetLord))
@@ -644,14 +1053,20 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                     isBusy = true;
                 }
 
-                if (targetLord.getLordAPI().getRelToPlayer().isAtBest(RepLevel.NEUTRAL)) {
+                if (!targetLord.isMarried() && targetLord.getLordAPI().getRelToPlayer().isAtBest(RepLevel.NEUTRAL)) {
                     textPanel.addParagraph(StringUtil.getString(CATEGORY, "refuse_suggest_action_relations"));
                 } else if (isBusy) {
                     textPanel.addParagraph(StringUtil.getString(CATEGORY, "refuse_suggest_action_busy"));
                 } else {
                     // TODO relations tooltips
                     options.clearOptions();
-                    textPanel.addParagraph(StringUtil.getString(CATEGORY, "consider_suggest_action"));
+                    if (targetLord.isMarried()) {
+                        textPanel.addParagraph(StringUtil.getString(CATEGORY, "consider_suggest_action_spouse"));
+                    } else if (targetLord.getFaction().isPlayerFaction()) {
+                        textPanel.addParagraph(StringUtil.getString(CATEGORY, "consider_suggest_action_subject"));
+                    } else {
+                        textPanel.addParagraph(StringUtil.getString(CATEGORY, "consider_suggest_action"));
+                    }
                     if (targetLord.getCurrAction() == LordAction.FOLLOW
                             && Global.getSector().getPlayerFleet().equals(targetLord.getTarget())) {
                         options.addOption(StringUtil.getString(CATEGORY, "option_stop_follow_me"), OptionId.STOP_FOLLOW_ME);
@@ -667,8 +1082,8 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                 break;
             case FOLLOW_ME:
                 LordAI.playerOrder(targetLord, LordAction.FOLLOW, Global.getSector().getPlayerFleet());
-                textPanel.addParagraph(StringUtil.getString(CATEGORY, "accept_suggest_action"));
-                if (!targetLord.getFaction().equals(Global.getSector().getPlayerFaction())) {
+                displayAcceptSuggestAction();
+                if (!targetLord.getFaction().equals(Global.getSector().getPlayerFaction()) && !targetLord.isMarried()) {
                     targetLord.getLordAPI().getRelToPlayer().adjustRelationship(-0.02f, null);
                     textPanel.addParagraph(StringUtil.getString(
                             CATEGORY, "relation_decrease", targetLord.getLordAPI().getNameString(), "2"), Color.RED);
@@ -678,7 +1093,7 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
             case STOP_FOLLOW_ME:
                 targetLord.setCurrAction(null);
                 lordFleet.clearAssignments();
-                textPanel.addParagraph(StringUtil.getString(CATEGORY, "accept_suggest_action"));
+                displayAcceptSuggestAction();
                 optionSelected(null, OptionId.INIT);
                 break;
             case SUGGEST_PATROL:
@@ -696,8 +1111,8 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                 if (optionData instanceof String) {
                     SectorEntityToken patrolTarget = Global.getSector().getEconomy().getMarket((String) optionData).getPrimaryEntity();
                     LordAI.playerOrder(targetLord, LordAction.PATROL_TRANSIT, patrolTarget);
-                    textPanel.addParagraph(StringUtil.getString(CATEGORY, "accept_suggest_action"));
-                    if (!targetLord.getFaction().equals(Global.getSector().getPlayerFaction())) {
+                    displayAcceptSuggestAction();
+                    if (!targetLord.getFaction().equals(Global.getSector().getPlayerFaction()) && !targetLord.isMarried()) {
                         targetLord.getLordAPI().getRelToPlayer().adjustRelationship(-0.02f, null);
                         textPanel.addParagraph(StringUtil.getString(
                                 CATEGORY, "relation_decrease", targetLord.getLordAPI().getNameString(), "2"), Color.RED);
@@ -724,8 +1139,8 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                 if (optionData instanceof String) {
                     SectorEntityToken raidTarget = Global.getSector().getEconomy().getMarket((String) optionData).getPrimaryEntity();
                     LordAI.playerOrder(targetLord, LordAction.RAID_TRANSIT, raidTarget);
-                    textPanel.addParagraph(StringUtil.getString(CATEGORY, "accept_suggest_action"));
-                    if (!targetLord.getFaction().equals(Global.getSector().getPlayerFaction())) {
+                    displayAcceptSuggestAction();
+                    if (!targetLord.getFaction().equals(Global.getSector().getPlayerFaction()) && !targetLord.isMarried()) {
                         targetLord.getLordAPI().getRelToPlayer().adjustRelationship(-0.02f, null);
                         textPanel.addParagraph(StringUtil.getString(
                                 CATEGORY, "relation_decrease", targetLord.getLordAPI().getNameString(), "2"), Color.RED);
@@ -738,7 +1153,7 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                 break;
             case SUGGEST_UPGRADE:
                 LordAI.playerOrder(targetLord, LordAction.UPGRADE_FLEET_TRANSIT, null);
-                textPanel.addParagraph(StringUtil.getString(CATEGORY, "accept_suggest_action"));
+                displayAcceptSuggestAction();
                 if (!targetLord.getFaction().equals(Global.getSector().getPlayerFaction())) {
                     targetLord.getLordAPI().getRelToPlayer().adjustRelationship(-0.01f, null);
                     textPanel.addParagraph(StringUtil.getString(
@@ -807,6 +1222,16 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
             return "friendly";
         } else {
             return "trusted";
+        }
+    }
+
+    private void displayAcceptSuggestAction() {
+        if (targetLord.getFaction().isPlayerFaction()) {
+            textPanel.addParagraph(StringUtil.getString(
+                    CATEGORY, "accept_suggest_action_subject",
+                    GenderUtils.sirOrMaam(Global.getSector().getPlayerPerson(), false)));
+        } else {
+            textPanel.addParagraph(StringUtil.getString(CATEGORY, "accept_suggest_action"));
         }
     }
 }

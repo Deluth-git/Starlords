@@ -273,7 +273,9 @@ public class PoliticsController implements EveryFrameScript {
         if (marshal == null) {
             weight = 10 + rand.nextInt(100);
         } else if (rand.nextBoolean()) {
-            weight = (40 * (2 - marshal.getRanking())) - RelationController.getRelation(marshal, lord);
+            int ranking = marshal.isPlayer() && marshal.getFaction().isPlayerFaction() ? 3 : marshal.getRanking();
+            weight = (40 * (2 - ranking)) - RelationController.getRelation(marshal, lord);
+            weight += marshal.getControversy();
         }
 
         if (weight > bestWeight) {
@@ -650,6 +652,14 @@ public class PoliticsController implements EveryFrameScript {
                 }
                 approval += delta;
                 reasons.add(addPlus(delta) + " Appointee rank");
+                Lord marshal = LordController.getLordOrPlayerById(getLaws(lord.getFaction()).getMarshal());
+                int marshalControversy = 0;
+                if (marshal != null) {
+                    marshalControversy = marshal.getControversy();
+                }
+                delta = marshalControversy - lord.getControversy();
+                approval += delta;
+                reasons.add(addPlus(delta) + " Relative controversy");
                 break;
             case AWARD_FIEF:
                 lord = LordController.getLordOrPlayerById(proposal.getTargetLord());
@@ -806,14 +816,15 @@ public class PoliticsController implements EveryFrameScript {
                 }
                 break;
             case APPOINT_MARSHAL:
-                //TODO add some job approval mechanic
-                base = -30;
+                base = -40;
                 victimPenalty = 50;
                 // affected by lord rank
                 int currRank = 0;
-                int newRank = beneficiary.getRanking();
+                int newRank = (beneficiary.isPlayer() && beneficiary.getFaction().isPlayerFaction())
+                        ? 2 : beneficiary.getRanking();
                 if (victim != null) {
-                    currRank = victim.getRanking();
+                    currRank = (victim.isPlayer() && victim.getFaction().isPlayerFaction())
+                            ? 2 : victim.getRanking();
                 }
                 delta = 20 * (newRank - currRank);
                 approval += delta;
@@ -824,6 +835,12 @@ public class PoliticsController implements EveryFrameScript {
                     approval += delta;
                     if (itemized) auxReasons.add(addPlus(delta) + " Disrupts ongoing campaign");
                 }
+                delta = -beneficiary.getControversy();
+                if (victim != null) {
+                    delta += victim.getControversy();
+                }
+                approval += delta;
+                if (itemized) auxReasons.add(addPlus(delta) + " Relative controversy");
                 break;
             case AWARD_FIEF:
                 // TODO see who captured fief

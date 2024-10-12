@@ -6,6 +6,7 @@ import com.fs.starfarer.api.fleet.FleetMemberAPI;
 import com.fs.starfarer.api.util.Misc;
 import starlords.controllers.EventController;
 import starlords.controllers.LordController;
+import starlords.controllers.PoliticsController;
 import starlords.controllers.RelationController;
 import starlords.person.Lord;
 import starlords.person.LordAction;
@@ -99,6 +100,11 @@ public class BattleListener extends BaseCampaignEventListener {
 
             // level up if enough stuff is killed
             if (!lord.isPlayer()) levelUpWithChance(winner, 200 * killsFP / totalFP);
+
+            // pirates get happier about being pirates when they kill stuff
+            if (Misc.isPirateFaction(lord.getFaction()) && Utils.rand.nextFloat() < ((float) killsFP) / totalFP) {
+                RelationController.modifyLoyalty(lord, 1);
+            }
         }
         // record kills and levels up losers, but no relations increase
         for (CampaignFleetAPI loser : battle.getOtherSideSnapshotFor(primaryWinner)) {
@@ -237,6 +243,15 @@ public class BattleListener extends BaseCampaignEventListener {
             } else {
                 int change = Math.min(3, 1 + defeated.getPersonality().ordinal());
                 RelationController.modifyLoyalty(defeated, -change);
+            }
+
+            // Faction marshal gets controversy for lord being defeated
+            if (!Misc.isPirateFaction(defeated.getFaction())) {
+                Lord marshal = LordController.getLordOrPlayerById(
+                        PoliticsController.getLaws(defeated.getFaction()).getMarshal());
+                if (marshal != null) {
+                    marshal.setControversy(Math.min(100, marshal.getControversy() + 1));
+                }
             }
         }
     }

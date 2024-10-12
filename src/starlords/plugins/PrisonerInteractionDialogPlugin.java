@@ -3,6 +3,7 @@ package starlords.plugins;
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.ui.IntelUIAPI;
 import lombok.Setter;
+import starlords.util.GenderUtils;
 import starlords.util.StringUtil;
 import starlords.util.Utils;
 
@@ -55,7 +56,7 @@ public class PrisonerInteractionDialogPlugin extends LordInteractionDialogPlugin
             case RELEASE_RESOLVE:
                 textPanel.addPara(StringUtil.getString(CATEGORY,
                         "release_" + targetLord.getPersonality().toString().toLowerCase(),
-                        Utils.manOrWoman(Global.getSector().getPlayerPerson(), false)));
+                        GenderUtils.manOrWoman(Global.getSector().getPlayerPerson(), false)));
                 int change = targetLord.getPersonality().releaseRepGain;
                 Utils.adjustPlayerReputation(targetLord.getLordAPI(), change);
                 textPanel.addPara(StringUtil.getString(

@@ -72,6 +72,10 @@ public class LordEvent {
     private boolean victoryDedicated;
     @Setter
     private boolean heldDate;
+    @Setter
+    private boolean professedAdmiration;
+    @Setter
+    private Lord weddingCeremonyTarget;
 
 
     public LordEvent(String type, RaidIntel intel, SectorEntityToken target) {
