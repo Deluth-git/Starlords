@@ -148,6 +148,7 @@ public class DefectionUtils {
     public static void performDefection(Lord lord, FactionAPI faction, boolean showMessage) {
         EventController.removeFromAllEvents(lord);
         String oldFactionName = lord.getFaction().getDisplayNameWithArticle();
+        if (faction.isPlayerFaction()) lord.setKnownToPlayer(true);
         lord.getLordAPI().getFleet().setFaction(faction.getId(), true);
         lord.getLordAPI().setFaction(faction.getId());
         lord.setCurrAction(null);

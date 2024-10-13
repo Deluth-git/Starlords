@@ -42,6 +42,6 @@ public class Constants {
     public static final int SMALL_BRIBE = 500000;
     public static final int LARGE_BRIBE = 2000000;
     public static final int STARTING_LOYALTY = 40;  // all lords start with this much loyalty to their faction
-    public static final int MIN_STARTING_LOYALTY_DEFECTION = 10; // all lord loyalties are reset to at least this much after defecting
+    public static final int MIN_STARTING_LOYALTY_DEFECTION = 15; // all lord loyalties are reset to at least this much after defecting
 
 }

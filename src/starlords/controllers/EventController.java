@@ -528,6 +528,7 @@ public class EventController extends BaseIntelPlugin {
     // if event is null, assumes lord will originate a new event.
     // if event is not null, market is expected to be the target of event
     public static int getMilitaryOpWeight(Lord lord, MarketAPI market, LordEvent event, boolean defensive) {
+        if (market == null) return 0;
         SectorEntityToken target = market.getPrimaryEntity();
         CampaignFleetAPI lordFleet = lord.getLordAPI().getFleet();
         Lord targetOwner = FiefController.getOwner(target.getMarket());
