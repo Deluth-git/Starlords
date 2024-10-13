@@ -4,8 +4,8 @@
   "author":"Deluth",
   "version":{
     "major":0, 
-    "minor":2,
-    "patch":3
+    "minor":3,
+    "patch":0
   },
   "description":"Mount and Blade in Space",
   "gameVersion":"0.97a-RC11",

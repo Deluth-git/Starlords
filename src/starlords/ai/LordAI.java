@@ -588,7 +588,7 @@ public class LordAI implements EveryFrameScript {
                     // sometimes stop raids randomly so they dont go on forever
                     LordEvent raid = EventController.getCurrentRaid(lord);
                     FactionAPI faction = lord.getFaction();
-                    if (lord.equals(raid.getOriginator())) {
+                    if (lord.equals(raid.getOriginator()) && raid.getTarget().getMarket() != null) {
                         if (Utils.isSomewhatClose(lord.getFleet(), raid.getTarget())) {
                             if (lord.getFleet().getBattle() == null && raid.getOffensiveType() != null &&
                                     Utils.getDaysSince(raid.getOffenseTimestamp())
@@ -630,8 +630,10 @@ public class LordAI implements EveryFrameScript {
                             fleetAI.removeFirstAssignmentIfItIs(FleetAssignment.ORBIT_PASSIVE);
                         }
                     }
-                    if (raid.getOffensiveType() == null && (raid.getTotalViolence() >= RAID_MAX_VIOLENCE
-                            || newWeight.two <= 0 || rand.nextInt(8) == 0)) {
+                    boolean endRaid = raid.getTarget().getMarket() == null;
+                    endRaid |= raid.getOffensiveType() == null && (raid.getTotalViolence() >= RAID_MAX_VIOLENCE
+                            || newWeight.two <= 0 || rand.nextInt(8) == 0);
+                    if (endRaid) {
                         // choose new assignment
                         if (lord.equals(raid.getOriginator())) {
                             EventController.endRaid(raid);
@@ -723,12 +725,15 @@ public class LordAI implements EveryFrameScript {
 
                             } else {
                                 MarketAPI target = campaign.getTarget().getMarket();
-                                if (!lord.getFaction().isHostileTo(target.getFaction())) {
+                                if (target == null) {
+                                    // market is gone somehow, possibly decivilized during campaign
+                                    chooseNextCampaignTarget(lord, campaign);
+                                } else if (!lord.getFaction().isHostileTo(target.getFaction())) {
                                     // defensive campaign
                                     boolean defenseNeeded = false;
                                     for (LordEvent otherCampaign : EventController.getInstance().getCampaigns()) {
                                         if (otherCampaign.getFaction().isHostileTo(faction)
-                                                && otherCampaign.getTarget() != null && otherCampaign.getTarget().getMarket().equals(target)) {
+                                                && otherCampaign.getTarget() != null && otherCampaign.getTarget().equals(campaign.getTarget())) {
                                             defenseNeeded = true;
                                         }
                                     }
@@ -943,7 +948,7 @@ public class LordAI implements EveryFrameScript {
         }
         if (event.getType().equals(LordEvent.RAID)) {
             FactionAPI attackerFaction = event.getFaction();
-            FactionAPI defenderFaction = event.getTarget().getMarket().getFaction();
+            FactionAPI defenderFaction = event.getTarget().getFaction();
 
             PriorityQueue<Pair<Lord, Integer>> attackPQ = new PriorityQueue<>(11, new Comparator<Pair<Lord, Integer>>() {
                 @Override
