@@ -426,6 +426,7 @@ public class LordAI implements EveryFrameScript {
     }
 
     public static void progressAssignment(Lord lord) {
+        if (lord.getCurrAction() == LordAction.COMPANION) return;
         CampaignFleetAIAPI fleetAI = lord.getFleet().getAI();
         final CampaignFleetAPI fleet = lord.getFleet();
         final MemoryAPI mem = fleet.getMemoryWithoutUpdate();

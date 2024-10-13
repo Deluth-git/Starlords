@@ -98,6 +98,10 @@ public class Lord {
     @Setter
     private int controversy;
 
+    // stores reference to lord's former fleet while lord is serving as an officer
+    @Setter
+    private CampaignFleetAPI oldFleet;
+
     // Creates a lord from scratch, only run at campaign start
     public Lord(LordTemplate template) {
         FullName.Gender gender = template.isMale ? FullName.Gender.MALE : FullName.Gender.FEMALE;

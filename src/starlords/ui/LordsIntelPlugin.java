@@ -98,6 +98,8 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
             orderStr = "[REDACTED]";
         } else if (lord.getCurrAction() == LordAction.IMPRISONED) {
             orderStr = "Imprisoned by " + LordController.getLordOrPlayerById(lord.getCaptor()).getLordAPI().getNameString();
+        } else if (lord.getCurrAction() == LordAction.COMPANION) {
+            orderStr = "Traveling with you";
         } else if (lord.getCurrAction() == null || !fleet.isAlive()) {
             orderStr = "None";
         } else if (lord.getCurrAction() != LordAction.CAMPAIGN) {
@@ -121,6 +123,8 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
             lastSeenStr = "[REDACTED]";
         }  else if (!fleet.isAlive()) {
             lastSeenStr = "N/A";
+        } else if (lord.getCurrAction() == LordAction.COMPANION) {
+            lastSeenStr = Utils.getNearbyDescription(Global.getSector().getPlayerFleet());
         } else {
             lastSeenStr = Utils.getNearbyDescription(fleet);
         }
@@ -146,13 +150,16 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
         outer.addSectionHeading("Fleet Composition",
                 faction.getBrightUIColor(), faction.getDarkUIColor(), Alignment.LMID, opad);
         // shiplist
-        if (lord.getPlayerRel() >= Utils.getThreshold(RepLevel.FRIENDLY) || isSubject || isMarried || DEBUG_MODE) {
-            int rows = 3;
-            if (lord.getLordAPI().getFleet().getNumShips() <= 30) rows = 2;
-            outer.addShipList(15, rows, 48, factionColor,
-                    lord.getLordAPI().getFleet().getMembersWithFightersCopy(), opad);
-        } else {
-            outer.addPara("[REDACTED]", pad);
+        if (lord.getCurrAction() != LordAction.COMPANION) {
+            if (lord.getPlayerRel() >= Utils.getThreshold(RepLevel.FRIENDLY)
+                    || isSubject || isMarried || DEBUG_MODE) {
+                int rows = 3;
+                if (lord.getLordAPI().getFleet().getNumShips() <= 30) rows = 2;
+                outer.addShipList(15, rows, 48, factionColor,
+                        lord.getLordAPI().getFleet().getMembersWithFightersCopy(), opad);
+            } else {
+                outer.addPara("[REDACTED]", pad);
+            }
         }
 
         // comms
@@ -165,6 +172,10 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
             button.setEnabled(false);
             outer.addTooltipToPrevious(new ToolTip(175, "Requires higher relations"),
                     TooltipMakerAPI.TooltipLocation.BELOW);
+        } else if (lord.getCurrAction() == LordAction.IMPRISONED) {
+            button.setEnabled(false);
+            outer.addTooltipToPrevious(new ToolTip(175, "Lord is imprisoned"),
+                    TooltipMakerAPI.TooltipLocation.BELOW);
         }
         panel.addUIElement(outer).inTL(0, 0);
     }
@@ -173,7 +184,11 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
     public void buttonPressConfirmed(Object buttonId, IntelUIAPI ui) {
         if (buttonId == OPEN_COMMS_BUTTON && lord.getPlayerRel() >= Utils.getThreshold(RepLevel.COOPERATIVE)) {
             LordInteractionDialogPluginImpl conversationDelegate = new LordInteractionDialogPluginImpl();
-            ui.showDialog(lord.getLordAPI().getFleet(), conversationDelegate);
+            if (lord.getCurrAction() == LordAction.COMPANION) {
+                ui.showDialog(lord.getOldFleet(), conversationDelegate);
+            } else {
+                ui.showDialog(lord.getFleet(), conversationDelegate);
+            }
         }
     }
 
@@ -196,6 +211,18 @@ public class LordsIntelPlugin extends BaseIntelPlugin {
     @Override
     public FactionAPI getFactionForUIColors() {
         return lord.getLordAPI().getFaction();
+    }
+
+    @Override
+    public SectorEntityToken getMapLocation(SectorMapAPI map) {
+        if (lord.getFaction().equals(Utils.getRecruitmentFaction())) {
+            if (lord.getFaction().isPlayerFaction()
+                    || lord.getPlayerRel() >= Utils.getThreshold(RepLevel.COOPERATIVE) || lord.isMarried()) {
+                if (lord.getFleet() == null || !lord.getFleet().isAlive()) return null;
+                return lord.getFleet();
+            }
+        }
+        return null;
     }
 
     @Override

@@ -101,6 +101,7 @@
     "accept_defect": "You are right, $string. I will join you in your conquests. I hereby swear my fleet and holdings to your service. Hail $string, rightful ruler of the sector!",
     "refuse_defect": "I cannot betray our leader. I will keep this conversation to myself for sake of our friendship, but do not speak of this again.",
 
+    "option_host_wedding": "Begin the wedding ceremony.",
     "option_dedicate_tournament": "$string, my tournament victory goes out to you.",
     "option_ask_tournament": "Ask to enter the feast tournament.",
     "option_continue_to_tournament": "For honor and glory!",
@@ -115,8 +116,8 @@
     "option_give_gift": "Select a gift",
     "option_dont_give_gift": "Just return to the feast",
     "option_ask_marriage": "Ask for $string's hand in marriage.",
-    "option_ask_leave_party": "Ask your $string to return to $string own fleet",
-    "option_ask_join_party": "Ask your $string to join your fleet",
+    "option_ask_leave_party": "Ask your $string to return to $string own fleet.",
+    "option_ask_join_party": "Ask your $string to join your fleet.",
     "option_refuse_sway": "I'm sorry, but I've already made up my mind on the matter.",
     "option_accept_sway_bargain": "We have a deal then. I'll do as you ask.",
     "option_accept_sway_redundant": "Er... I already agree with you, though I must say that our talk has reinforced my view.",
@@ -155,6 +156,7 @@
     "current_task_desc_raid": "I am raiding $string. We must keep up the pressure and cripple the enemy's war effort.",
     "current_task_desc_defend": "I am flying to the defense of $string. I've received word of enemy activity in the area.",
     "current_task_desc_follow": "I am following $string.",
+    "current_task_desc_companion": "I am serving as an officer in your fleet.",
     "current_task_desc_campaign": "I am on campaign. The realm's navy is still being assembled.",
     "current_task_desc_campaign2": "I am on campaign. Our current target is $string.",
 

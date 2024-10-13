@@ -12,6 +12,7 @@ import starlords.controllers.PoliticsController;
 import starlords.controllers.QuestController;
 import org.apache.log4j.Logger;
 import starlords.person.Lord;
+import starlords.person.LordAction;
 import starlords.util.Constants;
 import starlords.util.DefectionUtils;
 import starlords.util.LordFleetFactory;
@@ -36,20 +37,6 @@ public class MonthlyUpkeepListener extends BaseCampaignEventListener {
         // Give all lords their base monthly wage and pay fleet upkeep.
         List<Lord> lords = LordController.getLordsList();
         for (Lord lord : lords) {
-            Pair<Float, Float> result = PoliticsController.getBaseIncomeMultipliers(lord.getFaction());
-            // give pirates some more base money since they can't own fiefs
-            if (Misc.isPirateFaction(lord.getFaction())) result.one *= 2f;
-            lord.addWealth(result.one * Constants.LORD_MONTHLY_INCOME
-                    + result.two * lord.getRanking() * Constants.LORD_MONTHLY_INCOME);
-            CampaignFleetAPI fleet = lord.getLordAPI().getFleet();
-            if (fleet == null) {
-                continue;
-            }
-            // maintenance cost is 15% of purchase cost, also use FP instead of DP for simplicity
-            float cost = LordFleetFactory.COST_MULT * fleet.getFleetPoints() * 0.15f;
-            lord.addWealth(-1 * cost);
-            //log.info("DEBUG: Lord " + lord.getLordAPI().getNameString() + " incurred expenses of " + cost);
-
             // make sure mercenary lords dont expire every month
             if (Misc.isMercenary(lord.getLordAPI())) {
                 Misc.setMercHiredNow(lord.getLordAPI());
@@ -57,6 +44,20 @@ public class MonthlyUpkeepListener extends BaseCampaignEventListener {
             if (!lord.isMarshal()) {
                 lord.setControversy(Math.max(0, lord.getControversy() - 2));
             }
+
+            Pair<Float, Float> result = PoliticsController.getBaseIncomeMultipliers(lord.getFaction());
+            // give pirates some more base money since they can't own fiefs
+            if (Misc.isPirateFaction(lord.getFaction())) result.one *= 2f;
+            lord.addWealth(result.one * Constants.LORD_MONTHLY_INCOME
+                    + result.two * lord.getRanking() * Constants.LORD_MONTHLY_INCOME);
+            CampaignFleetAPI fleet = lord.getLordAPI().getFleet();
+            if (fleet == null || lord.getCurrAction() == LordAction.COMPANION) {
+                continue;
+            }
+            // maintenance cost is 15% of purchase cost, also use FP instead of DP for simplicity
+            float cost = LordFleetFactory.COST_MULT * fleet.getFleetPoints() * 0.15f;
+            lord.addWealth(-1 * cost);
+            //log.info("DEBUG: Lord " + lord.getLordAPI().getNameString() + " incurred expenses of " + cost);
         }
         FiefController.onMonthPass();
         QuestController.getInstance().resetQuests();

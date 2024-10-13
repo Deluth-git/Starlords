@@ -3,6 +3,7 @@ package starlords.plugins;
 import com.fs.starfarer.api.EveryFrameScript;
 import com.fs.starfarer.api.campaign.econ.CommoditySpecAPI;
 import com.fs.starfarer.api.characters.FullName;
+import com.fs.starfarer.api.fleet.FleetMemberAPI;
 import starlords.ai.LordAI;
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.*;
@@ -612,15 +613,22 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                 if (targetLord.getCurrAction() == LordAction.COMPANION) {
                     Misc.setMercenary(targetLord.getLordAPI(), false);
                     Global.getSector().getPlayerFleet().getFleetData().removeOfficer(targetLord.getLordAPI());
+                    for (FleetMemberAPI ship : Global.getSector().getPlayerFleet().getFleetData().getMembersListCopy()) {
+                        if (targetLord.getLordAPI().equals(ship.getCaptain())) ship.setCaptain(null);
+                    }
+                    targetLord.getLordAPI().setFleet(targetLord.getOldFleet());
+                    targetLord.setOldFleet(null);
                     targetLord.setCurrAction(null);
                     targetLord.getFleet().fadeInIndicator();
                     targetLord.getFleet().setHidden(false);
                 } else {
                     EventController.removeFromAllEvents(targetLord);
                     targetLord.setCurrAction(LordAction.COMPANION);
+                    targetLord.getFleet().setVelocity(0, 0);
                     targetLord.getFleet().fadeOutIndicator();
                     targetLord.getFleet().setHidden(true);
                     targetLord.getFleet().clearAssignments();
+                    targetLord.setOldFleet(targetLord.getFleet());
                     MemoryAPI mem = targetLord.getFleet().getMemoryWithoutUpdate();
                     Misc.setFlagWithReason(mem,
                             MemFlags.FLEET_BUSY, BUSY_REASON, true, 1e7f);
@@ -629,6 +637,7 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                     Global.getSector().getPlayerFleet().getFleetData().addOfficer(targetLord.getLordAPI());
                     Misc.setMercenary(targetLord.getLordAPI(), true);
                     Misc.setMercHiredNow(targetLord.getLordAPI());
+                    targetLord.getLordAPI().setFaction(targetLord.getOldFleet().getFaction().getId());
                 }
                 optionSelected(null, OptionId.ASK_QUESTION);
                 break;
@@ -774,7 +783,8 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                     }
                     boolean hasCourtedFriend = false;
                     for (Lord friend : LordController.getLordsList()) {
-                        if (RelationController.getRelation(targetLord, friend) > 30 && friend.isCourted()) {
+                        if (RelationController.getRelation(targetLord, friend) > 30
+                                && friend.isCourted() && targetLord != friend) {
                             hasCourtedFriend = true;
                         }
                     }
@@ -815,7 +825,8 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                 options.clearOptions();
                 nextState = OptionId.ASK_FRIEND_FAVORITE_GIFT_LIST;
                 for (Lord friend : LordController.getLordsList()) {
-                    if (RelationController.getRelation(targetLord, friend) > 30 && friend.isCourted()) {
+                    if (RelationController.getRelation(targetLord, friend) > 30
+                            && friend.isCourted() && targetLord != friend) {
                         options.addOption(friend.getLordAPI().getNameString(), friend);
                     }
                 }
@@ -1049,7 +1060,7 @@ public class LordInteractionDialogPluginImpl implements InteractionDialogPlugin 
                 LordEvent campaign = EventController.getCurrentCampaign(targetLord.getLordAPI().getFaction());
                 if ((feast != null && feast.getOriginator().equals(targetLord))
                         || (campaign != null && campaign.getOriginator().equals(targetLord))
-                        || lordFleet.isEmpty()) {
+                        || lordFleet.isEmpty() || targetLord.getCurrAction() == LordAction.COMPANION) {
                     isBusy = true;
                 }
 
