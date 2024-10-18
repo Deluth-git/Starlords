@@ -141,9 +141,15 @@ public class Lord {
         }
         FullName fullName = new FullName(splitname[0], lastName.trim(), gender);
         lord.setName(fullName);
-        lord.setPortraitSprite("graphics/portraits/" + template.portrait + ".png");
         lord.addTag(LordTags.LORD);
         lord.addTag("coff_nocapture");  // prevents capture from take no prisoners
+        String portraitPath;
+        if (template.portrait.contains("/")) {
+            portraitPath = template.portrait;
+        } else {
+            portraitPath = "graphics/portraits/" + template.portrait + ".png";
+        }
+        lord.setPortraitSprite(portraitPath);
 
         lord.getStats().setLevel(template.level);
         lord.setPersonality(template.battlePersonality);

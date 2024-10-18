@@ -1,0 +1,7 @@
+command,class,tags,syntax,help
+WarpLord,starlords.console.WarpLord,"starlords", warplord <lord first name>, Teleports the specified lord next to you.
+AddLordWealth,starlords.console.AddLordWealth,"starlords", addlordwealth <lord first name> <amount>, Add or remove the specified wealth from the lord.
+AddLordRelation,starlords.console.AddLordRelation,"starlords", addlordrelation <lord first name> <amount>, Increase or decrease player relations with the lord.
+AddLordLoyalty,starlords.console.AddLordLoyalty,"starlords", addlordloyalty <lord first name> <amount>, Increase or decrease lord loyalty.
+AddLordFief,starlords.console.AddLordFief,"starlords", addlordfief <lord first name> <market id>, Grants the specified market to the lord. Must be of the same faction.
+RemoveLordFief,starlords.console.RemoveLordFief,"starlords", removelordfief <lord first name> <market id>, Removes the specified market from the lord's fiefs if present.

@@ -231,6 +231,15 @@ public class LordController {
         }
     }
 
+    // this is inefficient and shouldn't be called by regularly run code
+    public static Lord getLordByFirstName(String name) {
+        for (Lord lord : lordsList) {
+            if (lord.getLordAPI().getName().getFirst().equals(name)) return lord;
+        }
+        if (playerLord.getLordAPI().getName().getFirst().equals(name)) return playerLord;
+        return null;
+    }
+
     public static Lord getSpouse() {
         for (Lord lord : lordsList) {
             if (lord.isMarried()) return lord;
