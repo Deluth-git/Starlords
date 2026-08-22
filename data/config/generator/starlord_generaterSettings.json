@@ -1,0 +1,125 @@
+{
+  "fetures_newLordsInNewGame": false,
+
+  "EL_EnableMaxLords": true,
+  "EL_MaxGeneratedLords": 1000,
+
+  "generator_lordLevel": {
+    "min": 1,
+    "max": 20,
+    "target": 10,
+    "i": 1.75
+  },
+  "generator_frigateRatio": {
+    "min": 0,
+    "max": 15,
+    "target": 10,
+    "i": 1.5
+  },
+  "generator_destroyerRatio": {
+    "min": 0,
+    "max": 15,
+    "target": 9,
+    "i": 1.5
+  },
+  "generator_cruiserRatio": {
+    "min": 0,
+    "max": 15,
+    "target": 8,
+    "i": 1.5
+  },
+  "generator_captialRatio": {
+    "min": 0,
+    "max": 15,
+    "target": 7,
+    "i": 1.5
+  },
+  "generator_warshipRatio": {
+    "min": 0,
+    "max": 15,
+    "target": 7,
+    "i": 1.5
+  },
+  "generator_carrierRatio": {
+    "min": 0,
+    "max": 15,
+    "target": 7,
+    "i": 1.5
+  },
+  "generator_phaseRatio": {
+    "min": 0,
+    "max": 15,
+    "target": 7,
+    "i": 1.5
+  },
+  "generator_shipSpawnRatio": {
+    "min": 1,
+    "max": 20,
+    "target": 10,
+    "i": 1.1
+  },
+  "generator_maxShipSpawnRatio": {
+    "min": 5,
+    "max": 30,
+    "target": 15,
+    "i": 1.1
+  },
+  "generator_minShipSpawnRatio": {
+    "min": 1,
+    "max": 20,
+    "target": 5,
+    "i": 1.1
+  },
+
+
+  "generator_personalityRatio_Quarrelsome": 13,
+  "generator_personalityRatio_Calculating": 13,
+  "generator_personalityRatio_Martial": 13,
+  "generator_personalityRatio_Upstanding": 9,
+
+  "generator_battlePersonalityRatio_Timid": 0,
+  "generator_battlePersonalityRatio_Cautious": 5,
+  "generator_battlePersonalityRatio_Steady": 15,
+  "generator_battlePersonalityRatio_Aggressive": 18,
+  "generator_battlePersonalityRatio_Reckless": 9,
+
+  "generator_isMaleChance": 0.5,
+  "generator_fleetAdjective": "'s fleet",
+
+  "generator_oddsOfNonePriorityShips": 0.05,
+  "generator_oddsOfNoneSelectedFlagship": 0.05,
+
+
+
+  "generator_fleetTemplates_system": 1,
+  "generator_fleetTemplates_hullmod": 1,
+  "generator_fleetTemplates_manufacture": 1,
+  "generator_fleetTemplates_random": 0.1,
+
+  "generator_flagshipPicker_Cost": 1,
+  "generator_flagshipPicker_Random": 0.5,
+  "generator_flagshipPicker_HP": 1,
+
+  "excluded_factions": {
+    "0": "player",
+    "1": "derelict",
+    "2": "independent"
+  },
+  "faction_multipliers": {
+    "derelict": 1#1X derelict generated lords, for example.
+  },
+
+  "EL_EnableAdditionalLords": false,
+
+  "EL_T0PerSize": 0.1333,
+  "EL_T0Additional": 0,
+  "EL_T0OddsOfFief": 0.589,
+
+  "EL_T1PerSize": 0.0589,
+  "EL_T1Additional": 0,
+  "EL_T1OddsOfFief": 0.9,
+
+  "EL_T2PerSize": 0,
+  "EL_T2Additional": 1,
+  "EL_T2OddsOfFief": 1
+}

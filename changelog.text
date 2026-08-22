@@ -1,0 +1,310 @@
+V0.3.78:
+    fixed the player being able to be killed as a starlord, laving only a ghost behind that is still a starlord but dead!
+    fixed incorrect detection of laws failing when it involves the player.
+    fixed some laws failing being writen like someone died for some reason.
+V0.3.77:
+    fixed a random crash that would happen when removing a lord that I added last patch.
+V0.3.76:
+    fixed:
+        fixed a rare crash on a starlord in the intel menu.
+        fixed active law proposals not being removed if the lord was the target of said proposal.
+V0.3.75:
+    fixed:
+        maybe fixed a issue were the player faction was automatically set to be unable to interact with some starlord interactions, in some random cases.
+V0.3.74:
+    fixed:
+        maybe fixed a crash were a lord that lost a battle might destroy the game.
+V0.3.73:
+    fixed:
+        maybe fixed factions that are suppose to not have diplomacy having diplomacy again.
+V0.3.72:
+    fixed:
+        added crash protection to certain areas to hopefully prevent crashes in rare cases of lord recruitment.
+V0.3.71:
+    fixes:
+        (hopefully) fixed a crash were a market that exists in hyperspace might cause crashes every month.
+V0.3.70:
+    fixes:
+        fixed a crash related to a fleet not having a valid officer data?
+        (hopefully) fixed a crash involving a permanent freeze on month end? but that might have not been me? am confused.
+        fixed a issue with the lord generator were it really liked fleets to have all ships be the same size (reducing fleet verity.)
+V0.3.69:
+    changes:
+        made it so lords can -never satbomb-. will return someday, don't worry.
+V0.3.68:
+    fixes:
+        fixed player being unable to capture lords, unless another lord was on there side of the combat.
+V0.3.67:
+    fixes:
+        fixed a crash that happened when starlords tried to add a lord mid game and was out of 'faction space' somehow...?
+V0.3.66:
+    (thanks lightspeedgold for the following random improvements:)
+    improvements:
+        made the CSV file more readable (hopefully).
+
+V0.3.65:
+    fixes:
+        maybe possibly fixed a crash involving the game thinking the player lost a battle and needed to be captured even though they were not in battle?
+V0.3.64:
+    fixes:
+        fixed a crash were a lord that preposed peace in the council died mid vote.
+V0.3.63:
+    fixes:
+        hopefully fixed a crash related to a null lord inside of a relation check.
+        because someone sent a log just after I updated and no, the fix from last time worked.
+        well now its fixed squared.
+V0.3.62:
+    fixes:
+        hopefully fixed a crash related to a null lord inside of a relation change (for real this time)
+V0.3.61:
+    fixes:
+        fixed a crash related to a null lord inside of a relation change.
+        fixed a crash related to a null feast that somehow happened. (thanks for the amount of help DeadFinder)
+V0.3.60:
+    fixes:
+        fixed a crash related to a lord trying to leave a feast that does not exist
+V0.3.59:
+    fixes:
+        hopefully fixed a crash related to a missing lord map?
+        added some logs to better understand completely insane crashes that make no sense.
+V0.3.58:
+    fixes:
+        fixed a crash do to trying to get a negative random number.
+        fixed the wrong linked mod thread.
+V0.3.57:
+    fixes:
+        fixed a end of month crash involving a failure of the defection calculator
+V0.3.56:
+    fixes:
+        fixed a save breaking bug for when you place an nexerlin outpost in the abyss then the game destroys it because the abyss is the death of all things.
+V0.3.55:
+    fixes:
+        maybe fixed a rare crash that could happen when a fleet attempted to aquire officers
+V0.3.54:
+    fixes:
+        (hopefully)fixed a crash involving a lord not exsisting, but still suporting a proposal
+        (hopefully) fixed a crash when a starlord tried to defect well holding a feif of a none combatable type. (plz dont ask)
+        fixed a crash were a lord would die well hosting a feast and take the sector with them.
+V0.3.53:
+    fixes:
+        (hopefully) fixed a crash when a lord dies and is that target of a proposal? hopefully?
+V0.3.52:
+    fixes:
+        (hopefully) fixed a crash on game load related to a starlord not be accessible from the relation controler
+V0.3.51:
+    fixes:
+        fixed a crash that could prevent you from loading your save if a lord died well hosting a feast.
+        and if I didn't just DM me I will get this eventually or so help me!
+V0.3.50:
+    fixes:
+        fixed a crash that could prevent you from loading your save if a lord died well hosting a feast.
+V0.3.49:
+    fixes:
+        (hopefully) fixed a issue were the game would crash on freeing a prisoner
+    (thanks Aleksandros for the following):
+        AddLordFief Command can now resolve markets based on name in addition to ids
+        Campaign is now finished if campaign leader is defeated. Previously, participant lords would just have their AI broken and leader would be stuck in an endless loop of respawn -> attack
+        Added Setting for "Minimum Stability to Prevent Fief Defection". set this to prevent fiefs from defecting if their stability is greater or equal than set value
+        Added Intel Plugin for allied lords participating and starting raids
+        Added Extra Player Council weight in calculation of next proposal to be voted
+        Added possibility to configure Alignments for lords in lords.json:
+V0.3.48:
+    (hopefully) fixed a crash related to a lords capture not existing for some reason?
+V0.3.47:
+    fixes:
+        fixed a fuel related, null containing location crash
+    (thanks Aleksandros for the following):
+        upon defection, fiefs only defect if they have less than 7 stability
+        lord fleet preferences now appear in lord requests
+        fixes:
+            orbital stations now defect with the market, whereas before this wasn't the case
+            lords were not able to spawn if they defected while imprisoned or during spawn process (I think)
+V0.3.46:
+    fixes:
+        fixed starlords being unable to target the player faction, ever, for any reason. and only the player faction.
+        (yes, I know crisies fleets could sometimes have starlords, but I have never seen that. im talking about proper attacks.)
+        fixed a given faction being able to create many instances of the same attack at the same target. I broke this at some ponit.
+    settings:
+        added a setting to allow attacks on the player faction from starlords. (default true)
+        added a setting to allow attacks on the player faction before the player has at least one starlord (default false)
+V0.3.45:
+    fixes:
+        fixed starlords attacking hidden markets. (the [hidden for spoiler reasons] should be safe now).
+V0.3.44:
+    fixes:
+        maybe fixed a issue that prevented generated starlords from updating what factions contain lords.
+        maybe fixed a issue were starlords was unable to tell what factions have lords untill the one defects?
+V0.3.43:
+    fixes:
+        fixed a crash related to second in command on startup. thanks Lukas04 for the help.
+V0.3.42:
+    fixes:
+        fixed broken starlord raid / campaign targeting
+        fixed starlords considering things that are not markets markets (so no more nexerlin outposts counting as fiefs. or invasion targets)
+        fixed starlords not respecting nexerlin invasion settings. (hopefully, for the last time) (thanks Histidine for assistance in understanding all the conditions related to invasions)
+    added in a system for having some custom faction data, in relation to starlords. its incomplete, but for now can go into the data/lords/faction.json and change the rank names of the players faction for example.
+V0.3.41:
+    fixed rep gain calculation from interacting with a lord at a feast increasing rep with every starlord at a feast.
+V0.3.40:
+    thanks Aleksandros for the following:
+        Added doNotAdvanceAI check and set for fleet in progressAssignment - to fix idle lord fleets
+        Added doNotAdvance column to printLordsDetails
+        Added owner check for fief candidate in politics intel
+        Added RespawnLord command
+    note: for the person who didn't read, Aleksandros fixed the issue were starlords would sit there and do nothing forever.
+V0.3.39:
+    fixes:
+        fixed a crash when clicking on the open coms on the prisoner tab.
+V0.3.38:
+    fixes:
+        fixed lords not being able to be interacted with (sorry about that).
+    thanks Aleksandros for the following:
+        Added Lord alignments if Nexerelin is present - for now only used in defection calculation
+        Added console commands PrintLordsAlignments and PrintLordsDefectionWeights
+        fixed issue with defection chance logic
+V0.3.37:
+    new:
+        changed the way starlords handle dialog. although there is not mush new yet (some escape hotkeys keys, a very small number of fixed dialog, bribing a starlord will give that starlord wealth), and its not 100% done (yet), it lays (most) of the ground work for furture upgrades, as well as allows players to build completely custom dialog for each and every starlord, should they so chose.
+        I have been working on this since the last day of april. I thought it would take a week. there are like, 200 new classes just to handle what I did. im never saying 'oh it will just take a week' again.
+        please report any dialog bugs to me. I will fix them as soon as possable.
+V0.3.36:
+    fixes:
+        fixed another getContaining location null crash.
+    did a small amount of internal stuff. nothing should change yet.
+V0.3.35:
+    (thanks Aleksandros for the following):
+        fixed a intel message triggering when it should not have.
+V0.3.34:
+    fixed lord Smods being removed on game load (hopefully).
+V0.3.33:
+    fixed a crash related to a null campaign.
+V0.3.32:
+    fixed:
+        fixed a issue with the prisoner logger again. hopefully it wont crash again.
+    (thanks Aleksandros for the following):
+        AddLordRaid console command updated to function better
+        PrintLordsDetails console command - updated success message
+        Council Votes - added configuration option to add static extra weight for player within own faction
+        Added automatic assigning the player as owner of own faction fiefs when no other lord is in the faction
+        Added UI message for when a lord raid against faction market ends
+        updated null protections and logic for getLordTravelTime and getMinArrivalTime (used in intel bullet points arrival estimation calculation)
+V0.3.31:
+    fixed:
+        fixed another issue related to getContainingLocation() again. hopefully for the last time.
+        fixed an issue that caused someone to take 'in system days' to arrive
+V0.3.30:
+    fixes:
+        (hopefully) fixed a issue were starlords in the faction the player is commonsense in declares war / peace with someone, and the player is not dragged into the conflict
+        (hopefully) fixed a issue were starlords decalreing war and peace would not respect nexerlin alliances in any way shape or form.
+V0.3.29:
+    fixes:
+        fixed ANOTHER bug related to a null getContainingLocation(). hopefully for the last time.
+    logs:
+        (thanks Aleksandros) improved the logs related to finding out whats going on with prisoners
+V0.3.28:
+    fixes:
+        added some crash protection to some important logs
+        fixed a crash related to a lord starting a campaign without any markets belonging to there faction.
+        fixed a crash related to a lord trying to respawn, and somehow ending up somewhere without a containing location
+V0.3.27:
+    this update is brought to you by the amazing: Aleksandros
+    new:
+        Added Lord Request system.
+        Fief for Defection - Lords will request a fief that you own in exchange for defection
+        Prison Break - An imprisoned lord will request that you defeat their captor in exchange for defection
+        Added prisoner message suppression setting - default false - that suppresses UI messages of lord capture, release, escape. Setting does not apply for player's faction or player's commission faction
+        Added "Transfer fief" personal decision in Intel Plugin - you can transfer one of your fiefs to a lord of your faction
+        updated defection chance algorithm
+        added console commands for lord status and debugging
+        added UI message for when council is in session
+        added estimated arrival time for Lord raids participants, Attackers and Defenders
+V0.3.26:
+    fixed a bug were SOMEONE made it so there faction officers DONT HAVE ANY SPRITES and then it crashes the generator because SOMEONE-
+V0.3.25:
+    added some crash protection the generator, just to make sure that the inputted variants are ships and not metaphors.
+V0.3.24:
+    (hopefully) fixed a crash related to a null raid in LordAI line 667.
+V0.3.23:
+    fixes (thanks Aleksandros for this fix!)
+        fixed lords AI breaking at random when a fleets containing location is null.
+V0.3.22:
+    fixes:
+        added some random crash protection to the LordStrategicModule. this should prevent crashes when a lord's 'getContainingLocation' is null. (im still confused about that) although this might cause unintended issues with starlords ignoring threats in systems were .getContainingLocation() is null.
+V0.3.21:
+    NOT save compatible with any older version
+    fixes:
+        added a additional layer of protection to the LordEvent .getFaction function. it should be more robust now.
+        -hopefully- fixed the issue were destroying a starlords flagship in hyperspace, but not killing the full fleet, would result in a crash (sometimes).
+V0.3.20:
+    added crash protection to the raiding function.
+V0.3.19:
+    fixed a crash related to failing to get certain text parameters in lord dialog.
+V0.3.18:
+    fixed a crash caused by a modded faction having fighters as a ship type in its fleet doctrine. fighters will now count as frigates, as far as starlords is concerned.
+V0.3.17:
+    updated to the newest version of starsector. may malice embrace us as we enter this terrifying age.
+    added a new SMods.json file, so users can now edit the base Smods ships and lords have access to (see the readme for details)
+    (thanks to (forum)Erlkönig / (discord)Zeilon depending on location for the following:)
+        fixed a issue were factions would not have policy's / feasts / anything interesting without nexerlin installed
+V0.3.16:
+    (life and death system) farther improved the death system, so if a lord dies well a proposal they made is in session, the game wont crash forever. (wont effect you if you are already suffering from this crash, but will prevent it from ever crashing in the future.)
+V0.3.15:
+    note save compatible with any previous version
+    fixes
+        reduced the odds of random policy's causing crashes after a lord dies.
+        fixed a issue with 'lord2' from the relation controller
+    new
+        added a setting for changing the max number of S-mods on a lords ship.
+        added a setting that automatically increases this value by 5 if you have progressive S mods installed (default: on)
+        (thanks to (forum)Erlkönig / (discord)Zeilon depending on location for the following:)
+            added support for custom S-mods on starlords.
+            (second in command) added support for custom executive officers being set to a given starlord.
+            (second in command) made starlords always have at least 3 max level executive officers
+            made automated ships spawn with AI-cores as officers.
+V0.3.14:
+    fixed a issue were a lord being dead well a policy is attempted to effect them could cause a crash.
+    (hopefully) fixed a issue were a lord could still be on campaign, when the campaign was over.
+    (thanks to (forum)Erlkönig / (discord)Zeilon depending on location for the following:)
+        added support for having lords with custom skill sets.
+V0.3.13:
+    (life and death system) fixed starlords relationship data getting mass deleted whenever a starlord died. (I wish I was joking, im so sorry)
+V0.3.12:
+    added some mod settings that allow you to view a lords stats / contact a given starlord in the lords intel tab
+    improved some logs for easier debugging
+V0.3.11:
+    fixed a rare crash do to a lords target being null, somehow.
+    fixed a issue were one could get a out of bound data from adding more then 24 factions mid game why would you do that you crazy person?
+    fixed a issue with lords not being released / forgetting about when they were removed and holding captives / being captive.
+V0.3.10:
+    fixed a rare crash were a lords prisoners would be null.
+    fixed a crash were a lord that was involved in politics in your own faction died.
+    ???? maybe fixed a issue were a relationship change could cause a crash ???
+    fixed a issue with 'findNearestMarket', that caused a crash for every crash it was built to fix. sorry about that.
+    improved the games ability to actually remove a starlord from the games data.
+V0.3.9:
+    (hopefully) fixed a issue were a starlord with no faction will attempt to collect takes from nothing, crashing the game
+V0.3.8:
+    (hopefully) fixed a few issues related to a lord trying to get a rally point in a system without planets (and maybe a few other issues. hopefully.)
+V0.3.7:
+    note: this -should- be save compatible. but who knows? I don't, that's for sure.
+    new:
+        added a setting in the one new game lord generator that caps the max number of lords generated at game start.
+            -this is enabled by default. the default value is 1k starlords.
+    fixes:
+        (hopefully) fixed starlords being able/unable to attack / invaded worlds and factions they should not/should have been able to.
+        (hopefully) fixed starlords being able to decalre war / make peace with factions they should not have had the capacity to do so.
+        (hopefully) fixed lords from minor factions (like pirates) from spawning with fiefs at new game (yes, it was a bug)
+    internal:
+        moved the location of the lord tag that dictates if a starlord is immortal over to the LordTags class.
+        new functions:
+            Utils.getNumMajorEnemiesForAttacks
+            Utils.getNumMajorEnemiesForDiplomacy
+            Utils.canBeAttacked
+            Utils.canHaveRelations
+            Utils.isMinorFaction
+V0.3.6:
+    randomly fixed a issue that could rarely happen when a faction was completely destroyed, and would cause crashes do to a lack of respawn points
+V0.3.5:
+    added a temp version file, because its really hard to tell whenever I ad a fix into my branch of starlords.
+    fixes:
+        fixed the java version of this mod to only require java 8. so hopefully that helps everyone?

@@ -1,0 +1,65 @@
+NOTE: I forgot to record the original list, so there are some bugs missing from this.
+1) starlord AI:
+    a) starlords will sometimes charge straight to there death when fighting other starlords.
+    b) starlords fleet can be set to some random fleet at a random location. the process of this happing is completely unknown.
+           -currently, as a temp fix, 'AlexRednicon' put this in the Lords Straticic Moduel
+               if (lord.getFleet().getContainingLocation() == null){
+                   for (CampaignFleetAPI fleet : Misc.getNearbyFleets(other, 600)){
+                       if (lord.getFleet().getCommander() == fleet.getCommander()){
+                           lord.getLordAPI().setFleet(fleet);
+                       }
+                   }
+               }
+           HOWEVER: this fix needs to be applyed to the fleet 100% of the time somehow...? (does this even effect fleeets all the time?)
+    c) starlords are always attacking in colonly crises buildup.
+           -I need to change this so they only attack when the crisis fleet is coming.
+           -it would be better if I could do it so the lords fleets came at the same time as the crises fleet.
+    d) Utils.canBeAttacked(MarketAPI)
+        d.0) needs to ignore nexerlin outposts (dont look at markets less then size 3)?
+        d.1) needs to ignore markets with no industrys (another issue to fix)
+        d.2) when core worlds invasions are off (nexerlin) starlords will not respect this.
+    d2) valid targets for raids, invasions, and trade need to be calculated separately
+    e) starlords attending a feast will not defend there allies if they are attacked (they should protect the world, and anyone at the feast if they are attacked)
+    f) starlords 100% ARE still be attacking things they should not be allowed to (dispute nexerlin settings).
+    g) starlords will stand around and do nothing, iggnoring all attempts at control:
+        g.0) attempt to run the following in lord AI:
+            if(lord.isStuckLord){
+                    lord.setCurrAction(LordAction.PATROL);
+                    fleetAI.clearAssignments();
+                    Misc.clearFlag(mem, MemFlags.FLEET_BUSY);
+                    fleetAI.addAssignmentAtStart(FleetAssignment.PATROL_SYSTEM, null, 1000, null);
+            }
+            check the lord memoryFlags and compair them all?
+            force the lord to run the 'chooseAssignment' function?
+2) tornaments:
+    a) with Aod QoL instaled, you cant fight in tornaments hosted by your own faction
+    b) possible tournament ships include things like station and ship moduels.
+    c) if you fly your own ship, it will remove the officer from that ship when the tornament ends.
+    d) sometimes doing a tournament will drain all your ships CR. this seems to be fixed after combat. this should be improved somehow.
+    e) some tournament ships can have completely broken layouts.
+3) generator:
+    a) a lords fav item needs to be limited to the available fav items
+    b) lords seem to be using ships not part of the main faction blueprints a lot. this should be fixed?
+    c) on game start, with exstra lords for all faction on, it seems to create to many starlords? (needs testing)
+    d) life and death system seems to create starlords to fast. I will need to look into this.
+    e) T2 and T1 starlord settings should be removed. instead, such slots should always start filled (I thought T1 and T2 were stronger starlords, not possitions on political ladder.)
+4) life and death system:
+    a) a lords / players spouse needs to be unset when there partner dies.
+    b) when a lord who is the target of centen polices die, that policy should end.
+5) additional lord generator:
+    a) I need to remove the T2, T1 lords from settings. T2 and T1 lords are not how powerfull the lords are, its how important the lord is to a faction.
+       instead, I should just make sure each faction fills the lord slots in order of having 1 T2, and 3 T1 lords, before the rest are T0.
+6) S-Mods system:
+    b) phase based S-mods are hopping on ships without the phase system.
+    c) S-mods can be instaled even when they should be incompatible.
+        -look into magiclibs??? hullmod compatibility system for help with this.
+7) politics
+    starlords will create multiple of the same politics request instead of joining forces.
+    starlords will not respect nexerlin alliances (resalting in war being declared, followed by peace over and over again.)
+8) garrisons:
+    a) station regenerates if you destroy it, but not all the escorts
+    b) ship CR is not saved between battles.
+    c) you cant see all the escorts, or the difficulty rating
+    d) AI ships in garrisons will sometimes have human officers instead of AI cores.
+9) defection:
+    a) feifs without a 'entity.getCustomEntityType' will not join defections do to possible crashes. frustrating.

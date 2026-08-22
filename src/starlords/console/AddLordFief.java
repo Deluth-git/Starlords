@@ -8,6 +8,7 @@ import starlords.controllers.FiefController;
 import starlords.controllers.LordController;
 import starlords.controllers.RelationController;
 import starlords.person.Lord;
+import starlords.util.Utils;
 
 public class AddLordFief implements BaseCommand {
 
@@ -29,9 +30,15 @@ public class AddLordFief implements BaseCommand {
 
         MarketAPI market = Global.getSector().getEconomy().getMarket(argsArr[1]);
         if (market == null) {
-            Console.showMessage("Invalid market id.");
+            Console.showMessage("Invalid market id, trying name.");
+        }
+
+        market = Utils.getFactionMarket(argsArr[1], lord.getFaction().getId());
+        if (market == null) {
+            Console.showMessage("Invalid market id or name.");
             return CommandResult.ERROR;
         }
+
         if (!market.getFaction().equals(lord.getFaction())) {
             Console.showMessage("Cannot grant market to a lord of a different faction.");
             return CommandResult.ERROR;

@@ -26,6 +26,14 @@
       "legion_xiv_Elite": 10,
       "onslaught_Elite": 15,
       "onslaught_xiv_Elite": 10
+    },
+    "alignments": {
+      "CORPORATE": -0.5,
+      "TECHNOCRATIC": -0.5,
+      "MILITARIST": 0.5,
+      "HIERARCHICAL": 0.5,
+      "DIPLOMATIC": -0.5,
+      "IDEOLOGICAL": 0.5
     }
   },
   "Vartan Shin": {

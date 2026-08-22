@@ -4,8 +4,12 @@ import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.CampaignFleetAPI;
 import com.fs.starfarer.api.campaign.JumpPointAPI;
 import com.fs.starfarer.api.campaign.SectorEntityToken;
+import com.fs.starfarer.api.campaign.rules.MemoryAPI;
+import com.fs.starfarer.api.impl.campaign.ids.MemFlags;
+import com.fs.starfarer.api.util.Misc;
 import org.lazywizard.console.BaseCommand;
 import org.lazywizard.console.Console;
+import starlords.ai.LordAI;
 import starlords.controllers.EventController;
 import starlords.controllers.LordController;
 import starlords.person.Lord;
@@ -40,6 +44,9 @@ public class WarpLord implements BaseCommand {
         EventController.removeFromAllEvents(lord);
         lord.setCurrAction(null);
         lord.getFleet().getAI().clearAssignments();
+
+        //MemoryAPI mem = lord.getFleet().getMemory();
+        //Misc.setFlagWithReason(mem,MemFlags.FLEET_BUSY, LordAI.BUSY_REASON,true,1f);
 
         Console.showMessage("Warped lord " + lord.getLordAPI().getNameString() + " to player.");
         return CommandResult.SUCCESS;

@@ -1,0 +1,114 @@
+{
+  "universal": {
+    "S-Mods": {
+      "fluxdistributor": 20,
+      "fluxcoil":20,
+      "missleracks": 10
+    }
+  },
+  "escort package": {
+    "rules": {
+      "size": {
+        "DESTROYER": true
+      },
+      "S-Mods": {
+        "escort_package": 100
+      }
+    }
+  },
+  "onslaught": {
+    "rules": {
+      "hullID": {
+        "onslaught": true
+      }
+    },
+    "S-Mods": {
+      "magazines": 100
+    }
+  },
+  "front shield upgrades": {
+    "rules": {
+      "defenseType": {
+        "FRONT": true
+      }
+    },
+    "S-Mods": {
+      "adaptiveshields": 10
+    }
+  },
+  "safety": {
+    "rules": {
+      "hullmods": {
+        "safetyoverrides": true
+      }
+    },
+    "S-Mods": {
+      "hardened_subsystems": 100
+    }
+  },
+  "targeting core": {
+    "rules": {
+      "hullmods": {
+        "advancedcore": false,
+        "dedicated_targeting_core": false,
+        "safetyoverrides": false,
+        "distributed_fire_control": false
+      }
+    },
+    "S-Mods": {
+      "targetingunit": 100
+
+    }
+  },
+  "phase upgrades": {
+    "rules": {
+      "defenseType": {
+        "PHASE": true
+      }
+    },
+    "S-Mods": {
+      "adaptive_coils": 20,
+      "fluxbreakers": 10,
+      "armoredweapons": 10,
+      "hardened_subsystems": 10
+    }
+  },
+  "lowtech upgrades": {
+    "rules": {
+      "manufacture": {
+        "Low Tech": true
+      }
+    },
+    "S-Mods": {
+      "heavyarmor": 80,
+      "armoredweapons": 20,
+      "reinforcedhull": 30,
+      "fluxbreakers": 10
+    }
+  },
+  "undefended upgrades": {
+    "rules": {
+      "defenseType": {
+        "NONE": true
+      }
+    },
+    "S-Mods": {
+      "heavyarmor": 80,
+      "armoredweapons": 20,
+      "reinforcedhull": 30,
+      "fluxbreakers": 10
+    }
+  },
+  "shield defense upgrades": {
+    "rules": {
+      "defenseType":{
+        "FRONT": true,
+        "OMNI": true
+      }
+    },
+    "S-Mods": {
+      "hardenedshieldemitter": 40,
+      "stabilizedshieldemitter": 20
+    }
+  }
+}

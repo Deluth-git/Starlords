@@ -1,5 +1,8 @@
 package starlords.person;
 
+import com.fs.starfarer.api.util.Misc;
+import exerelin.campaign.alliances.Alliance;
+import jdk.jshell.execution.Util;
 import lombok.Setter;
 import starlords.ai.LordStrategicModule;
 import com.fs.starfarer.api.Global;
@@ -13,25 +16,26 @@ import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.characters.FullName;
 import com.fs.starfarer.api.characters.PersonAPI;
 import com.fs.starfarer.api.impl.campaign.ids.Skills;
-import starlords.controllers.PoliticsController;
+import starlords.controllers.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.lwjgl.util.vector.Vector2f;
 import starlords.ui.PrisonerIntelPlugin;
-import starlords.util.LordTags;
-import starlords.util.StringUtil;
-import starlords.util.Utils;
+import starlords.util.*;
+import starlords.util.factionUtils.FactionTemplateController;
+import starlords.util.memoryUtils.DataHolder;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import static starlords.util.Constants.LORD_TABLE_KEY;
+import static starlords.util.Constants.STARLORD_ADDITIONAL_MEMORY_KEY;
 
 @Getter
 public class Lord {
-
     // Data stored in this dict will be persistent.
     @Getter(AccessLevel.NONE)
     private Map<String, Object> persistentData;
@@ -55,9 +59,14 @@ public class Lord {
 
     private ArrayList<String> prisoners;
 
+    private Map<Alliance.Alignment, Float> alignments;
+
     private String captor;
 
-    private boolean actionComplete;
+	@Getter
+	private int escapeAttempts;
+
+	private boolean actionComplete;
 
     private long assignmentStartTime;
 
@@ -90,6 +99,9 @@ public class Lord {
     @Setter
     private boolean married;
 
+    @Setter
+    private String spouse;
+
     // number of romantic actions the player has performed for this lord
     @Setter
     private int romanticActions;
@@ -102,6 +114,13 @@ public class Lord {
     @Setter
     private CampaignFleetAPI oldFleet;
 
+    // stores reference to lords fleet, so when the lord does not have there own flagship, they can still get there own fleet
+    @Setter
+    private CampaignFleetAPI backupFleet;
+
+    //because it budged me that the god dammed way to decide weather or not you were a dress or not arg....
+    @Setter
+    private String formalWear;
     // Creates a lord from scratch, only run at campaign start
     public Lord(LordTemplate template) {
         FullName.Gender gender = template.isMale ? FullName.Gender.MALE : FullName.Gender.FEMALE;
@@ -134,6 +153,18 @@ public class Lord {
                 ((List<String>) persistentData.get("fief")).add(template.fief);
             }
         }
+
+        if (Utils.nexEnabled()) {
+            persistentData.put("alignments", new HashMap<Alliance.Alignment, Float>());
+            if (template.alignments.isEmpty()) {
+                this.alignments = NexerlinUtilitys.generateLordAlignments(this);
+            }
+            else {
+                this.alignments = NexerlinUtilitys.generateLordAlignmentsFromTemplate(this);
+            }
+            persistentData.put("alignments", alignments);
+        }
+
         String[] splitname = template.name.split(" ");
         String lastName = "";
         for (int i = 1; i < splitname.length; i++) {
@@ -191,6 +222,18 @@ public class Lord {
             lord.getStats().setSkillLevel(Skills.CYBERNETIC_AUGMENTATION, 1);
             lord.getStats().setSkillLevel(Skills.SENSORS, 1);
         }
+        //set custom skills
+        if (!template.customSkills.isEmpty()) {
+            try {
+                template.customSkills.forEach((skillName, skillLevel) -> lord.getStats().setSkillLevel(skillName, skillLevel));
+            } catch (Exception e) {
+            }
+        }
+
+        //Nexerelin Alignments
+        if (Utils.nexEnabled()) {
+
+        }
     }
 
 
@@ -211,6 +254,7 @@ public class Lord {
         }
         List<String> storedFiefs = (List<String>) persistentData.get("fief");
         for (String fiefStr : storedFiefs) {
+            if(Global.getSector().getEconomy().getMarket(fiefStr) == null) continue;
             fiefs.add(Global.getSector().getEconomy().getMarket(fiefStr).getPrimaryEntity());
         }
         if (persistentData.containsKey("prisoners")) {
@@ -265,10 +309,16 @@ public class Lord {
     }
 
     public CampaignFleetAPI getFleet() {
-        if (isPlayer) return Global.getSector().getPlayerFleet();
-        return lordAPI.getFleet();
-    }
+        if (isPlayer) return checkAccuracyOfFleet(Global.getSector().getPlayerFleet());
+        if (lordAPI.getFleet() != null) return checkAccuracyOfFleet(lordAPI.getFleet());
 
+        if (backupFleet != null && backupFleet.isAlive()) return checkAccuracyOfFleet(backupFleet);
+        return null;
+    }
+    private CampaignFleetAPI checkAccuracyOfFleet(CampaignFleetAPI fleet){
+        //todo: make this find if the fleet is broken and fix it. and the fleet is proboly broken a lot. arg...
+        return fleet;
+    }
     public boolean isMarshal() {
         return lordAPI.getId().equals(PoliticsController.getLaws(getFaction()).getMarshal());
     }
@@ -279,28 +329,41 @@ public class Lord {
         return (float) (1 + Math.tanh((getFleet().getFleetPoints() - 200f) / 100));
     }
 
+    public String getFormalWear(){
+        if (formalWear != null) return formalWear;
+        String CATEGORY = "starlords_lords_dialog";
+        String a = StringUtil.getString(CATEGORY, "lordGenderDress");
+        String b = StringUtil.getString(CATEGORY, "lordGenderSuit");
+        String clothing = getLordAPI().getGender() == FullName.Gender.FEMALE ? a : b;
+        return clothing;
+    }
+
     public void setCurrAction(LordAction action) {
         if (isPlayer) return;
-        currAction = action;
-        ModularFleetAIAPI lordAI = (ModularFleetAIAPI) getFleet().getAI();
-        if (!(lordAI.getStrategicModule() instanceof LordStrategicModule)) {
-            // this seems to happen when lords are defeated
-            lordAI.setStrategicModule(new LordStrategicModule(this, lordAI.getStrategicModule()));
-            //LordController.log.info("WARNING: AI WAS RESET: " + getLordAPI().getNameString());
-        }
+        try {
+            currAction = action;
+            ModularFleetAIAPI lordAI = (ModularFleetAIAPI) getFleet().getAI();
+            if (!(lordAI.getStrategicModule() instanceof LordStrategicModule)) {
+                // this seems to happen when lords are defeated
+                lordAI.setStrategicModule(new LordStrategicModule(this, lordAI.getStrategicModule()));
+                //LordController.log.info("WARNING: AI WAS RESET: " + getLordAPI().getNameString());
+            }
 
-        if (action != null) {
-            persistentData.put("currAction", action.toString());
-            ((LordStrategicModule) lordAI.getStrategicModule()).setInTransit(action.toString().contains("TRANSIT"));
-            ((LordStrategicModule) lordAI.getStrategicModule()).setEscort(action == LordAction.CAMPAIGN || action == LordAction.FOLLOW);
-        } else {
-            persistentData.put("currAction", null);
-            ((LordStrategicModule) lordAI.getStrategicModule()).setInTransit(false);
-            ((LordStrategicModule) lordAI.getStrategicModule()).setEscort(false);
-            setTarget(null);
+            if (action != null) {
+                persistentData.put("currAction", action.toString());
+                ((LordStrategicModule) lordAI.getStrategicModule()).setInTransit(action.toString().contains("TRANSIT"));
+                ((LordStrategicModule) lordAI.getStrategicModule()).setEscort(action == LordAction.CAMPAIGN || action == LordAction.FOLLOW);
+            } else {
+                persistentData.put("currAction", null);
+                ((LordStrategicModule) lordAI.getStrategicModule()).setInTransit(false);
+                ((LordStrategicModule) lordAI.getStrategicModule()).setEscort(false);
+                setTarget(null);
+            }
+            setActionComplete(false);
+            setAssignmentStartTime(Global.getSector().getClock().getTimestamp());
+        }catch (Exception e){
+            Utils.log.warn("failed to setCurrAction for lord "+lordAPI.getNameString()+" ("+lordAPI.getId()+")"+". error of: "+e);
         }
-        setActionComplete(false);
-        setAssignmentStartTime(Global.getSector().getClock().getTimestamp());
     }
 
     public void setActionComplete(boolean bool) {
@@ -313,7 +376,7 @@ public class Lord {
         String saveStr = null;
         if (newTarget instanceof CampaignFleetAPI) {
             saveStr = "fleet_" + ((CampaignFleetAPI) newTarget).getCommander().getId();
-        } else if (newTarget != null) {
+        } else if (newTarget != null && newTarget.getMarket() != null) {
             saveStr = "market_" + newTarget.getMarket().getId();
         }
         persistentData.put("target", saveStr);
@@ -359,10 +422,23 @@ public class Lord {
         persistentData.put("personalityKnown", known);
     }
 
-    public void setCaptor(String captor) {
-        this.captor = captor;
-        persistentData.put("captor", captor);
-    }
+	public void setCaptor(String newCaptor) {
+
+		LordRequest existingRequest = RequestController.getCurrentRequest(this,LordRequest.PRISON_BREAK);
+
+		if (newCaptor == null) {
+			this.resetEscapeAttempts();
+			if (existingRequest != null)
+				RequestController.endRequest(existingRequest);
+		} else if (newCaptor.equals(LordController.getPlayerLord().getLordAPI().getId())) {
+			if (existingRequest != null)
+				RequestController.endRequest(existingRequest);
+		}
+
+		this.captor = newCaptor;
+		persistentData.put("captor", captor);
+
+	}
 
     public void setActionText(String text) {
         FleetAssignmentDataAPI assignment = getFleet().getCurrentAssignment();
@@ -409,12 +485,7 @@ public class Lord {
     }
 
     public String getTitle() {
-        String titleStr = "title_" + getFaction().getId() + "_" + ranking;
-        String ret = StringUtil.getString("starlords_title", titleStr);
-        if (ret != null && ret.startsWith("Missing string")) {
-            ret = StringUtil.getString("starlords_title", "title_default_" + ranking);
-        }
-        return ret;
+        return Utils.getFactionTitle(getFaction().getId(),ranking);
     }
 
     // Returns closest owned fief, if any. If no fiefs, just return the closest friendly planet/station.
@@ -451,10 +522,145 @@ public class Lord {
         }
     }
 
+	public void incrementEscapeAttempts() {
+		this.escapeAttempts++;
+		persistentData.put("escapeAttempts", this.escapeAttempts);
+	}
+
+	public void resetEscapeAttempts() {
+		this.escapeAttempts = 0;
+		persistentData.put("escapeAttempts", this.escapeAttempts);
+	}
+
+	public boolean shouldRequestPrisonBreak() {
+//		log.info("[Star Lords] " + this.getLordAPI().getNameString() + " is checking Prison Break Request. "
+//				+ " Attempts: " + this.getEscapeAttempts()
+//				+ " Captor is player: " + LordController.getLordById(this.captor).isPlayer()
+//				+ " Relationship with player: " + RelationController.getRelation(this, LordController.getPlayerLord())
+//				+ " Player Commission: " + Misc.getCommissionFaction()
+//				+ " Current Request: " + RequestController.getCurrentDefectionRequest(this)
+//		);
+        if (!FactionTemplateController.getTemplate(getFaction()).isCanStarlordsJoin()) return false;
+        if (this.captor == null || LordController.getLordById(this.captor) == null){
+            setCaptor(null);
+            return false;
+        }
+		if (this.getEscapeAttempts() >= Constants.FAILED_PRISON_ESCAPES_ASK_ASSISTANCE
+				&& !LordController.getLordById(this.captor).isPlayer()
+				&& RelationController.getRelation(this, LordController.getPlayerLord()) >= Utils.getThreshold(RepLevel.SUSPICIOUS)
+				&& Misc.getCommissionFaction() == null
+				&& RequestController.getCurrentDefectionRequest(this) == null)
+			return true;
+		return false;
+	}
+
+	public boolean shouldRequestFiefForDefection() {
+//		log.info("[Star Lords] " + this.getLordAPI().getNameString() + " is checking Fief for Defection Request. "
+//				+ " Relationship with player: " + RelationController.getRelation(this, LordController.getPlayerLord())
+//				+ " Player Commission: " + Misc.getCommissionFaction()
+//				+ " Current Request: " + RequestController.getCurrentDefectionRequest(this)
+//		);
+
+        if (RelationController.getRelation(this, LordController.getPlayerLord()) >= Utils.getThreshold(RepLevel.SUSPICIOUS)
+				&& Misc.getCommissionFaction() == null
+				&& (LordController.getPlayerLord().fiefs.size() >= 3)
+				&& RequestController.getCurrentDefectionRequest(this) == null)
+			return true;
+		return false;
+	}
+
+	public boolean wantsToDefect() {
+        if (!isAllowedToDefect()) return false;
+		int chance = DefectionUtils.getAutoBetrayalChance(this);
+		if (chance > 0) {
+			if (Utils.getRandomChance(this,100) < chance) {
+				return true;
+			}
+		}
+		return false;
+
+	}
+
+	public HashMap<String,Integer> getFleetComposition(){
+        if (LordMemoryController.containsLord(getLordAPI().getId()) && LordMemoryController.getLordMemory(getLordAPI().getId()).overridingFleetComposition.size() != 0){
+            return LordMemoryController.getLordMemory(getLordAPI().getId()).overridingFleetComposition;
+        }
+        return template.shipPrefs;
+    }
+
+    public boolean canRaid(){
+        //todo: finish this.
+        return true;
+    }
+    public boolean canTacticallyBomb(){
+        return true;
+    }
+    public boolean canPreformInvasion(){
+        //todo: finish this.
+        return true;
+    }
+    public boolean canSatBomb(){
+        if (getPersonality().equals(LordPersonality.QUARRELSOME)) return true;
+        return false;
+    }
+    public boolean isAllowedToDefect(){
+        return true;
+    }
+
+    public boolean canHoldFeast(){
+        return FactionTemplateController.getTemplate(getFaction()).isCanPreformFeasts();
+    }
+    public double getFiefIncomeMulti(){
+        return FactionTemplateController.getTemplate(getFaction()).getLordFiefIncomeMulti();
+    }
+    public double getTradeIncomeMulti(){
+        return FactionTemplateController.getTemplate(getFaction()).getLordTradeIncomeMulti();
+    }
+    public double getCommissionedIncomeMulti(){
+        return FactionTemplateController.getTemplate(getFaction()).getLordCommissionedIncomeMulti();
+    }
+    public double getCombatIncomeMulti(){
+        return FactionTemplateController.getTemplate(getFaction()).getLordCombatIncomeMulti();
+    }
+    public double getFleetUpkeepMulti(){
+        return FactionTemplateController.getTemplate(getFaction()).getLordFleetUpkeepCostMulti();
+    }
+
+    public double getRepGainFromKillsMulti(){
+        return FactionTemplateController.getTemplate(getFaction()).getLordRepChangeFromKillsMulti();
+    }
+
+    private DataHolder DATA_HOLDER;
+    public DataHolder getLordDataHolder(){
+        DataHolder data_holder = DATA_HOLDER;
+        if (DATA_HOLDER != null) return data_holder;
+        String key = STARLORD_ADDITIONAL_MEMORY_KEY+getLordAPI().getId();
+        if (Global.getSector().getMemory().contains(key)){
+            data_holder = (DataHolder) Global.getSector().getMemory().get(key);
+        }else{
+            data_holder = new DataHolder();
+        }
+        DATA_HOLDER = data_holder;
+        return data_holder;
+    }
+    public void saveLordDataHolder(){
+        String key = STARLORD_ADDITIONAL_MEMORY_KEY+getLordAPI().getId();
+        DataHolder data_holder = DATA_HOLDER;
+        Global.getSector().getMemory().set(key,data_holder);
+    }
     public static Lord createPlayer() {
         Lord player = new Lord(Global.getSector().getPlayerPerson());
         player.isPlayer = true;
         return player;
+    }
+
+    public Map<Alliance.Alignment, Float> getAlignments() {
+        if (this.alignments == null) {
+            persistentData.put("alignments", new HashMap<Alliance.Alignment, Float>());
+            this.alignments = NexerlinUtilitys.generateLordAlignments(this);
+            persistentData.put("alignments", alignments);
+        }
+        return this.alignments;
     }
 
 }

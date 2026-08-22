@@ -39,6 +39,16 @@ public class QuestController extends BaseIntelPlugin {
         resetQuestList();
         resetQuests();
     }
+    public static void addLord(Lord lord){
+        instance.questMap.put(lord.getLordAPI().getId(), null);
+        instance.questGivenMap.put(lord.getLordAPI().getId(), false);
+        instance.questMap.put(lord.getLordAPI().getId(), instance.sampleQuestId(lord));
+    }
+    public static void removeLord(Lord lord){
+        instance.questMap.remove(lord.getLordAPI().getId());
+        instance.questGivenMap.remove(lord.getLordAPI().getId());
+        instance.questMap.remove(lord.getLordAPI().getId());
+    }
 
     public void resetQuestList() {
         /* Good ones:

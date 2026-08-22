@@ -1,0 +1,14 @@
+{
+  #prevents/forces factions from having relations / being attacked / preforming organized attacked.
+  "isMinorFactionOverride": {
+    #"factionID": true/false,
+  },
+  #prevents/forces factions from having relations
+  "haveRelationsOverride":{
+    #"factionID": true/false,
+  },
+  #prevents/forces factions into allowing / disalowing organized warfare. also prevents starlords from owning feifs in this faction.
+  "canBeAttackedOverride":{
+    #"factionID": true/false,
+  }
+}

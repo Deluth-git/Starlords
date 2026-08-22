@@ -21,6 +21,7 @@ import starlords.person.LordEvent;
 import starlords.plugins.SelectItemDialogPlugin;
 import starlords.util.StringUtil;
 import starlords.util.Utils;
+import starlords.util.factionUtils.FactionTemplateController;
 
 import java.awt.*;
 import java.util.*;
@@ -58,6 +59,7 @@ public class LawsIntelPlugin extends BaseIntelPlugin {
     private static Object DECLARE_WAR_BUTTON = new Object();
     private static Object SUE_FOR_PEACE_BUTTON = new Object();
     private static Object REVOKE_FIEF_BUTTON = new Object();
+    private static Object TRANSFER_FIEF_BUTTON = new Object();
     private static Object CHANGE_TITLE_BUTTON = new Object();
     private static Object EXILE_LORD_BUTTON = new Object();
     private static Object START_CAMPAIGN_BUTTON = new Object();
@@ -82,7 +84,7 @@ public class LawsIntelPlugin extends BaseIntelPlugin {
         TooltipMakerAPI header = panel.createUIElement(width, headerHeight, false);
         Color uiColor = Global.getSettings().getBasePlayerColor();
         faction = Misc.getCommissionFaction();
-        if (faction == null || Misc.isPirateFaction(faction)) {
+        if (faction == null || (!FactionTemplateController.getTemplate(faction).isCanPreformPolicy() && !FactionTemplateController.getTemplate(faction).isCanPreformDiplomacy())) {
             if (PoliticsController.playerFactionHasLaws()) {
                 faction = Global.getSector().getPlayerFaction();
             } else {
@@ -174,9 +176,10 @@ public class LawsIntelPlugin extends BaseIntelPlugin {
 
 
         // King-only laws
+        TooltipMakerAPI rulerPanel = null;
         if (faction.equals(Global.getSector().getPlayerFaction())) {
             // promote lord, demote lord, exile lord, revoke fief
-            TooltipMakerAPI rulerPanel = panel.createUIElement(width, headerHeight, false);
+            rulerPanel = panel.createUIElement(width, headerHeight, false);
             rulerPanel.addSectionHeading("Ruler Actions",
                     faction.getBrightUIColor(), faction.getDarkUIColor(), Alignment.LMID, opad);
             ButtonAPI button3 = rulerPanel.addButton("Grant/Revoke Title", CHANGE_TITLE_BUTTON, faction.getBrightUIColor(),
@@ -189,6 +192,21 @@ public class LawsIntelPlugin extends BaseIntelPlugin {
             button5.getPosition().rightOfTop(button4, opad);
             panel.addUIElement(rulerPanel).belowLeft(diplomacyPanel, opad);
         }
+
+        // Personal Decisions
+        TooltipMakerAPI personalPanel = panel.createUIElement(width, headerHeight, false);
+        personalPanel.addSectionHeading("Personal Decisions",
+                faction.getBrightUIColor(), faction.getDarkUIColor(), Alignment.LMID, opad);
+        ButtonAPI button6 = personalPanel.addButton("Transfer Fief", TRANSFER_FIEF_BUTTON, faction.getBrightUIColor(),
+                faction.getDarkUIColor(), 150, 20, opad);
+
+        if(LordController.getPlayerLord().getFiefs().isEmpty())
+            button6.setEnabled(false);
+        if(rulerPanel == null)
+            panel.addUIElement(personalPanel).belowLeft(diplomacyPanel, opad);
+        else
+            panel.addUIElement(personalPanel).belowLeft(rulerPanel, opad);
+
     }
 
     private TooltipMakerAPI addLawRow(CustomPanelAPI panel, UIComponentAPI prev,
@@ -351,7 +369,9 @@ public class LawsIntelPlugin extends BaseIntelPlugin {
             for (FactionAPI faction : LordController.getFactionsWithLords()) {
                 if (faction.equals(this.faction)) continue;
                 if (faction.equals(Global.getSector().getPlayerFaction())) continue;
-                if (Misc.isPirateFaction(faction)) continue;
+                //if (!Utils.canHaveRelations(faction)) continue;
+                if (!FactionTemplateController.getTemplate(faction).isCanPreformDiplomacy()) continue;
+                if (!FactionTemplateController.getTemplate(this.faction).isCanPreformDiplomacy()) continue;
                 if (faction.isHostileTo(this.faction) != (buttonId == DECLARE_WAR_BUTTON)) {
                     options.add(faction.getDisplayName());
                     retVals.add(faction.getId());
@@ -463,6 +483,62 @@ public class LawsIntelPlugin extends BaseIntelPlugin {
             });
             ui.showDialog(null, plugin);
 
+        }
+        else if (buttonId == TRANSFER_FIEF_BUTTON) {
+            String message = "You are going to transfer one of your fiefs to another Lord. Select the fief to transfer.";
+            ArrayList<Lord> lords = new ArrayList<>();
+            ArrayList<String> optionsLords = new ArrayList<>();
+            ArrayList<String> retValsLords = new ArrayList<>();
+            for (Lord lord : LordController.getLordsList()) {
+                if (lord.getFaction().equals(faction) && !lord.isPlayer()) {
+                    lords.add(lord);
+                }
+            }
+            Utils.canonicalLordSort(lords);
+            for (Lord lord : lords) {
+                optionsLords.add(lord.getTitle() + " " + lord.getLordAPI().getNameString());
+                retValsLords.add(lord.getLordAPI().getId());
+            }
+            final SelectItemDialogPlugin plugin = new SelectItemDialogPlugin(message, optionsLords, retValsLords);
+            plugin.setPostScript(new Script() {
+                @Override
+                public void run() {
+                    final String selection = plugin.getRetVal();
+                    if (selection != null) {
+                        // nested dialogs, yay
+                        Lord lord = LordController.getLordById(selection);
+                        String messageFiefs = "Select whom to transfer fief to " + lord.getLordAPI().getNameString();
+                        ArrayList<String> optionsFiefs = new ArrayList<>();
+                        ArrayList<String> retValsFiefs = new ArrayList<>();
+                        FactionAPI faction = Utils.getRecruitmentFaction();
+                        for (MarketAPI market : Global.getSector().getEconomy().getMarketsCopy()) {
+                            Lord owner = FiefController.getOwner(market);
+                            if (faction.equals(market.getFaction()) && owner == LordController.getPlayerLord()) {
+                                optionsFiefs.add(market.getName() + ", owned by " + owner.getLordAPI().getNameString());
+                                retValsFiefs.add(market.getId());
+                            }
+                        }
+                        final SelectItemDialogPlugin plugin2 = new SelectItemDialogPlugin(messageFiefs, optionsFiefs, retValsFiefs);
+                        plugin2.setPostScript(new Script() {
+                            @Override
+                            public void run() {
+                                String selection2 = plugin2.getRetVal();
+                                if (selection2 != null) {
+
+                                    MarketAPI market = FiefController.getMarketByID(selection2);
+                                    Lord targetLord = LordController.getLordById(selection);
+
+                                    FiefController.playerTransferFief(targetLord,market);
+
+
+                                }
+                            }
+                        });
+                        ui.showDialog(null, plugin2);
+                    }
+                }
+            });
+            ui.showDialog(null, plugin);
         }
     }
 

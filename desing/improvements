@@ -1,0 +1,231 @@
+things I need to learn:
+    1) how to load a class with only the class path?
+        -FactionTemplateController thing = Global.getSettings().getScriptClassLoader().loadClass("starlords.util.factionUtils.FactionTemplateController").asSubclass(FactionTemplateController.class);//????
+(random):
+    have starlords go to the faction leader to request support
+        -have starlords go to the player to request support. (using the unfinished 'lord request' system, to request things like larger fleets, more income, so on and so forth.)
+        -have the ability to give out quests for starlords
+    let us pick out images and details.
+        -let us edit our lords images, and fleet details. this is for the lore. at least add in a dev mode..
+structure:
+    1) dialog:
+        -I am currently working on this.
+    2) fav item support:
+        -is this reuqired? like... one can do this from the dialog.json.
+    3) lords Json file:
+        3.0) add the ability to add tags the starlord person. tags can do interesting things:
+            -) (done) "STARLORD_IMMORTAL" prevents starlords from dieing when life and death is enabled
+            -) "STARLORD_LOYAL_PERMA" prevents a starlord from ever defecting from there faction for any reason.
+            -) "STARLORD_LOYAL_UNTIL_DEATH" prevents a starlord from defecting until there faction is completely destroyed (has no markets)
+            -) "STARLORD_LOYAL_UNTIL_FIEF" prevents a starlord from defecting until they aquire there first feif. when that happens, this tag is removed, and the starlord will act normally.
+            -) "STARLORD_LOYAL_PLAYER_CAN_TURN" overrides other LOYAL tags, to allow the player to convince the starlord to join you.
+        3.1) add the ability to have a overriding faction. this overriding faction will be the faction the lord draws on when it wants to add a officer to there fleet.
+        3.2) add the ability to override the ratio of AI-cores on automated ships.
+            -) also add the ability to have difffrent AI cores on your ships. how could I do that? I dont know.
+        3.3) allow a option to have a raito of upgrades to new ships.
+            -) like, weather the lord will chose to upgrade there ships with Smods first, or something else first.
+        3.4) add a system for cost weights, income weights, and AI wieghts for varus things.
+    5) allow a starlords data to be changed -after- starlord creation.
+        5.0) so, first I require 2 classes stored in the starlord: the main -lord template- and the overriding data.
+             note: overriding data has been added early. it will be worked on farther, or compleatly readjusted.
+             the 'overriding data' will only save the things that are diffrent about this starlord from the template (so if I changed the flagship, that would be saved).
+             then when starlords is loaded, and any data from the template is checked, it will first check the overriding template for a change, then the base template for the normal data.
+             the reason for doing it this way is to allow someone to change there starlord with the json file, provided that bit of data has not been changed with code.
+        5.1) I will also need to set the data in the lord Template to public.
+        5.2) I will need addons in the dialog that set / change data in the lords lord template.
+    6) add in a 'promote officer' listener. this would allow for the following data to be overwriten on features.1
+        -) the default lord fleet name
+        -) the available flagships for the lord
+        -) the available ships and blueprints available for the lords fleet
+        -) the ability to prevent you from changing the lords fleet name, flagship, or available ships / smods.
+        -) the ability to set other data, like lord personality, or skills, or so on.
+    7) allow custom code that allows a modder to change the possibility for lord upgrades.
+        -) the way this could be done, I could use a system simaler to the hullmods.CSV were it calls on a custom class. then the following would happen:
+            1) the lord would go into all classes, and get the weight of preforming each upgrade.
+            2) the lord would start upgrading whatever -vailid- upgrade had the most weight (or do I chose randomly? lets go with random, based on weight)
+            3) this will repeat, and every time it does, a varuble for 'save mony' will be increased. this will act as an upgrade, with a weight being added and increased when the starlords remaining credits are <= to the credits value stored here. (this will simulate starlords saving credits for a rainy day)
+        -) right now, there are 2 upgrade paths. new ships, and s-mods.
+        -) other options I know of: 'exotic technologys' mod. but that's not for me to try. just create the framework
+    8) change the way 'LordAI.chooseAssignment, LordAI.beginAssignment, LordAI.progressAssignment' works. make this have a system that's highly modifiable.
+        -) I havve thought about this. this is effectivly an AI upgrade. how I should handle it should be as follows:
+            1) make it so I have a CSV file with all the AI commands linked on it. I can also store some varubles that can be used as weights here (for if I chose this command, or even for income multis).
+            2) make it so lords and factions can mess with the weights of a given command to modifiy the odds of it happing (it chosen randomly based of weight right now, so this should help)
+            3) make it so lords and factions can ban / approve AI tasks. this lets factions or starlords have there own AI actions that they might take at a given time.
+    10) intil plugins:
+        a contrubuter suggested some changed here. they are quite powerfull. need this arg.
+    11) lord generator:
+        11.0) (requires structure 3.0 to be complete)
+              for both exstra lords, and life and death lords, I need the ability to add lords from diffrent factions at a chance (examplie: lions gard for sindrin fuel)
+        11.1) make it so the starlords selected flagship selects a random one out of some percentage of valid flagships. instead of just the most liked one (for varitys sakes)
+        11.2) save the lords ship and flagship them. in case someone wants to regenerate fleets.
+    12) starlord faction.json
+        -I need a json file for starlord lords. the following data is required in this function:
+        "leader":String (name of the leader of this faction)
+        "rank0Name":String name of the lowest rank of starlord
+        "rank1Name":String name of the second highest rank of starlord
+        "rank2Name":String name of the highest rank of starlord
+        "allowMarshalOverride": boolean (allows this faction to have a martial).
+        "allowPoliticsOverride":boolean (allows this faction to declare war / peace all on its own)
+        "allowHostilityTargetOverride":boolean (allows other factions to target this faction for hostility (raids and invasions). if set to false, will forcefully disable "allowInvasionsOverride")
+        "allowInvasionsOverride":boolean (allows this faction to both be invaded, and preform invasions. requires nexerlin)
+        "allowFiefsOveride":boolean ???
+        "allowConcalOverride":boolean ??
+        ""
+        "exstraLordMultiplyer":double
+        "lifeAndDeath_LordGrowthMulti":double
+        "--data related to 11.0)" {"factionID":double,..."} gets the odds of a lord spawning on game start with a different factions ships, name, exstra.
+        "--data related to 11.0)" {"factionID":double,..."} gets the odds of a lord spawning from the life and death system with a different factions ships, name, exstra.
+        "gameStarDefaultLord": a lord.json object, dedicated to the default values of lords generated at game start. any items unset will still be randomized.
+        "lifeAndDeathDefaultLord": a lord.json object, dedicated to the default values of lords generated at game start. and items unset will still be randomized.
+        NOTE: for each defalt lord, I might need something more advanced for fleet setup.
+            -maybe, I could so something like having a list of defalt lords, and having an odds? (and maybe an option to only have one of each)?
+            -alturnitively, it might be required to do something more advanced. like, having only most of the options available (additional ships, additional skills, additional tags, exstra.)
+    13) attack improvements
+        -) note: this is part of the AI improvments. its prepared, but not yet implemented.
+        13.0) allow campaigns to have a 'max violence per market' value, that once its filled the campaign will chose a different target. have it separate from 'max campaign violence.'
+    14) politics improvements:
+        -) make it so each policy has its own mention in a new policys.CSV file.
+        -) make it so all lords can have there own thoughts and custom messages on each policy.
+        -) please note: I arg view the god dam upgrade thing for this its teh same sadmkasdksadas
+features:
+    1) allow the player to promote a officer into a starlord. when promoting the starlord, you should have the following options:
+        -) requires structure.6, and structure.3.0 "STARLORD_LOYAL_UNTIL_FIEF"
+        1.0) the lords fleet name
+        1.1) the lords flagship (you should be able to give your lord a flagship from you ship)
+            -) when doing this, the lords SMods for the flagship will be based off the Smods on the ship.
+            -) if you dont have the blueprint for this ship, the ship is marked as un-recoverable permanently. this allows you to give the lord a crazy OP one of a kind flagship (this should be a option as well)
+        1.2) for ships, its more complicated. first, you should be able to select a ship form your blueprints (or inputted though a listener).
+             next, you should be able to refit the blueprinted ships. (using only available weapons / wings / hullmods). also, if you add S-Mods, the S-Mods will be added to the lords fleet Smods thing, but -only- for that ship variant.
+             lastly, you will be able to set the ratio of each individual variant.
+            -) there should be a option to allow the lord to pick there own ships (using the starlords generator).
+        1.3) lord personality should be chosen randomly.
+        1.4) all other lord data should just be based on the officer.
+        1.5) allow the ability to set any other bit of data onto the starlord. (like custom dialog, or tags, or what have you)
+        1.6) allow you to give a certain budget of credits to the starlord to create there ships / officers / S-Mods with.
+        1.7) the default lord tag should be "STARLORD_LOYAL_UNTIL_FIEF". this is because the starlord has not yet had a tast of -power-, so they will be loyal until they aquire something. even if your faction is wiped out.
+        1.8) lastly, this should cost a number of story points, and this value should increase for every starlord you create, up to a limit. this prevents you from creating 1000 starlords and taking over everything.
+    2) allow starlords to defect to the player faction. this involves a few changes
+        -) (thanks Aleksandros for the code!)
+        2.0) first, starlords that want to join the player faction need to be tagged. well tagged, they cant leave there faction. the tag should expire after 1 month.
+        2.1) a intel should be added, were it will then open the lords dialog, with a custom greeting, and options related to defection.
+        2.2) if you encounter the starlord somewhere, it should also open this greeting dialog. if you encounter the lord in the wild, the option to talk to them should be glowing yellow like whenever someone wants to talk to you.
+    3) allow starlords to be captures, if there flagship dies and the starlord retreats (losses the battle)
+        -) (thanks Aleksandros for the code!)
+        3.0) code:
+            if (!lord.isPlayer())
+            {
+            if (loser.getFlagship() == null)
+            {
+            log.info("[StarLords] Lord " + lord.getLordAPI().getNameString() + " lost his flagship. Marked for capture.");
+            maybeCaptured.add(lord);
+            }
+            else
+            {
+            if (loser.getFlagship().isFlagship() == false)
+            {
+            log.info("[StarLords] Lord " + lord.getLordAPI().getNameString() + " lost his flagship. Marked for capture.");
+            maybeCaptured.add(lord);
+            }
+            }
+            }
+    4) the ability for lords/player to place bountys on other lords (or the player). this is a complicated task:
+        -) requires structure.8
+        -) it might be required to change the relations from matching relation amount between lords, but instead allow lords to have different feelings to eachother. this should allow a lord to pick on one a lot without developing hate of its target (instead, only the target will get angry over the bullying)
+        -) so, in theory it would be simple to just have the lord place a bounty on people they don't like (provided they have enough ships). so here are the steps I have came up with:
+        4.0) first, create a new item in the relation controlar. something like... 'anger'.
+            -) the lords 'anger' to a lord will change at the same time as any relation change. (2X relation change?)
+            -) every month, the lords 'anger' will move by one ponit tords whatever the lords relations are.
+                -) I could make this calculation only run whenever the lord look at how angry they are. this is important, because there are starlords^2 anger variables required.
+        4.1) lords, at random can attempt to place a bounty on the starlord they are most angry at. (provided they have a minimum anger level, adn a min amount of exstra credits?) doing so will massively reduce 'anger'. but will slightly reduce relations between the starlords.
+        4.2) lords at peace can attempt to hunt down bounty targets (provided they are at war? or maybe allow certen personalitys / factions to hunt down lords regardless, or even same faction lords)?
+            -) if sucsesfull, the lords will all gain the amount of credits equal to the bounty devided between them
+            -) if the player joins, the players proton of the bounty is devided by normal rules.
+        4.3) if a lord is defeated with a bounty on them, the bounty will vanish, and the lords relation with anyone who placed the bounty on them will be reduced.
+             lords that placed the bounty on a lord should also gain relation between eachother? (but only a small amount)?
+             lords that take down a bounty will gain relation with the ones who placed the bounty (between 1 and 10, depending on the amount of credits each lord placed.)
+             lords that fight together to take down a bounty target will gain relation between themselves.
+        4.4) if a lord dies with a bounty on them, the credits will be refunded.
+        4.5) if a lord dies after placing a bounty, the bounty will remain for a time, before vanishing.
+        4.6) if a lord develops a negitive amount of anger on a starlord they have placed a bounty on, they may withdraw a bouty.
+            -) at this time, that part of the bounty will become timed.
+        4.7) there should be a custom intil plugin showing not who is placing the bountys, so you can see when each amount of credits is going to time out (if they are).
+        4.8) a custom intill plugin will be needed for when the player has a bounty on them.
+        4.9) the lords should not just know were a bounty target is. (if the lord leaves civilized space). so a player running away might be able to wait out there bounty.
+    5) the ability to talk to officers (using the lord dialog system I am building)
+        -) VN sector when???? (for real though, we are so close to VN sector at this point. like, we can already romance for gods sake!)
+    6) allow lords to have a more 'starsector' like mission system.
+        -) so there are a few things that I dislike about the current mission system.
+        6.0) contacts. I want to beable to use the contact system on starlords. letting the player have some very complecated missions. (also this lets starlords have more personality in there missions. because of differing contact types).
+        6.1) starting missions. this is the hard part. I like the fact you can just go up to starlords and talk to them. but it would be nice if they could like... talk to you. like what happens in normal bar missions. I dont know what this would require.
+        -) I for sure want 6.0 though. that is just really really important.
+    7) power structures and balances: (henceforth referred to as 'PMC's)
+        -) requires an complete upgrade to the politics system
+        -) what this would do, is effectively allow starlords to 'employ' other starlords and NPC fleets (generic fleets) to preform actions on there beneath. this function would replace garrisons (because they are a nightmare of issues).
+        -) issues:
+            -) the number of starlords currently present would need to be pruned, or otherwize reduced (or just make most starlords be poor people forced to work for there overlords (make it hard to get enough income to do something sneaky?))
+        -) features:
+            -) the ability to recruit starlords to work for the player / other starlords.
+            -) starlords in a 'PMC' would have the following limitations:
+                -they would gain income from there employers stockpile of credits.
+                -they would only beable to rearm at wereever there might be a bace for the 'PMC' (player would have some type of free support there instead)
+                -they would have considerably reduced political power.
+                -voting against whoever controls the 'PMC' could have dire repercussions. (your boss is mad at you)
+                -the ability to complete quests for the owner of the 'PMC' to acquire rep, privileges, and credits.
+                -starlords inside of a 'PMC' would beable to form there own, lesser 'PMC's if they somehow get enouth income. (although most would prefer to leave, especially if they become more powerful then there boss. rebellion macanics?)
+                -starlords withen a 'PMC' can request additional support from there leaders if they feel they deserve it. this would be completed however...
+                -starlords that are part of a 'PMC' would have the ability to join a lower ranking 'PMC' (aka a 'PMC' working for the 'PMC' they are already a part of) at will, provided the faction laws allow it.
+            -) starlords who control a 'PMC' would have the following powers:
+                -the ability to issue timed quests to the 'PMC'.
+                -the ability to force starlords in the 'PMC' to use selected ships? (maybe only the player will get this power...? (or only enabled in the lords.json))
+                -the ability to decide (not vote for decide) on Law within the 'PMC'. (requires a politics rewrite)
+                    -laws on if someone is allowed to leave.
+                    -laws dictating income for each NPC or Starlord.
+                    -laws dictating tax on trade? (a trade based PMC. a PTC? (private trade compony)) all sorts of laws, this is for the law rewrite ignore for now.
+                -the ability to forcefully remove, or disband the PMC.
+                -complete control on who is allowed to join, or is forced to leave.
+                -the ability to start a 'campaign' for everyone in the PMC. (smaller campaigns yay)
+                -the ability to funnle contracts from any 'PMC' they are working for, down into there own PMC (all well taking a percent of the income as 'taxes' for the opportunity)
+                -set other tasks, such as system bounty's, worlds to defend, so on and so forth.
+            -) 'PMC's all the way up.
+                - in code based structure, this could allow for PMC's to function all the way up to the top. as in the very top. as in the faction politics would, in code, be a PMC. just a mush more grand and interesting one.
+                - decentralized factions (only pirates for now) would not have the highest level of structure be a PMC. instead, they would only beable to do things like hold feasts? maybe? (or maybe just make it a very lose PMC.)
+                - faction 'PMC's would have there income decided based on something like a projected total market income? (to mirror the player faction) (without AOFD getting in the way?)
+        -7.0) build up the core 'PMC' system. this will require a new controller.
+        -7.1) reorganize the politic system to force the politics system to be attached to PMC's instead of factions.
+        -7.2) upgrade the starlord request system to allow for starlords to give each-other missions.
+            -note: also add in a system to allow for missions to reach a PMC / starlord from -outside- the PMC's structure and controlling PMC. (but as more of a suggestion then a command. this is useful for the bounty system later.)
+        -7.3) do some minor work on the AI to allow for starlords to take missions from other sorces (or just do the PMC system after the AI upgrade) (or make it part of the AI upgrade)
+        -7.4) update starlords writing, and interrupts, to allow for starlords requesting things of there bosses / subordinates (and the player.)
+misc improvements:
+    1) s-mod improvements:
+        1.0) I want to go into the SMods.json and add a bunch of Smod possabilitys
+        1.1) I need to add additional rules for the Smods. rules I have thought of are the following:
+            -) wepon mount types, and sizes
+            -) shiled arc, spead, efisahncy, so on
+            -) active wepons with ammo.
+    2) exstra lords:
+        2.0) add a option that allow the exstra lord generator to remove lords from the game, provided its higher then the wanted amount of starlords.
+    3) life and death
+        3.0) add a option that makes it so lords present at game start (or from the json file) cannot die.
+    4) player owned fiefs:
+        4.0) ether let the player do things like create garasons, and get income, or even let the player act as the govern of the world.
+    5) dialog:
+        5.0) quarrelsome lords only have one response when you try to date them
+        5.1) the 'quarrelsome' defection option always sets the defection justification to 2. this is like.... strange. incomplete.
+settings:
+    1) lord fleet settings
+        1.0) max fleet size (DP)
+        1.1) max fleet size (ships)
+        1.2) max number of officers
+        1.3) max officer level?
+        1.4) max number of ships of each type?
+        1.5) fleet cost settings (cost multi of Smods, cost muti of ships)
+    2) politics settings
+        2.0) set time that consul stay in session
+        2.1) set the time between consul sessions.
+    3) life and death system:
+        3.0) make it so the player spouse can have different death chance
+        3.1) make it so lords around at game start can have a diffrent death chance.
+    4) attack settigns:
+        4.0) change the 'max violence' value of raids and campaigns
+        4.1) (required improvements.13.0) add a setting for 'max campaign violence'

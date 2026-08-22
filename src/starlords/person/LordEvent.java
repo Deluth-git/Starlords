@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static starlords.ai.LordAI.*;
 import static starlords.util.Constants.DEBUG_MODE;
 
 @Getter
@@ -43,7 +44,8 @@ public class LordEvent {
     @Setter
     private long offenseTimestamp;  // When an offensive action's charge time started
     @Setter
-    private int totalViolence; // if a raid/campaign causes enough damage, it will end
+    private int totalViolence; // if a raid/campaign causes enough damage to a market, it will end / change target.
+    private int totalCampaignViolence; //if a campaign causes a large amount of damage, it will end. if not, it will chose more targets.
     @Setter
     private OffensiveType offensiveType;
     @Setter
@@ -139,7 +141,9 @@ public class LordEvent {
     public float getTotalFuel() {
         if (originator == null) return 0;
         float fuel = originator.getFleet().getCargo().getFuel();
+        if (originator.getFleet().getContainingLocation() == null) return fuel;
         for (Lord supporter : participants) {
+            if (supporter.getFleet().getContainingLocation() == null) continue;
             if (originator.getFleet().getContainingLocation().equals(
                     supporter.getFleet().getContainingLocation())) {
                 fuel += supporter.getFleet().getCargo().getFuel();
@@ -162,6 +166,36 @@ public class LordEvent {
 
     public FactionAPI getFaction() {
         if (originator != null) return originator.getFaction();
-        return baseRaidIntel.getFaction();
+        if (baseRaidIntel != null) return baseRaidIntel.getFaction();
+        for (Lord a : participants){
+            if (a != null && a.getFaction() != null) return a.getFaction();
+        }
+        for (Lord a : opposition){
+            if (a != null && a.getFaction() != null) return a.getFaction();
+        }
+        return Global.getSector().getFaction("independent");
+    }
+    public void increaseViolence(int value){
+        totalViolence+=value;
+        totalCampaignViolence+=value;
+    }
+    public int getMaxViolence(){
+        boolean type = getType().equals(LordEvent.CAMPAIGN);
+        if (type){
+            return getMaxViolenceToWorld_campaign();
+        }
+        return getMaxViolenceToWorld_Lord();
+    }
+    public int getMaxViolenceToWorld_Lord(){
+        int base = RAID_MAX_VIOLENCE;
+        return base;
+    }
+    public int getMaxViolenceToWorld_campaign(){
+        int base = CAMPAIGN_MAX_VIOLENCE;
+        return base;
+    }
+    public int getMaxCampaignViolence(){
+        int base = CAMPAIGN_MAX_VIOLENCE_TOTAL;
+        return base;
     }
 }

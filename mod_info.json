@@ -1,16 +1,16 @@
 {
   "id":"starlords",
   "name":"Star Lords",
-  "author":"Deluth",
+  "author":"Deluth & Alaricdragon & Others",
   "version":{
     "major":0, 
     "minor":3,
-    "patch":2
+    "patch":78
   },
   "description":"Mount and Blade in Space",
-  "gameVersion":"0.97a-RC11",
+  "gameVersion":"0.98a-RC5",
   "totalConversion":false,
   "jars":["jars/StarLords.jar"],
   "dependencies": [],
-  "modPlugin":"starlords.plugins.LordsModPlugin",
+  "modPlugin":"starlords.plugins.LordsModPlugin"
 }

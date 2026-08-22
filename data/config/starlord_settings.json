@@ -1,0 +1,16 @@
+{
+  "requiredRepForDirectContact": 75,
+  "requiredRepForKnowledgeOfLocation": 75,
+  "requiredRepForKnowledgeOfShips": 50,
+  "requiredRepForKnowledgeOfWealth": 25,
+  "requiredRepForKnowledgeOfCurAction": 50,
+  "showAllLordsIntelByDefault": false,
+  "showMessageLordCaptureReleaseEscape": false,
+  "playerExtraCouncilWeight": 2000,
+  "minStabilityToPreventFiefDefection": 7,
+  "features_canPlayerFactionBeAttacked": true,
+  "features_canPlayerFactionBeAttackedBeforeStarlords": false,
+
+  "Other_maxSMods": 3,
+  "Other_exstraSModsForSpecalMods": true
+}

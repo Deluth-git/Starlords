@@ -18,6 +18,7 @@ import com.fs.starfarer.api.util.Pair;
 import exerelin.campaign.intel.fleets.OffensiveFleetIntel;
 import lombok.Getter;
 import org.apache.log4j.Logger;
+import starlords.ai.utils.TargetUtils;
 import starlords.person.Lord;
 import starlords.person.LordAction;
 import starlords.person.LordEvent;
@@ -26,6 +27,8 @@ import starlords.ui.EventIntelPlugin;
 import starlords.ui.HostileEventIntelPlugin;
 import starlords.util.StringUtil;
 import starlords.util.Utils;
+import starlords.util.factionUtils.FactionTemplate;
+import starlords.util.factionUtils.FactionTemplateController;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -61,6 +64,8 @@ public class EventController extends BaseIntelPlugin {
     private EventController() {
         setHidden(true);
     }
+
+
 
     public static long getLastFeastTime(FactionAPI faction) {
         if (!getInstance().feastCounter.containsKey(faction.getId())) return 0;
@@ -110,9 +115,13 @@ public class EventController extends BaseIntelPlugin {
     public static void addRaid(LordEvent raid) {
         getInstance().raids.add(raid);
         FactionAPI targetFaction = raid.getTarget().getFaction();
-        if (raid.getOriginator() != null && (targetFaction.equals(Utils.getRecruitmentFaction())
-                || targetFaction.equals(Global.getSector().getPlayerFaction()))) {
-            Global.getSector().getIntelManager().addIntel(new HostileEventIntelPlugin(raid));
+        FactionAPI playerFaction = Global.getSector().getPlayerFaction();
+        Lord originator = raid.getOriginator();
+        if (originator != null)
+            if (targetFaction.equals(Utils.getRecruitmentFaction())
+                    || targetFaction.equals(playerFaction)
+                    || originator.getFaction().equals(Utils.getRecruitmentFaction())) {
+                Global.getSector().getIntelManager().addIntel(new HostileEventIntelPlugin(raid));
         }
         LordAI.triggerPreemptingEvent(raid);
     }
@@ -272,9 +281,7 @@ public class EventController extends BaseIntelPlugin {
         // check offensive options
         if (!currCampaign.isDefensive()) {
             for (MarketAPI market : Global.getSector().getEconomy().getMarketsCopy()) {
-                FactionAPI otherFaction = market.getFaction();
-                if (!Misc.isPirateFaction(otherFaction) && (LordController.getFactionsWithLords().contains(otherFaction) || otherFaction.isPlayerFaction())
-                        && otherFaction.isHostileTo(faction)) {
+                if (TargetUtils.canBeAttackedByCampaign(lord,market)) {
                     int weight = 15000 - (int) Utils.getHyperspaceDistance(market.getPrimaryEntity(), lord.getLordAPI().getFleet());
                     if (weight > preferredWeight) {
                         preferred = market;
@@ -348,10 +355,8 @@ public class EventController extends BaseIntelPlugin {
             }
         }
         for (MarketAPI market : Global.getSector().getEconomy().getMarketsCopy()) {
-            if (!market.getFaction().isHostileTo(lord.getLordAPI().getFaction())) continue;
-            if (Misc.isPirateFaction(market.getFaction())) continue;
+            if (!TargetUtils.canBeAttackedByLord(lord,market)) continue;
             if (seen.contains(market)) continue;
-            if (Misc.getDaysSinceLastRaided(market) < RAID_COOLDOWN) continue;
             int currWeight = getMilitaryOpWeight(lord, market, null, false);
             if (currWeight > preferredWeight) {
                 preferred = market;
@@ -383,6 +388,7 @@ public class EventController extends BaseIntelPlugin {
 
     public static void endFeast(LordEvent feast) {
         getInstance().feasts.remove(feast);
+        if (feast == null) return;
         feast.setAlive(false);
         FactionAPI faction = feast.getFaction();
         for (Lord lord : LordController.getLordsList()) {
@@ -435,7 +441,7 @@ public class EventController extends BaseIntelPlugin {
                 case FEAST:
                     LordEvent feast = EventController.getCurrentFeast(lord.getFaction());
                     if (feast != null) {
-                        if (feast.getOriginator().equals(lord)) {
+                        if (lord != null && (feast.getOriginator() == null || feast.getOriginator().equals(lord))) {
                             EventController.endFeast(feast);
                         } else {
                             feast.getParticipants().remove(lord);
@@ -451,12 +457,14 @@ public class EventController extends BaseIntelPlugin {
     public static int getStartCampaignWeight(Lord lord) {
         // no campaigns for LP/pirates
         FactionAPI faction = lord.getLordAPI().getFaction();
-        if (Misc.isPirateFaction(faction)) return 0;
+        FactionTemplate attackerTemplate = FactionTemplateController.getTemplate(faction.getId());
+        // no campaigns for factions that cant attack or defend.
+        if (!attackerTemplate.isCanHaveCampaigns()) return 0;
+        if (!attackerTemplate.isCanAttack() && !attackerTemplate.isCanBeAttacked()) return 0;
         boolean isAtWar = false;
         for (MarketAPI market : Global.getSector().getEconomy().getMarketsCopy()) {
             FactionAPI otherFaction = market.getFaction();
-            if (LordController.getFactionsWithLords().contains(otherFaction)
-                    && !Misc.isPirateFaction(otherFaction) && faction.isHostileTo(otherFaction)) {
+            if (TargetUtils.isAtWar(faction,otherFaction)) {
                 isAtWar = true;
                 break;
             }

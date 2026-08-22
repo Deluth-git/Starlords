@@ -1,0 +1,40 @@
+{
+  "fetures_lifeAndDeathSystem": false,
+
+  "LAD_AllowLife": true,
+  "LAD_AllowDeath": true,
+  "LAD_AllowExstremests": true,
+
+  "LAD_hardMax": 1000,
+  "LAD_hardMin": 20,
+
+  "LAD_softMax": 400,
+  "LAD_softMin": 100,
+  "LAD_softSpeedup": 1.1,
+  "LAD_softSlowdown": 0.1,
+
+  "LAD_PonitsRequired": 400,
+  "LAD_PonitsSizeMulti": 1,
+  "LAD_PonitsSizeExscpoment": 1,
+  "LAD_PontsLostPerStability": 0.5,
+
+  "LAD_StabilityforExstremests": 3,
+  "LAD_OddsOfExstremestsPerMissingStability": 0.1,
+
+  "LAD_BaseOddsOfDeath": 0.005,
+
+  "LAD_StartingPonits": {
+    "min": 0,
+    "max": 400,
+    "target": 50,
+    "i": 1.05
+  },
+  "excluded_factions": {
+    "1": "derelict",
+    "2": "independent"
+  },
+  "extremist_factions": {
+    "luddic_path": 1,
+    "pirates": 2.5
+  }
+}

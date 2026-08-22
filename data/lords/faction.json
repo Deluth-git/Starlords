@@ -1,0 +1,74 @@
+{
+  "player": {
+    "canGivesFiefs": true,
+    "canPreformDiplomacy": true,
+    "canPreformPolicy": true,
+    "canStarlordsJoin": true,
+    "canHaveCampaigns": true,
+    "canAttack": true,
+    "canBeAttacked": true
+  },
+  "hegemony": {
+    "leaderID": "daud",
+    "rank_0": "Lord Admiral",
+    "rank_1": "Lord High Admiral",
+    "rank_2": "First Star Lord"
+  },
+  "luddic_church": {
+    "rank_0": "Bishop",
+    "rank_1": "Archbishop",
+    "rank_2": "Cardinal"
+
+  },
+  "persean": {
+    "leaderID": "reynard_hannan",
+    "rank_0": "Megas Doux",
+    "rank_1": "Doux",
+    "rank_2": "Megas Doux"
+
+  },
+  "sindrian_diktat": {
+    "leaderID": "andrada",
+    "rank_0": "Deputy Star Marshal",
+    "rank_1": "Star Marshal",
+    "rank_2": "Generalissimo"
+
+  },
+  "tritachyon": {
+    "leaderID": "sun",
+    "rank_0": "SVP",
+    "rank_1": "Executive",
+    "rank_2": "COO"
+
+  },
+  "luddic_path": {
+    "leaderID": "cotton",
+    "rank_0": "Brother",
+    "rank_1": "Brother",
+    "rank_2": "Brother"
+
+  },
+  "pirates": {
+    "rank_0": "Pirate Lord",
+    "rank_1": "Pirate Lord",
+    "rank_2": "Pirate Lord"
+
+  },
+  "independent": {
+    "canGivesFiefs": false,
+    "canPreformDiplomacy": false,
+    "canPreformPolicy": false,
+    "canStarlordsJoin": false,
+    "canHaveCampaigns": false,
+    "canAttack": false,
+    "canBeAttacked": false
+  },
+  "derelict": {
+    "canGivesFiefs": false,
+    "canPreformDiplomacy": false,
+    "canPreformPolicy": false,
+    "canStarlordsJoin": false,
+    "canHaveCampaigns": false,
+    "canAttack": false
+  }
+}

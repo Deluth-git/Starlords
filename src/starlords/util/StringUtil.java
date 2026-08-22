@@ -16,7 +16,12 @@ public class StringUtil {
         String str = getString(category, id);
         if (str == null) return null;
         for (String replacement : replacements) {
-            str = str.replaceFirst("\\$string", replacement);
+            if (replacement == null) replacement = "ERROR: MISSING STRING";
+            try {
+                str = str.replaceFirst("\\$string", replacement);
+            }catch (Exception e){
+
+            }
         }
         return str;
     }

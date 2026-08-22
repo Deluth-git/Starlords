@@ -14,7 +14,7 @@ import starlords.person.Lord;
 import java.util.List;
 
 public class LordCampaignFleetAI implements CampaignFleetAIAPI {
-
+    //todo: remove this class, as its never used? as far as I can tell?
     private static Logger log = Global.getLogger(LordCampaignFleetAI.class);
     private Lord lord;
     private CampaignFleetAIAPI base;

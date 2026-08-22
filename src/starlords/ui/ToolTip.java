@@ -1,6 +1,7 @@
 package starlords.ui;
 
 import com.fs.starfarer.api.ui.TooltipMakerAPI;
+import lombok.Setter;
 import starlords.util.Constants;
 
 import java.awt.*;
@@ -13,6 +14,7 @@ public class ToolTip implements TooltipMakerAPI.TooltipCreator {
     private Color color;
     private boolean colorCode;
     private List<String> messages;
+    private String codexEntryId;
 
     public ToolTip(float width, String message) {
         this(width, message, null);
@@ -23,6 +25,13 @@ public class ToolTip implements TooltipMakerAPI.TooltipCreator {
         this.message = message;
         this.color = color;
     }
+
+    public ToolTip(float width, String message, Color color, String codexEntryId) {
+        this(width,message,color);
+        this.codexEntryId = codexEntryId;
+    }
+
+
 
     public ToolTip(float width, List<String> messages) {
         this(width, messages, false);
@@ -72,6 +81,9 @@ public class ToolTip implements TooltipMakerAPI.TooltipCreator {
                 }
             }
         }
+    if (codexEntryId != null) {
+        tooltip.setCodexEntryId(codexEntryId);
+    }
 
     }
 }

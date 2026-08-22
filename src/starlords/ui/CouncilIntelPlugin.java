@@ -7,6 +7,7 @@ import com.fs.starfarer.api.campaign.comm.IntelInfoPlugin;
 import com.fs.starfarer.api.characters.PersonAPI;
 import com.fs.starfarer.api.impl.campaign.intel.BaseIntelPlugin;
 import com.fs.starfarer.api.ui.*;
+import com.fs.starfarer.api.util.Misc;
 import com.fs.starfarer.api.util.Pair;
 import starlords.controllers.LordController;
 import starlords.controllers.PoliticsController;
@@ -170,8 +171,10 @@ public class CouncilIntelPlugin extends BaseIntelPlugin {
         panel.addUIElement(supportPanel).belowLeft(voteHeader, opad);
         panel.addUIElement(supportButtonPanel).rightOfTop(supportPanel, opad);
 
-
-        int progress = (100 * totalSupport /  (totalSupport + totalOpposition));
+        int progress = 0;
+        if (totalSupport + totalOpposition != 0) {
+            progress = (100 * totalSupport / (totalSupport + totalOpposition));
+        }
         CustomPanelAPI debateBar = createDebateBar(panel, width * 0.8f, 40, progress);
         panel.addComponent(debateBar).belowLeft(supportPanel, 2 * opad);
         populateLords(panel, debateBar);
@@ -309,11 +312,18 @@ public class CouncilIntelPlugin extends BaseIntelPlugin {
         PersonAPI ruler = Utils.getLeader(currProposal.faction);
         if (ruler != null) {
             if (currProposal.isLiegeSupports()) {
+                if (currProposal.getFaction() == LordController.getPlayerLord().getFaction() && Misc.getCommissionFaction() == null)
+                    supporterTooltip.add("+" + PoliticsController.PLAYER_EXTRA_COUNCIL_WEIGHT
+                            + " Extra Player Weight");
                 supporterTooltip.add("x" + String.format("%.1f", PoliticsController.getLiegeMultiplier(currProposal.faction))
                         + " " + ruler.getNameString());
             } else {
+                if (currProposal.getFaction() == LordController.getPlayerLord().getFaction() && Misc.getCommissionFaction() == null)
+                    oppositionTooltip.add("+" + PoliticsController.PLAYER_EXTRA_COUNCIL_WEIGHT
+                            + " Extra Player Weight");
                 oppositionTooltip.add("x" + String.format("%.1f",PoliticsController.getLiegeMultiplier(currProposal.faction))
                         + " " + ruler.getNameString());
+
             }
         }
         return new Pair<>(supporterTooltip, oppositionTooltip);

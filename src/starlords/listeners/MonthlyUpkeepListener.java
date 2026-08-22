@@ -3,23 +3,17 @@ package starlords.listeners;
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.BaseCampaignEventListener;
 import com.fs.starfarer.api.campaign.CampaignFleetAPI;
-import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.util.Misc;
 import com.fs.starfarer.api.util.Pair;
-import starlords.controllers.FiefController;
-import starlords.controllers.LordController;
-import starlords.controllers.PoliticsController;
-import starlords.controllers.QuestController;
+import starlords.controllers.*;
 import org.apache.log4j.Logger;
 import starlords.person.Lord;
 import starlords.person.LordAction;
-import starlords.util.Constants;
-import starlords.util.DefectionUtils;
-import starlords.util.LordFleetFactory;
+import starlords.person.LordRequest;
+import starlords.util.*;
+import starlords.util.factionUtils.FactionTemplateController;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
 
 public class MonthlyUpkeepListener extends BaseCampaignEventListener {
 
@@ -34,6 +28,7 @@ public class MonthlyUpkeepListener extends BaseCampaignEventListener {
 
     @Override
     public void reportEconomyMonthEnd() {
+        if (Utils.nexEnabled()) NexerlinUtilitys.calculateInvasionsEnabled();
         // Give all lords their base monthly wage and pay fleet upkeep.
         List<Lord> lords = LordController.getLordsList();
         for (Lord lord : lords) {
@@ -47,7 +42,9 @@ public class MonthlyUpkeepListener extends BaseCampaignEventListener {
 
             Pair<Float, Float> result = PoliticsController.getBaseIncomeMultipliers(lord.getFaction());
             // give pirates some more base money since they can't own fiefs
-            if (Misc.isPirateFaction(lord.getFaction())) result.one *= 2f;
+            result.one *= (float) lord.getCommissionedIncomeMulti();
+            result.two *= (float) lord.getCommissionedIncomeMulti();
+            //if (Utils.isMinorFaction(lord.getFaction())) result.one *= 2f;
             lord.addWealth(result.one * Constants.LORD_MONTHLY_INCOME
                     + result.two * lord.getRanking() * Constants.LORD_MONTHLY_INCOME);
             CampaignFleetAPI fleet = lord.getLordAPI().getFleet();
@@ -56,41 +53,37 @@ public class MonthlyUpkeepListener extends BaseCampaignEventListener {
             }
             // maintenance cost is 15% of purchase cost, also use FP instead of DP for simplicity
             float cost = LordFleetFactory.COST_MULT * fleet.getFleetPoints() * 0.15f;
-            lord.addWealth(-1 * cost);
+            lord.addWealth((float) (-1 * cost * lord.getFleetUpkeepMulti()));
             //log.info("DEBUG: Lord " + lord.getLordAPI().getNameString() + " incurred expenses of " + cost);
         }
+        LifeAndDeathController.getInstance().runMonth();
         FiefController.onMonthPass();
         QuestController.getInstance().resetQuests();
+		FiefController.playerAssignFiefs();
         // check for lord betrayal
-        calculateLordBetrayal();
+        calculateLordsBetrayal();
     }
 
-    public void calculateLordBetrayal() {
-        // increase betrayal chance if faction is wiped out
-        HashSet<String> hasMarkets = new HashSet<>();
-        hasMarkets.add(Global.getSector().getPlayerFaction().getId()); // player faction can exist without fiefs
-        for (MarketAPI marketAPI : Global.getSector().getEconomy().getMarketsCopy()) {
-            hasMarkets.add(marketAPI.getFactionId());
-        }
+	public void calculateLordsBetrayal() {
 
-        for (Lord lord : LordController.getLordsList()) {
-            int chance;
-            if (!hasMarkets.contains(lord.getFaction().getId())) {
-                chance = 50;
-            } else {
-                chance = DefectionUtils.getAutoBetrayalChance(lord);
-            }
-            if (chance > 0) {
-                Random rand =  new Random(lord.getLordAPI().getId().hashCode() * Global.getSector().getClock().getTimestamp());
-                if (rand.nextInt(100) < chance) {
-                    DefectionUtils.performDefection(lord);
-                }
-            }
+		for (Lord lord : LordController.getLordsList()) {
+		    //if a lord is 'not allow to defect' or if a lords faction does not allow lords to join / leave.
+		    if (!lord.isAllowedToDefect() || !FactionTemplateController.getTemplate(lord.getFaction()).isCanStarlordsJoin()) continue;
+			LordRequest existingRequest = RequestController.getCurrentRequest(lord, LordRequest.FIEF_FOR_DEFECTION);
+			if (existingRequest != null) {
+				RequestController.endRequest(existingRequest);
+			}
+			else if (lord.wantsToDefect())
+				if (lord.shouldRequestFiefForDefection())
+					RequestController.addRequest(new LordRequest(LordRequest.FIEF_FOR_DEFECTION, lord));
+				else
+					DefectionUtils.performDefection(lord);
 
-            // player faction cant have lords if player is not leading the faction
-            if (lord.getFaction().isPlayerFaction() && Misc.getCommissionFaction() != null) {
-                DefectionUtils.performDefection(lord, Misc.getCommissionFaction(), true);
-            }
-        }
-    }
+
+			// player faction cant have lords if player is not leading the faction
+			if (lord.getFaction().isPlayerFaction() && Misc.getCommissionFaction() != null) {
+				DefectionUtils.performDefection(lord, Misc.getCommissionFaction(), true);
+			}
+		}
+	}
 }

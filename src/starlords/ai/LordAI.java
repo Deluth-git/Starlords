@@ -12,9 +12,9 @@ import com.fs.starfarer.api.campaign.rules.MemoryAPI;
 import com.fs.starfarer.api.fleet.ShipRolePick;
 import com.fs.starfarer.api.impl.campaign.ids.*;
 import com.fs.starfarer.api.impl.campaign.rulecmd.salvage.MarketCMD;
-import com.fs.starfarer.api.impl.combat.BattleCreationPluginImpl;
 import com.fs.starfarer.api.util.Misc;
 import com.fs.starfarer.api.util.Pair;
+import starlords.ai.utils.TargetUtils;
 import starlords.controllers.*;
 import exerelin.campaign.intel.groundbattle.GBUtils;
 import exerelin.campaign.intel.groundbattle.GroundBattleIntel;
@@ -26,7 +26,7 @@ import starlords.person.Lord;
 import starlords.person.LordAction;
 import starlords.person.LordEvent;
 import starlords.person.LordPersonality;
-import starlords.plugins.TournamentDialogPlugin;
+import starlords.person.LordRequest;
 import starlords.scripts.ActionCompleteScript;
 import starlords.ui.HostileEventIntelPlugin;
 import starlords.util.LordFleetFactory;
@@ -54,6 +54,7 @@ public class LordAI implements EveryFrameScript {
     public static final int FOLLOW_DURATION = 30;
     public static final int CAMPAIGN_COOLDOWN = 180;
     public static final int RAID_COOLDOWN = 45;  // applies per market, not per lord
+    public static final int CAMPAIGN_MAX_VIOLENCE_TOTAL= 30;
     public static final int CAMPAIGN_MAX_VIOLENCE= 6;
     public static final int RAID_MAX_VIOLENCE = 3;
     public static final int CAMPAIGN_MAX_DURATION = 120;
@@ -64,7 +65,6 @@ public class LordAI implements EveryFrameScript {
 
     private static Random rand = new Random();
     private float lastUpdate;
-    private boolean notifiedError = false;
     private final static HashSet<LordAction> sameFactionTargetActions = new HashSet<>(Arrays.asList(
             LordAction.FEAST, LordAction.COLLECT_TAXES));
     private final static HashSet<LordAction> friendlyTargetActions = new HashSet<>(Arrays.asList(
@@ -91,23 +91,10 @@ public class LordAI implements EveryFrameScript {
 
         lastUpdate = 0;
         for (Lord lord : LordController.getLordsList()) {
-            try {
-                if (lord.getCurrAction() == null) {
-                    chooseAssignment(lord);
-                }
-                progressAssignment(lord);
-            } catch (Exception e) {
-                if (!notifiedError) {
-                    notifiedError = true;
-                    Global.getSector().getCampaignUI().addMessage(
-                            "Error detected in lord AI. Please check logs for details.",
-                            Color.RED);
-                }
-                log.info("Encountered lord AI error: " + e + ", " + Arrays.toString(e.getStackTrace()));
-                EventController.removeFromAllEvents(lord);
-                lord.setCurrAction(null);
-                lord.getFleet().getAI().clearAssignments();
+            if (lord.getCurrAction() == null) {
+                chooseAssignment(lord);
             }
+            progressAssignment(lord);
         }
 
     }
@@ -184,7 +171,7 @@ public class LordAI implements EveryFrameScript {
         }
 
         LordEvent currFeast = null;
-        if (priority >= LordAction.FEAST.priority) {
+        if (priority >= LordAction.FEAST.priority && lord.canHoldFeast()) {
             int feastWeight = 0;
             currFeast = EventController.getCurrentFeast(faction);
             if (currFeast != null) {
@@ -194,7 +181,7 @@ public class LordAI implements EveryFrameScript {
                     priority = LordAction.FEAST.priority;
                 } else {
                     // weight of staying at feast
-                    if (!currFeast.getOriginator().equals(lord)) {
+                    if (currFeast.getOriginator() == null || !currFeast.getOriginator().equals(lord)) {
                         feastWeight = 20;
                         priority = LordAction.FEAST.priority;
                     } else if (Utils.getDaysSince(currFeast.getStart()) < FEAST_MAX_DURATION) {
@@ -347,7 +334,7 @@ public class LordAI implements EveryFrameScript {
                 if (target == null) {
                     targetEntity = lord.getClosestBase();
                     if (targetEntity == null) {
-                        targetEntity = Misc.findNearestLocalMarket(lord.getFleet(), 1e10f, null).getPrimaryEntity();
+                        targetEntity = Utils.findNearestMarket(lord.getFleet());
                     }
                 } else {
                     targetEntity = target;
@@ -420,7 +407,7 @@ public class LordAI implements EveryFrameScript {
                 } else {
                     SectorEntityToken rallyPoint = lord.getClosestBase(false);
                     if (rallyPoint == null) {
-                        rallyPoint = Misc.findNearestPlanetTo(lord.getFleet(), false, true);
+                        rallyPoint = Utils.findNearestLocation(lord.getFleet());
                     }
                     lord.setTarget(rallyPoint);
                     fleetAI.addAssignmentAtStart(
@@ -444,8 +431,13 @@ public class LordAI implements EveryFrameScript {
         CampaignFleetAIAPI fleetAI = lord.getFleet().getAI();
         final CampaignFleetAPI fleet = lord.getFleet();
         final MemoryAPI mem = fleet.getMemoryWithoutUpdate();
+
+        if (fleet != null)
+            if (fleet.isDoNotAdvanceAI())
+                fleet.setDoNotAdvanceAI(false);
+
         // check for lord fleet defeat
-        if (fleet.isEmpty() && lord.getCurrAction() != LordAction.RESPAWNING
+        if ((fleet.isEmpty() || fleet.getContainingLocation() == null) && lord.getCurrAction() != LordAction.RESPAWNING
                 && lord.getCurrAction() != LordAction.IMPRISONED) {
             beginRespawn(lord);
             return;
@@ -453,11 +445,11 @@ public class LordAI implements EveryFrameScript {
 
         // check if target is now invalid due to relation change
         boolean sameFactionFail = sameFactionTargetActions.contains(lord.getCurrAction().base)
-                && !lord.getFaction().equals(lord.getTarget().getFaction());
+                && (lord.getTarget() == null || !lord.getFaction().equals(lord.getTarget().getFaction()));
         boolean friendlyFactionFail = friendlyTargetActions.contains(lord.getCurrAction().base)
-                && lord.getFaction().isHostileTo(lord.getTarget().getFaction());
+                && (lord.getTarget() == null || lord.getFaction().isHostileTo(lord.getTarget().getFaction()));
         boolean hostileFactionFail = hostileTargetActions.contains(lord.getCurrAction().base)
-                && !lord.getFaction().isHostileTo(lord.getTarget().getFaction());
+                && (lord.getTarget() == null || !lord.getFaction().isHostileTo(lord.getTarget().getFaction()));
         if (sameFactionFail || friendlyFactionFail || hostileFactionFail) {
             EventController.removeFromAllEvents(lord);
             lord.setCurrAction(null);
@@ -506,8 +498,8 @@ public class LordAI implements EveryFrameScript {
                 if (Utils.getDaysSince(lord.getAssignmentStartTime()) > STANDBY_DURATION) {
                     for (SectorEntityToken marketEntity : lord.getFiefs()) {
                         MarketAPI market = marketEntity.getMarket();
-                        lord.addWealth(PoliticsController.getTaxMultiplier(lord.getFaction())
-                                * FiefController.getTax(market));
+                        lord.addWealth((float) (PoliticsController.getTaxMultiplier(lord.getFaction())
+                                                        * FiefController.getTax(market) * lord.getFiefIncomeMulti()));
                         FiefController.setTax(market, 0);
                     }
                     chooseAssignment(lord);
@@ -524,10 +516,10 @@ public class LordAI implements EveryFrameScript {
             case VENTURE:
                 if (Utils.getDaysSince(lord.getAssignmentStartTime()) > STANDBY_DURATION) {
                     MarketAPI market = lord.getTarget().getMarket();
-                    lord.addWealth(PoliticsController.getTradeMultiplier(lord.getFaction()) * FiefController.getTrade(market));
+                    lord.addWealth((float) (PoliticsController.getTradeMultiplier(lord.getFaction()) * FiefController.getTrade(market) * lord.getTradeIncomeMulti()));
                     // TODO make more frequent trades generate more taxes
-                    FiefController.setTax(market, FiefController.getTax(market)
-                            + PoliticsController.getTradeMultiplier(market.getFaction()) * FiefController.getTrade(market) / 2);
+                    FiefController.setTax(market, (float) ((FiefController.getTax(market)
+                                                + PoliticsController.getTradeMultiplier(market.getFaction()) * FiefController.getTrade(market) * 0.5) * lord.getTradeIncomeMulti()));
                     FiefController.setTrade(market, 0);
                     chooseAssignment(lord);
                 }
@@ -553,7 +545,10 @@ public class LordAI implements EveryFrameScript {
                     standby(lord, lord.getTarget(), StringUtil.getString(
                             CATEGORY, "fleet_feast_desc", lord.getTarget().getMarket().getName()));
                     LordEvent currFeast = EventController.getCurrentFeast(lord.getFaction());
-
+                    if (currFeast == null){
+                        chooseAssignment(lord);
+                        break;
+                    }
                     if (!currFeast.getPastParticipants().contains(lord)) {
                         RelationController.modifyRelation(lord, currFeast.getOriginator(), 3);
                         for (Lord participant : currFeast.getParticipants()) {
@@ -563,7 +558,7 @@ public class LordAI implements EveryFrameScript {
                             RelationController.modifyLoyalty(lord, 3);
                         }
                     }
-                    if (!currFeast.getOriginator().equals(lord)) {
+                    if (!lord.equals(currFeast.getOriginator())) {
                         if (!currFeast.getPastParticipants().contains(lord)) {
                             lord.setFeastInteracted(false);
                             currFeast.getPastParticipants().add(lord);
@@ -578,7 +573,8 @@ public class LordAI implements EveryFrameScript {
                     // if this lord is the feast holder and ends the feast, update feast controller
                     if (lord.getCurrAction() != LordAction.FEAST) {
                         LordEvent currFeast = EventController.getCurrentFeast(lord.getFaction());
-                        if (currFeast.getOriginator().equals(lord)) {
+                        if (currFeast == null) break;
+                        if (lord.equals(currFeast.getOriginator())) {
                             EventController.endFeast(currFeast);
                         } else {
                             currFeast.getParticipants().remove(lord);
@@ -601,6 +597,10 @@ public class LordAI implements EveryFrameScript {
                     Pair<LordEvent, Integer> newWeight = EventController.getPreferredRaidAttack(lord);
                     // sometimes stop raids randomly so they dont go on forever
                     LordEvent raid = EventController.getCurrentRaid(lord);
+                    if (raid == null){
+                        chooseAssignment(lord);
+                        return;
+                    }
                     FactionAPI faction = lord.getFaction();
                     if (lord.equals(raid.getOriginator()) && raid.getTarget().getMarket() != null) {
                         if (Utils.isSomewhatClose(lord.getFleet(), raid.getTarget())) {
@@ -626,8 +626,7 @@ public class LordAI implements EveryFrameScript {
                                         break;
                                 }
                                 if (!failed) {
-                                    raid.setTotalViolence(raid.getTotalViolence()
-                                            + raid.getOffensiveType().violence);
+                                    raid.increaseViolence(raid.getOffensiveType().violence);
                                 }
                                 lord.setActionText(null);
                                 raid.setOffensiveType(null);
@@ -636,6 +635,9 @@ public class LordAI implements EveryFrameScript {
                                     && Utils.isSomewhatClose(lord.getFleet(), raid.getTarget())) {
                                 // plan new offensive
                                 chooseNewOffensiveType(lord, raid);
+                                //if (raid.getOffensiveType() == null){
+                                    //this is coverd in the second line of the endRaid equadtion
+                                //}
                             }
                         } else {
                             // fleet is distracted, reset any offensive
@@ -645,7 +647,7 @@ public class LordAI implements EveryFrameScript {
                         }
                     }
                     boolean endRaid = raid.getTarget().getMarket() == null;
-                    endRaid |= raid.getOffensiveType() == null && (raid.getTotalViolence() >= RAID_MAX_VIOLENCE
+                    endRaid |= raid.getOffensiveType() == null && (TargetUtils.getViolenceLeft(raid) <= 0
                             || newWeight.two <= 0 || rand.nextInt(8) == 0);
                     if (endRaid) {
                         // choose new assignment
@@ -676,7 +678,7 @@ public class LordAI implements EveryFrameScript {
                     if (newWeight.two <= 0) {
                         // choose new assignment
                         LordEvent raid = EventController.getCurrentDefense(lord);
-                        raid.getOpposition().remove(lord);
+                        if (raid != null)raid.getOpposition().remove(lord);
                         chooseAssignment(lord);
                     } else {
                         // refresh assignment
@@ -688,12 +690,18 @@ public class LordAI implements EveryFrameScript {
                 if (Utils.getDaysSince(lord.getAssignmentStartTime()) > LARGE_OP_RECONSIDER_INTERVAL) {
                     FactionAPI faction = lord.getFaction();
                     LordEvent campaign = EventController.getCurrentCampaign(faction);
+                    if (campaign == null){
+                        lord.setCurrAction(null);
+                        chooseAssignment(lord);
+                        //yes this happened. I don't know how or why.
+                        return;
+                    }
                     int weight = EventController.getJoinCampaignWeight(lord);
                     if (campaign.getBattle() != null) {
                         // dont leave if battle ongoing
                         weight = Math.max(weight, 1);
                     }
-                    if (weight > 0 && campaign.getTotalViolence() < CAMPAIGN_MAX_VIOLENCE) {
+                    if (weight > 0 && TargetUtils.getCampaignViolenceLeft(campaign) > 0) {
                         // continue campaign
                         lord.setAssignmentStartTime(Global.getSector().getClock().getTimestamp());
                         if (campaign.getOriginator().equals(lord)) {
@@ -705,8 +713,7 @@ public class LordAI implements EveryFrameScript {
                                         // TODO add surviving troops back
                                         if (battle.getOutcome()
                                                 == GroundBattleIntel.BattleOutcome.ATTACKER_VICTORY) {
-                                            campaign.setTotalViolence(campaign.getTotalViolence()
-                                                    + LordEvent.OffensiveType.NEX_GROUND_BATTLE.violence);
+                                            campaign.increaseViolence(LordEvent.OffensiveType.NEX_GROUND_BATTLE.violence);
                                         }
                                         lord.setActionText(null);
                                         campaign.setBattle(null);
@@ -739,8 +746,9 @@ public class LordAI implements EveryFrameScript {
 
                             } else {
                                 MarketAPI target = campaign.getTarget().getMarket();
-                                if (target == null) {
+                                if (target == null/* || TargetUtils.getViolenceLeft(campaign) <= 0*/) {
                                     // market is gone somehow, possibly decivilized during campaign
+                                    //campaign.setTotalViolence(0);
                                     chooseNextCampaignTarget(lord, campaign);
                                 } else if (!lord.getFaction().isHostileTo(target.getFaction())) {
                                     // defensive campaign
@@ -827,8 +835,7 @@ public class LordAI implements EveryFrameScript {
                                                     break;
                                             }
                                             if (!failed) {
-                                                campaign.setTotalViolence(campaign.getTotalViolence()
-                                                        + campaign.getOffensiveType().violence);
+                                                campaign.increaseViolence(campaign.getOffensiveType().violence);
                                             }
                                             if (campaign.getBattle() == null) {
                                                 lord.setActionText(null);
@@ -839,9 +846,12 @@ public class LordAI implements EveryFrameScript {
                                         }
                                         if (lord.getFleet().getBattle() == null
                                                 && campaign.getOffensiveType() == null && campaign.getBattle() == null
-                                                && campaign.getTotalViolence() < CAMPAIGN_MAX_VIOLENCE) {
+                                                && TargetUtils.getViolenceLeft(campaign) > 0) {
                                             // plan new offensive
                                             chooseNewOffensiveType(lord, campaign);
+                                            if (campaign.getOffensiveType() == null){
+                                                campaign.setTarget(null);
+                                            }
                                         }
                                     } else {
                                         // fleet is distracted, reset any offensive
@@ -912,31 +922,41 @@ public class LordAI implements EveryFrameScript {
                 }
                 break;
             case IMPRISONED:
+                String message;
                 Lord captor = LordController.getLordOrPlayerById(lord.getCaptor());
                 if (captor == null || !captor.getFaction().isHostileTo(lord.getFaction())) {
                     beginRespawn(lord);
                     if (captor != null) {
                         lord.setCaptor(null);
                         captor.removePrisoner(lord.getLordAPI().getId());
-                        Global.getSector().getCampaignUI().addMessage(
-                                StringUtil.getString(CATEGORY_UI, "lord_freed_captivity",
-                                        lord.getTitle() + " " + lord.getLordAPI().getNameString()),
-                                lord.getFaction().getBaseUIColor());
+                        message = StringUtil.getString(CATEGORY_UI, "lord_freed_captivity",
+                                lord.getTitle() + " " + lord.getLordAPI().getNameString());
+                        Utils.showUIMessageCaptureStatus(message,lord.getFaction());
                     }
-                } else if (Utils.getDaysSince(lord.getAssignmentStartTime()) >= PRISON_ESCAPE_DURATION) {
-                    if (new Random(lord.getLordAPI().getId().hashCode()
-                            * lord.getAssignmentStartTime()).nextInt(100) < PRISON_ESCAPE_CHANCE) {
-                        if (captor.isPlayer()) {
-                            Global.getSector().getCampaignUI().addMessage(
-                                    StringUtil.getString(CATEGORY_UI, "lord_escaped_captivity",
-                                            lord.getTitle() + " " + lord.getLordAPI().getNameString(),
-                                            captor.getFaction().getDisplayName()), Color.RED);
+                } else
+                    if (Utils.getDaysSince(lord.getAssignmentStartTime()) >= PRISON_ESCAPE_DURATION) {
+                        if (new Random(lord.getLordAPI().getId().hashCode()
+                                * lord.getAssignmentStartTime()).nextInt(100) < PRISON_ESCAPE_CHANCE) {
+                            if (captor.isPlayer()) {
+                                Global.getSector().getCampaignUI().addMessage(
+                                        StringUtil.getString(CATEGORY_UI, "lord_escaped_captivity",
+                                                lord.getTitle() + " " + lord.getLordAPI().getNameString(),
+                                                captor.getFaction().getDisplayName()), Color.RED);
+                            }
+                            // TODO reduce relations with captor?
+                            captor.removePrisoner(lord.getLordAPI().getId());
+                            lord.setCaptor(null);
+                            beginRespawn(lord);
                         }
-                        // TODO reduce relations with captor?
-                        captor.removePrisoner(lord.getLordAPI().getId());
-                        lord.setCaptor(null);
-                        beginRespawn(lord);
-                    }
+                        else {
+                            lord.incrementEscapeAttempts();
+                            log.info("[Star Lords] " + lord.getLordAPI().getNameString()
+                                    + " has attempted escape " + lord.getEscapeAttempts() + " times.");
+
+                            if (lord.wantsToDefect() && lord.shouldRequestPrisonBreak()) {
+                                RequestController.addRequest(new LordRequest(LordRequest.PRISON_BREAK, lord));
+                            }
+                        }
                     lord.setAssignmentStartTime(Global.getSector().getClock().getTimestamp());
                 }
                 break;
@@ -1049,14 +1069,17 @@ public class LordAI implements EveryFrameScript {
     private static void completeRespawn(Lord lord) {
         CampaignFleetAPI fleet = lord.getFleet();
         SectorEntityToken respawnPoint = lord.getClosestBase();
-        if (respawnPoint == null) {
+        if (respawnPoint == null && fleet != null && fleet.getContainingLocation() != null) {
             respawnPoint = Misc.findNearestPlanetTo(fleet, false, true);
         }
-        respawnPoint.getContainingLocation().addEntity(fleet);
+        //added defenses against there being no planets left in a system. if everything here fails, its because there is nothing in a sector. no planets or markets. its done.
+        if (respawnPoint == null) respawnPoint = Utils.findNearestMarket(fleet);
+        if (respawnPoint == null) respawnPoint = Utils.findNearestLocation(fleet);
+        if (respawnPoint.getContainingLocation() != null) respawnPoint.getContainingLocation().addEntity(fleet);
         fleet.setLocation(respawnPoint.getLocation().x, respawnPoint.getLocation().y);
         LordFleetFactory.addToLordFleet(new ShipRolePick(lord.getTemplate().flagShip), fleet, new Random());
         fleet.getFleetData().getMembersInPriorityOrder().get(0).setFlagship(true);
-        float cost = LordFleetFactory.addToLordFleet(lord.getTemplate().shipPrefs, fleet, new Random(), 75, 1e8f);
+        float cost = LordFleetFactory.addToLordFleet(lord.getFleetComposition(), fleet, new Random(), 75, 1e8f);
         LordFleetFactory.populateCaptains(lord);
         lord.addWealth(-1 * cost);
         lord.setCurrAction(null);
@@ -1121,46 +1144,13 @@ public class LordAI implements EveryFrameScript {
     }
 
     private static void chooseNewOffensiveType(Lord lord, LordEvent event) {
-        int maxViolence = event.getType().equals(LordEvent.CAMPAIGN) ? CAMPAIGN_MAX_VIOLENCE : RAID_MAX_VIOLENCE;
+        String type = event.getType().equals(LordEvent.CAMPAIGN) ? TargetUtils.ATTACK_TYPE_CAMPAIGN : TargetUtils.ATTACK_TYPE_RAID;
         MarketAPI market = event.getTarget().getMarket();
-        ArrayList<LordEvent.OffensiveType> options = new ArrayList<>();
-        ArrayList<Integer> weights = new ArrayList<>();
-        int fuelCost = MarketCMD.getBombardmentCost(market, lord.getFleet());
-        int fuelAmt = (int) event.getTotalFuel();
-
-        // perform harassment if lord fleet can't challenge defenses
-        options.add(LordEvent.OffensiveType.RAID_GENERIC);
-        weights.add(3);
-        if (Utils.canRaidIndustry(market)) {
-            options.add(LordEvent.OffensiveType.RAID_INDUSTRY);
-            weights.add(3);
+        LordEvent.OffensiveType choice = TargetUtils.getOffencive(lord,market,event,type);
+        if (choice == null) {
+            event.setOffensiveType(null);
+            return;
         }
-        if (maxViolence >= LordEvent.OffensiveType.BOMBARD_TACTICAL.violence && fuelAmt >= fuelCost) {
-            options.add(LordEvent.OffensiveType.BOMBARD_TACTICAL);
-            weights.add(10);
-        }
-        if (lord.getPersonality().equals(LordPersonality.QUARRELSOME)
-                && maxViolence >= LordEvent.OffensiveType.BOMBARD_SATURATION.violence && fuelAmt >= fuelCost) {
-            options.add(LordEvent.OffensiveType.BOMBARD_SATURATION);
-            weights.add(20);
-        }
-        if (Utils.nexEnabled() && maxViolence >= LordEvent.OffensiveType.NEX_GROUND_BATTLE.violence) {
-            GroundBattleIntel tmp = new GroundBattleIntel(market, lord.getFaction(), market.getFaction());
-            tmp.init();
-            float defenderStr = GBUtils.estimateTotalDefenderStrength(tmp, true);
-            tmp.endImmediately();
-            float marines = event.getTotalMarines();
-            float heavies = event.getTotalArms();
-            marines = Math.max(0, marines - heavies * GroundUnitDef.getUnitDef(GroundUnitDef.HEAVY).personnel.mult);
-            float attackerStr = marines * GroundUnitDef.getUnitDef(GroundUnitDef.MARINE).strength
-                    + heavies * GroundUnitDef.getUnitDef(GroundUnitDef.HEAVY).strength;
-            if (attackerStr > 0.8 * defenderStr) {
-                options.add(LordEvent.OffensiveType.NEX_GROUND_BATTLE);
-                weights.add(20);
-            }
-        }
-
-        LordEvent.OffensiveType choice = Utils.weightedSample(options, weights, null);
         lord.getFleet().addAssignmentAtStart(FleetAssignment.GO_TO_LOCATION, market.getPrimaryEntity(), 2,
                 StringUtil.getString(CATEGORY, "offensive_" + choice.toString().toLowerCase(), "Preparing"), null);
         lord.getFleet().addAssignmentAtStart(FleetAssignment.ORBIT_PASSIVE, market.getPrimaryEntity(), 100,
